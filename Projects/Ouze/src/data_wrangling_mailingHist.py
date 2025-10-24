@@ -64,6 +64,44 @@ def adicionar_faixa_atraso(df, coluna_atraso='ATRASO'):
     )
     return df
 
+def adicionar_valor_principal(df_mailing_hist, df_cad_devf):
+    """
+    Adiciona a coluna VALORPRIN_FIN ao DataFrame de mailing_hist através de join com CAD_DEVF
+    O valor principal é o mesmo para o contrato independente da data
+    
+    Args:
+        df_mailing_hist (pd.DataFrame): DataFrame de mailing_hist (com coluna CONTRATO)
+        df_cad_devf (pd.DataFrame): DataFrame de CAD_DEVF (com colunas CONTRATO_FIN e VALORPRIN_FIN)
+    
+    Returns:
+        pd.DataFrame: DataFrame de mailing_hist com nova coluna VALORPRIN_FIN
+    """
+    # Fazer cópia para não alterar o original
+    df_resultado = df_mailing_hist.copy()
+    
+    # Garantir que os contratos estão no mesmo formato
+    df_resultado['CONTRATO'] = df_resultado['CONTRATO'].astype(str)
+    df_cad_devf_temp = df_cad_devf[['CONTRATO_FIN', 'VALORPRIN_FIN']].copy()
+    df_cad_devf_temp['CONTRATO_FIN'] = df_cad_devf_temp['CONTRATO_FIN'].astype(str)
+    
+    print(f"📊 Antes do join - Mailing: {len(df_resultado):,} | CAD_DEVF: {len(df_cad_devf_temp):,}")
+    
+    # Fazer o join apenas por CONTRATO
+    df_resultado = df_resultado.merge(
+        df_cad_devf_temp,
+        left_on='CONTRATO',
+        right_on='CONTRATO_FIN',
+        how='left'  # left join para manter todos os registros do mailing
+    )
+    
+    # Remover a coluna auxiliar CONTRATO_FIN
+    df_resultado = df_resultado.drop(columns=['CONTRATO_FIN'])
+    
+    print(f"📊 Após join: {len(df_resultado):,}")
+    print(f"📊 Contratos com valor: {df_resultado['VALORPRIN_FIN'].notna().sum():,}")
+    print(f"📊 Contratos sem valor: {df_resultado['VALORPRIN_FIN'].isna().sum():,}")
+    
+    return df_resultado
 
 def tratar_base_mailing_hist(df):
     """
@@ -77,6 +115,7 @@ def tratar_base_mailing_hist(df):
     """
     df = adicionar_produto(df)
     df = adicionar_faixa_atraso(df)
+    df = adicionar_valor_principal(df)
     return df
 
 

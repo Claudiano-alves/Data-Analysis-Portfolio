@@ -40,7 +40,6 @@ def get_query_discagens(dt_ini, dt_fim):
     FROM {tabela} A
     WHERE A.GrupoPrincipal IN (SELECT G.id_grupo FROM grupo G WHERE G.ID_CAMPANHA IN (19, 30))
     ')
-    WHERE DATA BETWEEN '{dt_ini}' AND '{dt_fim}'
     """
     return query
 
