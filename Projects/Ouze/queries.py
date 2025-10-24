@@ -123,3 +123,16 @@ def get_query_discagens_trestto(dt_ini, dt_fim):
     WHERE DATA BETWEEN '{dt_ini}' AND '{dt_fim}'
     """
     return query
+
+def get_query_tabulacao_aciona():
+    query = f"""
+        SELECT 
+            COD_ACIONA,
+            DESC_ACIONA,
+            CPC,
+            CPCA,
+            PROMESSA
+        FROM ACIONAMENTO_CARTEIRA
+        WHERE COD_CLI = 196
+    """
+    return query
