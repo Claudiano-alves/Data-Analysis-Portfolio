@@ -71,6 +71,24 @@ def adicionar_estado_por_ddd(df, coluna_ddd='ddd'):
     df['ESTADO'] = df[coluna_ddd].astype(str).str.zfill(2).map(DDD_ESTADO)
     return df
 
+# TRATANDO DISCAGENS EXPERT - ADICIONAR ORIGEM (ROBO OU HUMANO)
+def adicionar_definir_humano_robo(df_discagens_expert):
+    """
+    Adiciona a coluna ESTADO baseada no DDD
+    
+    Args:
+        df (pd.DataFrame): DataFrame com coluna de DDD
+        coluna_ddd (str): Nome da coluna que contém o DDD
+    
+    Returns:
+        pd.DataFrame: DataFrame com nova coluna 'ESTADO'
+    """
+    df_discagens_expert = df_discagens_expert.copy()
+    df_discagens_expert['ORIGEM'] = df_discagens_expert['OPERACAO'].apply(
+        lambda x: 'Robô' if x == 'AGV NEGOCIADORA' else 'Humano'
+    )
+    return df_discagens_expert
+
 
 def tratar_base_discagens(df):
     """
@@ -84,4 +102,5 @@ def tratar_base_discagens(df):
     """
     df = adicionar_operacao(df)
     df = adicionar_estado_por_ddd(df)
+    df = adicionar_definir_humano_robo(df)
     return df

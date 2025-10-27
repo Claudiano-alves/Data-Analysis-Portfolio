@@ -103,7 +103,7 @@ def adicionar_valor_principal(df_mailing_hist, df_cad_devf):
     
     return df_resultado
 
-def tratar_base_mailing_hist(df):
+def tratar_base_mailing_hist(df, df_cad_devf):
     """
     Aplica todos os tratamentos padrão para base de mailing_hist
     
@@ -115,7 +115,7 @@ def tratar_base_mailing_hist(df):
     """
     df = adicionar_produto(df)
     df = adicionar_faixa_atraso(df)
-    df = adicionar_valor_principal(df)
+    df = adicionar_valor_principal(df, df_cad_devf)
     return df
 
 

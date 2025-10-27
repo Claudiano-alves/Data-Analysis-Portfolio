@@ -136,3 +136,21 @@ def get_query_tabulacao_aciona():
         WHERE COD_CLI = 196
     """
     return query
+
+def get_query_base_acionamentos(dt_ini, dt_fim):
+    query = f"""
+        SELECT 
+            CAST(A.DATA_ACIONA AS DATE) DATA_ACIONA,
+            A.CONTRATO_FIN,
+            C.CPF_DEV,
+            B.COD_ACIONAMENTO
+        FROM ACIONA A 
+        LEFT JOIN CAD_ACIONAMENTO B ON A.COD_ACIONAMENTO = B.COD_ACIONAMENTO
+        INNER JOIN CAD_DEVF       C ON A.CONTRATO_FIN = C.CONTRATO_FIN
+        WHERE ((C.COD_CLI = 198 AND C.COD_CAR IN (1, 2, 3)) 
+            OR (C.COD_CLI = 196 AND C.COD_CAR IN (1, 3, 4)) 
+            OR (C.COD_CLI = 228 AND C.COD_CAR = 2))
+        AND B.CLASSIFICACAO_ACIONAMENTO = 1
+        AND CAST(A.DATA_ACIONA AS DATE) BETWEEN '{dt_ini}' AND '{dt_fim}'
+    """
+    return query
