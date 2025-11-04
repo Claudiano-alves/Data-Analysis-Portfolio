@@ -3,7 +3,7 @@ import pandas as pd
 
 FAIXAS_ATRASO_BINS = [float('-inf'), 0, 30, 60, 90, 120, 150, 180, 360, 720, float('inf')]
 FAIXAS_ATRASO_LABELS = [
-    'Menor 0',
+    'Preventivo',
     '0-30',
     '31-60',
     '61-90',

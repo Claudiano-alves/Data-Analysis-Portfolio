@@ -36,8 +36,10 @@ def get_query_discagens(dt_ini, dt_fim):
         A.MotivoEncerramentoBilhete,
         A.Instante200OKPub,
         A.Agente,
-        A.tempoconversacao_ms
+        A.tempoconversacao_ms,
+        c.codtabulacao
     FROM {tabela} A
+    LEFT JOIN tabulacaooper			c ON a.CallID = c.callid AND a.GrupoPrincipal = c.codgrupo
     WHERE A.GrupoPrincipal IN (SELECT G.id_grupo FROM grupo G WHERE G.ID_CAMPANHA IN (19, 30))
     ')
     """
@@ -57,8 +59,8 @@ def get_query_mailing_hist(dt_ini, dt_fim):
     query = f"""
     SELECT 
         DATA,
-        CONTRATO,
-        CPF,
+        UPPER(LTRIM(RTRIM(CONTRATO))) AS CONTRATO,
+        LTRIM(RTRIM(CPF)) AS CPF,
         ATRASO,
         COD_CLI,
         COD_CAR
@@ -79,8 +81,8 @@ def get_query_cad_devf():
     """
     query = """
     SELECT 
-        D.CPF_DEV,
-        D.CONTRATO_FIN,
+        LTRIM(RTRIM(D.CPF_DEV)) AS CPF_DEV,
+        UPPER(LTRIM(RTRIM(D.CONTRATO_FIN))) AS CONTRATO_FIN,
         D.VALORPRIN_FIN,
         D.VALOR_FIN,
         D.DTDEVOL_FIN,
@@ -140,17 +142,37 @@ def get_query_tabulacao_aciona():
 def get_query_base_acionamentos(dt_ini, dt_fim):
     query = f"""
         SELECT 
-            CAST(A.DATA_ACIONA AS DATE) DATA_ACIONA,
-            A.CONTRATO_FIN,
-            C.CPF_DEV,
-            B.COD_ACIONAMENTO
+            CAST(A.DATA_ACIONA AS DATE) AS DATA_ACIONA,
+            CAST(A.DATA_ACIONA AS TIME) AS HORA,
+            UPPER(LTRIM(RTRIM(A.CONTRATO_FIN))) AS CONTRATO_FIN,
+            LTRIM(RTRIM(C.CPF_DEV)) AS CPF_DEV,
+            LTRIM(RTRIM(A.COD_ACIONAMENTO)) AS COD_ACIONA,
+            LTRIM(RTRIM(B.DESC_ACIONAMENTO)) AS DESC_ACIONAMENTO,
+            LTRIM(RTRIM(REC.COD_RECUP)) AS COD_RECUP,
+            LTRIM(RTRIM(REC.NOME_RECUP)) AS NOME_RECUP,
+            LTRIM(RTRIM(REC.LOGIN_RECUP)) AS LOGIN_RECUP,
+            LTRIM(RTRIM(REC.ULTGRUPO_RECUP)) AS ULTGRUPO_RECUP,
+            LTRIM(RTRIM(C.COD_CLI)) AS COD_CLI,
+            C.VALORPRIN_FIN AS VALORPRIN_FIN,
+            LTRIM(RTRIM(C.STATCONT_FIN)) AS STATCONT_FIN,
+            C.DTDEVOL_FIN AS DTDEVOL_FIN,
+            C.DTENTRADA_FIN AS DTENTRADA_FIN,
+            LTRIM(RTRIM(B.CLASSIFICACAO_ACIONAMENTO)) AS CLASSIFICACAO_ACIONAMENTO
         FROM ACIONA A 
         LEFT JOIN CAD_ACIONAMENTO B ON A.COD_ACIONAMENTO = B.COD_ACIONAMENTO
+        LEFT JOIN CAD_RECUP REC ON REC.COD_RECUP = A.COD_RECUP
         INNER JOIN CAD_DEVF       C ON A.CONTRATO_FIN = C.CONTRATO_FIN
         WHERE ((C.COD_CLI = 198 AND C.COD_CAR IN (1, 2, 3)) 
             OR (C.COD_CLI = 196 AND C.COD_CAR IN (1, 3, 4)) 
             OR (C.COD_CLI = 228 AND C.COD_CAR = 2))
-        AND B.CLASSIFICACAO_ACIONAMENTO = 1
         AND CAST(A.DATA_ACIONA AS DATE) BETWEEN '{dt_ini}' AND '{dt_fim}'
+    """
+    return query
+
+def get_query_dw_calendario():
+    query = """
+        SELECT 
+            *
+        FROM DW_CALENDARIO
     """
     return query
