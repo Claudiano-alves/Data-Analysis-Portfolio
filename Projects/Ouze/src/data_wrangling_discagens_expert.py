@@ -283,118 +283,8 @@ def enriquecer_com_mailing_calendario(df_discagens, df_mailing_hist, df_dw_calen
     return df_com_fx_atraso, df_sem_fx_atraso
 
 # FUNIL
-def acionamentos_fxAtraso_origem_expert(df_com_fx_atraso, df_dw_calendario):
-    """
-    Gera contagem acumulada mensal de acionamentos únicos por CPF (melhor score) por FX_ATRASO e ORIGEM.
-    
-    Args:
-        df_com_fx_atraso (pd.DataFrame): DataFrame enriquecido com FX_ATRASO preenchido
-        df_dw_calendario (pd.DataFrame): DataFrame com dados de calendário
-    
-    Returns:
-        pd.DataFrame: DataFrame com contagens acumuladas mensais únicas por faixa de atraso e origem
-    """
-    import warnings
-    warnings.filterwarnings("ignore", category=FutureWarning)
 
-    df = df_com_fx_atraso.copy()
-    
-    # Criar coluna ORIGEM com valor "Robô"
-    df['ORIGEM'] = 'Robô'
-    
-    df['DATA'] = pd.to_datetime(df['DATA'])
-
-    # Datas únicas ordenadas
-    datas_unicas = df['DATA'].sort_values().unique()
-    resultados = []
-
-    print(f"📊 Processando acumulado mensal ÚNICO (melhor score por CPF) para {len(datas_unicas)} datas...")
-
-    for i, data in enumerate(datas_unicas, 1):
-        if i % 10 == 0 or i == len(datas_unicas):
-            print(f"   Processando {i}/{len(datas_unicas)} datas...")
-        
-        inicio_mes = pd.Timestamp(data.year, data.month, 1)
-        
-        # 1. Filtrar intervalo do início do mês até a data atual
-        df_intervalo = df[(df['DATA'] >= inicio_mes) & (df['DATA'] <= data)].copy()
-        
-        # 2. Calcular score de tabulação
-        df_intervalo['TABULACAO_SCORE'] = (
-            df_intervalo['PROMESSA'].astype(int) * 3 +
-            df_intervalo['CPCA'].astype(int) * 2 +
-            df_intervalo['CPC'].astype(int) * 1
-        )
-        
-        # 3. Ordenar por CPF e score (maior score primeiro)
-        df_intervalo = df_intervalo.sort_values(
-            ['CPF', 'FX_ATRASO', 'TABULACAO_SCORE'],
-            ascending=[True, False]
-        )
-        
-        # 4. Manter apenas o melhor score por CPF (unique)
-        df_unique = df_intervalo.drop_duplicates(
-            subset=['CPF'],
-            keep='first'
-        ).copy()
-        
-        # 5. Agrupar por FX_ATRASO e ORIGEM
-        agrupado = df_unique.groupby(['FX_ATRASO', 'ORIGEM']).apply(lambda g: pd.Series({
-            'ACIONAMENTOS': g['ACIONAMENTOS'].sum(),
-            'VALORPRIN_FIN_ACIONAMENTOS': g.loc[g['ACIONAMENTOS'] == 1, 'VALORPRIN_FIN'].sum(),
-            'CPC': g['CPC'].sum(),
-            'VALORPRIN_FIN_CPC': g.loc[g['CPC'] == 1, 'VALORPRIN_FIN'].sum(),
-            'CPCA': g['CPCA'].sum(),
-            'VALORPRIN_FIN_CPCA': g.loc[g['CPCA'] == 1, 'VALORPRIN_FIN'].sum(),
-            'PROMESSA': g['PROMESSA'].sum(),
-            'VALORPRIN_FIN_PROMESSA': g.loc[g['PROMESSA'] == 1, 'VALORPRIN_FIN'].sum()
-        })).reset_index()
-        
-        agrupado['DATA'] = data
-        resultados.append(agrupado)
-
-    # Concatenar tudo
-    df_final = pd.concat(resultados, ignore_index=True)
-
-    # Cruzar com calendário
-    df_dw_calendario_temp = df_dw_calendario.copy()
-    df_dw_calendario_temp['dt_data'] = pd.to_datetime(df_dw_calendario_temp['dt_data'])
-    
-    print(f"\n📅 Merge com dw_calendario...")
-    df_final = df_final.merge(
-        df_dw_calendario_temp[['dt_data', 'nr_dia_util', 'quartil', 'dt_mes', 'mes_abreviado']],
-        left_on='DATA',
-        right_on='dt_data',
-        how='left'
-    ).drop(columns=['dt_data'])
-
-    # Identificar colunas numéricas
-    colunas_numericas = df_final.select_dtypes(include=['number']).columns
-
-    # Preencher NaN com 0 apenas nas colunas numéricas
-    df_final[colunas_numericas] = df_final[colunas_numericas].fillna(0)
-
-    # Reordenar colunas
-    colunas_ordenadas = [
-        'DATA', 'FX_ATRASO', 'ORIGEM',
-        'ACIONAMENTOS', 'VALORPRIN_FIN_ACIONAMENTOS',
-        'CPC', 'VALORPRIN_FIN_CPC',
-        'CPCA', 'VALORPRIN_FIN_CPCA',
-        'PROMESSA', 'VALORPRIN_FIN_PROMESSA',
-        'nr_dia_util', 'quartil', 'dt_mes', 'mes_abreviado'
-    ]
-    df_final = df_final[colunas_ordenadas]
-
-    print(f"   ✓ Registros finais: {len(df_final):,}")
-    print(f"\n📈 Totais acumulados ÚNICOS (última data):")
-    print(f"   ✓ ACIONAMENTOS: {df_final[df_final['DATA'] == df_final['DATA'].max()]['ACIONAMENTOS'].sum():,}")
-    print(f"   ✓ CPC: {df_final[df_final['DATA'] == df_final['DATA'].max()]['CPC'].sum():,}")
-    print(f"   ✓ CPCA: {df_final[df_final['DATA'] == df_final['DATA'].max()]['CPCA'].sum():,}")
-    print(f"   ✓ PROMESSA: {df_final[df_final['DATA'] == df_final['DATA'].max()]['PROMESSA'].sum():,}")
-
-    return df_final
-
-def acionamentos_unique_fxAtraso_origem_expert(df_com_fx_atraso, df_dw_calendario):
+def acionamentos_unique_origem_expert(df_com_fx_atraso, df_dw_calendario):
     """
     Gera contagem acumulada mensal de acionamentos únicos por CPF (melhor score) por FX_ATRASO e ORIGEM.
     
@@ -462,6 +352,7 @@ def acionamentos_unique_fxAtraso_origem_expert(df_com_fx_atraso, df_dw_calendari
         })).reset_index()
         
         agrupado['DATA'] = data
+        
         resultados.append(agrupado)
 
     # Concatenar tudo
@@ -503,6 +394,7 @@ def acionamentos_unique_fxAtraso_origem_expert(df_com_fx_atraso, df_dw_calendari
     print(f"   ✓ CPCA: {df_final[df_final['DATA'] == df_final['DATA'].max()]['CPCA'].sum():,}")
     print(f"   ✓ PROMESSA: {df_final[df_final['DATA'] == df_final['DATA'].max()]['PROMESSA'].sum():,}")
 
+    df_final['FX_ATRASO'] = 'Unique'
     return df_final
 
 def acionamentos_esforco_fxAtraso_origem_expert(df_com_fx_atraso, df_dw_calendario):
@@ -590,6 +482,119 @@ def acionamentos_esforco_fxAtraso_origem_expert(df_com_fx_atraso, df_dw_calendar
 
     print(f"   ✓ Registros finais: {len(df_final):,}")
     print(f"\n📈 Totais acumulados:")
+    print(f"   ✓ ACIONAMENTOS: {df_final[df_final['DATA'] == df_final['DATA'].max()]['ACIONAMENTOS'].sum():,}")
+    print(f"   ✓ CPC: {df_final[df_final['DATA'] == df_final['DATA'].max()]['CPC'].sum():,}")
+    print(f"   ✓ CPCA: {df_final[df_final['DATA'] == df_final['DATA'].max()]['CPCA'].sum():,}")
+    print(f"   ✓ PROMESSA: {df_final[df_final['DATA'] == df_final['DATA'].max()]['PROMESSA'].sum():,}")
+
+    df_final['FX_ATRASO'] = 'Esforço'
+    return df_final
+
+def acionamentos_unique_fxAtraso_origem(df_com_fx_atraso, df_dw_calendario):
+    """
+    Gera contagem acumulada mensal de acionamentos únicos por CPF e FX_ATRASO (melhor score) por ORIGEM.
+    Permite que o mesmo CPF seja contado em faixas de atraso diferentes.
+    
+    Args:
+        df_com_fx_atraso (pd.DataFrame): DataFrame enriquecido com FX_ATRASO preenchido
+        df_dw_calendario (pd.DataFrame): DataFrame com dados de calendário
+    
+    Returns:
+        pd.DataFrame: DataFrame com contagens acumuladas mensais únicas por CPF e faixa de atraso
+    """
+    import warnings
+    warnings.filterwarnings("ignore", category=FutureWarning)
+
+    df = df_com_fx_atraso.copy()
+    
+    # Criar coluna ORIGEM com valor "Robô"
+    df['ORIGEM'] = 'Robô'
+    
+    df['DATA'] = pd.to_datetime(df['DATA'])
+
+    # Datas únicas ordenadas
+    datas_unicas = df['DATA'].sort_values().unique()
+    resultados = []
+
+    print(f"📊 Processando acumulado mensal ÚNICO por CPF + FX_ATRASO (melhor score) para {len(datas_unicas)} datas...")
+
+    for i, data in enumerate(datas_unicas, 1):
+        if i % 10 == 0 or i == len(datas_unicas):
+            print(f"   Processando {i}/{len(datas_unicas)} datas...")
+        
+        inicio_mes = pd.Timestamp(data.year, data.month, 1)
+        
+        # 1. Filtrar intervalo do início do mês até a data atual
+        df_intervalo = df[(df['DATA'] >= inicio_mes) & (df['DATA'] <= data)].copy()
+        
+        # 2. Calcular score de tabulação
+        df_intervalo['TABULACAO_SCORE'] = (
+            df_intervalo['PROMESSA'].astype(int) * 3 +
+            df_intervalo['CPCA'].astype(int) * 2 +
+            df_intervalo['CPC'].astype(int) * 1
+        )
+        
+        # 3. Ordenar por CPF, FX_ATRASO e score (maior score primeiro)
+        df_intervalo = df_intervalo.sort_values(
+            ['CPF', 'FX_ATRASO', 'TABULACAO_SCORE'],
+            ascending=[True, True, False]
+        )
+        
+        # 4. Manter apenas o melhor score por CPF + FX_ATRASO (unique por faixa)
+        df_unique = df_intervalo.drop_duplicates(
+            subset=['CPF', 'FX_ATRASO'],
+            keep='first'
+        ).copy()
+        
+        # 5. Agrupar por FX_ATRASO e ORIGEM
+        agrupado = df_unique.groupby(['FX_ATRASO', 'ORIGEM']).apply(lambda g: pd.Series({
+            'ACIONAMENTOS': g['ACIONAMENTOS'].sum(),
+            'VALORPRIN_FIN_ACIONAMENTOS': g.loc[g['ACIONAMENTOS'] == 1, 'VALORPRIN_FIN'].sum(),
+            'CPC': g['CPC'].sum(),
+            'VALORPRIN_FIN_CPC': g.loc[g['CPC'] == 1, 'VALORPRIN_FIN'].sum(),
+            'CPCA': g['CPCA'].sum(),
+            'VALORPRIN_FIN_CPCA': g.loc[g['CPCA'] == 1, 'VALORPRIN_FIN'].sum(),
+            'PROMESSA': g['PROMESSA'].sum(),
+            'VALORPRIN_FIN_PROMESSA': g.loc[g['PROMESSA'] == 1, 'VALORPRIN_FIN'].sum()
+        })).reset_index()
+        
+        agrupado['DATA'] = data
+        resultados.append(agrupado)
+
+    # Concatenar tudo
+    df_final = pd.concat(resultados, ignore_index=True)
+
+    # Cruzar com calendário
+    df_dw_calendario_temp = df_dw_calendario.copy()
+    df_dw_calendario_temp['dt_data'] = pd.to_datetime(df_dw_calendario_temp['dt_data'])
+    
+    print(f"\n📅 Merge com dw_calendario...")
+    df_final = df_final.merge(
+        df_dw_calendario_temp[['dt_data', 'nr_dia_util', 'quartil', 'dt_mes', 'mes_abreviado']],
+        left_on='DATA',
+        right_on='dt_data',
+        how='left'
+    ).drop(columns=['dt_data'])
+
+    # Identificar colunas numéricas
+    colunas_numericas = df_final.select_dtypes(include=['number']).columns
+
+    # Preencher NaN com 0 apenas nas colunas numéricas
+    df_final[colunas_numericas] = df_final[colunas_numericas].fillna(0)
+
+    # Reordenar colunas
+    colunas_ordenadas = [
+        'DATA', 'FX_ATRASO', 'ORIGEM',
+        'ACIONAMENTOS', 'VALORPRIN_FIN_ACIONAMENTOS',
+        'CPC', 'VALORPRIN_FIN_CPC',
+        'CPCA', 'VALORPRIN_FIN_CPCA',
+        'PROMESSA', 'VALORPRIN_FIN_PROMESSA',
+        'nr_dia_util', 'quartil', 'dt_mes', 'mes_abreviado'
+    ]
+    df_final = df_final[colunas_ordenadas]
+
+    print(f"   ✓ Registros finais: {len(df_final):,}")
+    print(f"\n📈 Totais acumulados ÚNICOS por CPF+FAIXA (última data):")
     print(f"   ✓ ACIONAMENTOS: {df_final[df_final['DATA'] == df_final['DATA'].max()]['ACIONAMENTOS'].sum():,}")
     print(f"   ✓ CPC: {df_final[df_final['DATA'] == df_final['DATA'].max()]['CPC'].sum():,}")
     print(f"   ✓ CPCA: {df_final[df_final['DATA'] == df_final['DATA'].max()]['CPCA'].sum():,}")
