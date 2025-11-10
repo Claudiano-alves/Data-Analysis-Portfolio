@@ -6,3 +6,4 @@ ENV/
 *.pyc
 __pycache__/
 .env
+logs

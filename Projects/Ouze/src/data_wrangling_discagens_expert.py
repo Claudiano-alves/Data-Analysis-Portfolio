@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+from src.utils import unir_dataframes, salvar_log, registrar_tempo
 
 # ============================================
 # DICIONÁRIOS E CONSTANTES
@@ -89,7 +90,7 @@ def adicionar_definir_humano_robo(df_discagens_expert):
     )
     return df_discagens_expert
 
-
+@registrar_tempo("Enriquecimento base de discagens expert")
 def tratar_base_discagens(df):
     """
     Aplica todos os tratamentos padrão para base de discagens
@@ -103,8 +104,13 @@ def tratar_base_discagens(df):
     df = adicionar_operacao(df)
     df = adicionar_estado_por_ddd(df)
     df = adicionar_definir_humano_robo(df)
+
+    salvar_log(f"✅ Enriquecido!")
     return df
 
+# MONTA DF COM AS TABULAÇÕES DO ROBÔ
+
+@registrar_tempo("DF com as tabulações do Robô")
 def df_acionamento_robo():
     """
     Cria um DataFrame com classificação de códigos de tabulação.
@@ -117,7 +123,6 @@ def df_acionamento_robo():
             - CPCA: 1 se o código é classificado como CPCA, 0 caso contrário
             - PROMESSA: 1 se o código é classificado como Promessa, 0 caso contrário
     """
-    
     # Definir os códigos de cada categoria
     codigos_alo = [
         '10','13','15','20','21','23','24','4','45','6','16','120','152','159','161',
@@ -155,15 +160,19 @@ def df_acionamento_robo():
     df_tabulacoes['CPCA'] = df_tabulacoes['COD_TABULACAO'].isin(codigos_cpca).astype(int)
     df_tabulacoes['PROMESSA'] = df_tabulacoes['COD_TABULACAO'].isin(codigos_promessa).astype(int)
     
-    print(f"✅ DataFrame de classificação de tabulações criado!")
-    print(f"   📊 Total de códigos: {len(df_tabulacoes)}")
-    print(f"   ✓ ACIONAMENTOS: {df_tabulacoes['ACIONAMENTOS'].sum()} códigos")
-    print(f"   ✓ CPC: {df_tabulacoes['CPC'].sum()} códigos")
-    print(f"   ✓ CPCA: {df_tabulacoes['CPCA'].sum()} códigos")
-    print(f"   ✓ PROMESSA: {df_tabulacoes['PROMESSA'].sum()} códigos")
+    salvar_log("="*80)
+    salvar_log(f"✅ DataFrame de classificação de tabulações criado!")
+    salvar_log(f"   📊 Total de códigos: {len(df_tabulacoes)}")
+    salvar_log(f"   ✓ ACIONAMENTOS: {df_tabulacoes['ACIONAMENTOS'].sum()} códigos")
+    salvar_log(f"   ✓ CPC: {df_tabulacoes['CPC'].sum()} códigos")
+    salvar_log(f"   ✓ CPCA: {df_tabulacoes['CPCA'].sum()} códigos")
+    salvar_log(f"   ✓ PROMESSA: {df_tabulacoes['PROMESSA'].sum()} códigos")
+    salvar_log("="*80)
     
     return df_tabulacoes
 
+# CRUZAMENTO QUE DEFINE AS TABULAÇÕES
+@registrar_tempo("Discagens Expert")
 def enriquecer_discagens_expert(df_discagens_expert, df_acionamentos_tabulacaoRobo):
     """
     Enriquece o DataFrame de discagens_expert com classificações de tabulação.
@@ -175,32 +184,44 @@ def enriquecer_discagens_expert(df_discagens_expert, df_acionamentos_tabulacaoRo
             deve conter as colunas 'COD_TABULACAO', 'ACIONAMENTOS', 'CPC', 'CPCA', 'PROMESSA'
     
     Returns:
-        pd.DataFrame: DataFrame enriquecido com as colunas ACIONAMENTOS, CPC, CPCA e PROMESSA
+        pd.DataFrame: DataFrame enriquecido com as colunas TRABALHADO, ACIONAMENTOS, CPC, CPCA e PROMESSA
     """
-    
-    print(f"📊 Merge com classificações de tabulação...")
-    print(f"   Registros antes: {len(df_discagens_expert):,}")
+    salvar_log("="*80)
+    salvar_log(f"📊 Merge com classificações de tabulação...")
+    salvar_log(f"   Registros antes: {len(df_discagens_expert):,}")
     
     # Realizar o merge
     df_resultado = df_discagens_expert.merge(
         df_acionamentos_tabulacaoRobo[['COD_TABULACAO', 'ACIONAMENTOS', 'CPC', 'CPCA', 'PROMESSA']],
         left_on='codtabulacao',
         right_on='COD_TABULACAO',
-        how='inner'
+        how='left'
     ).drop(columns=['COD_TABULACAO'])  # Remove coluna duplicada após merge
     
-    print(f"   ✓ Registros após merge: {len(df_resultado):,}")
-    print(f"   ✓ Registros perdidos: {len(df_discagens_expert) - len(df_resultado):,}")
+    # Adicionar coluna TRABALHADO com valor 1 para todas as linhas
+    # Inserir antes da coluna ACIONAMENTOS
+    col_idx = df_resultado.columns.get_loc('ACIONAMENTOS')
+    df_resultado.insert(col_idx, 'TRABALHADO', 1)
+    
+    # Substituir valores NaN por 0 nas colunas de indicadores
+    colunas_indicadores = ['ACIONAMENTOS', 'CPC', 'CPCA', 'PROMESSA']
+    df_resultado[colunas_indicadores] = df_resultado[colunas_indicadores].fillna(0)
+    
+    salvar_log(f"   ✓ Registros após merge: {len(df_resultado):,}")
+    salvar_log(f"   ✓ Registros perdidos: {len(df_discagens_expert) - len(df_resultado):,}")
     
     # Estatísticas das classificações
-    print(f"\n📈 Distribuição das classificações:")
-    print(f"   ✓ ACIONAMENTOS: {df_resultado['ACIONAMENTOS'].sum():,} registros")
-    print(f"   ✓ CPC: {df_resultado['CPC'].sum():,} registros")
-    print(f"   ✓ CPCA: {df_resultado['CPCA'].sum():,} registros")
-    print(f"   ✓ PROMESSA: {df_resultado['PROMESSA'].sum():,} registros")
-    
+    salvar_log(f"\n📈 Distribuição das classificações:")
+    salvar_log(f"   ✓ TRABALHADO: {df_resultado['TRABALHADO'].sum():,} registros")
+    salvar_log(f"   ✓ ACIONAMENTOS: {int(df_resultado['ACIONAMENTOS'].sum()):,} registros")
+    salvar_log(f"   ✓ CPC: {int(df_resultado['CPC'].sum()):,} registros")
+    salvar_log(f"   ✓ CPCA: {int(df_resultado['CPCA'].sum()):,} registros")
+    salvar_log(f"   ✓ PROMESSA: {int(df_resultado['PROMESSA'].sum()):,} registros")
+    salvar_log("="*80)
+
     return df_resultado
 
+@registrar_tempo("Enriquecimento maling hist e calendário")
 def enriquecer_com_mailing_calendario(df_discagens, df_mailing_hist, df_dw_calendario):
     """
     Enriquece o DataFrame de discagens com dados de mailing_hist e calendário.
@@ -234,8 +255,9 @@ def enriquecer_com_mailing_calendario(df_discagens, df_mailing_hist, df_dw_calen
     df_resultado['DATA'] = pd.to_datetime(df_resultado['DATA']).dt.date
     df_mailing_temp['DATA'] = pd.to_datetime(df_mailing_temp['DATA']).dt.date
     
-    print(f"📊 Merge com mailing_hist...")
-    print(f"   Registros antes: {len(df_resultado):,}")
+    salvar_log("="*80)
+    salvar_log(f"📊 Merge com mailing_hist...")
+    salvar_log(f"   Registros antes: {len(df_resultado):,}")
     
     df_resultado = df_resultado.merge(
         df_mailing_temp,
@@ -243,9 +265,9 @@ def enriquecer_com_mailing_calendario(df_discagens, df_mailing_hist, df_dw_calen
         how='left'
     )
     
-    print(f"   ✓ Registros após merge: {len(df_resultado):,}")
+    salvar_log(f"   ✓ Registros após merge: {len(df_resultado):,}")
     registros_sem_fx = df_resultado['FX_ATRASO'].isna().sum()
-    print(f"   ⚠️  Registros sem FX_ATRASO: {registros_sem_fx:,}")
+    salvar_log(f"   ⚠️  Registros sem FX_ATRASO: {registros_sem_fx:,}")
     
     # ============================================
     # ENRIQUECER COM DW_CALENDARIO
@@ -256,8 +278,8 @@ def enriquecer_com_mailing_calendario(df_discagens, df_mailing_hist, df_dw_calen
     
     df_calendario_reduzido = df_dw_calendario_temp[['dt_data', 'nr_dia_util', 'quartil', 'dt_mes', 'mes_abreviado']]
     
-    print(f"\n📅 Merge com dw_calendario...")
-    print(f"   Registros antes: {len(df_resultado):,}")
+    salvar_log(f"\n📅 Merge com dw_calendario...")
+    salvar_log(f"   Registros antes: {len(df_resultado):,}")
     
     df_resultado = df_resultado.merge(
         df_calendario_reduzido,
@@ -266,9 +288,9 @@ def enriquecer_com_mailing_calendario(df_discagens, df_mailing_hist, df_dw_calen
         how='left'
     ).drop(columns=['dt_data'])  # Remove coluna duplicada após merge
     
-    print(f"   ✓ Registros após merge: {len(df_resultado):,}")
+    salvar_log(f"   ✓ Registros após merge: {len(df_resultado):,}")
     registros_sem_calendario = df_resultado['nr_dia_util'].isna().sum()
-    print(f"   ⚠️  Registros sem dados de calendário: {registros_sem_calendario:,}")
+    salvar_log(f"   ⚠️  Registros sem dados de calendário: {registros_sem_calendario:,}")
     
     # ============================================
     # SEPARAR EM DOIS DATAFRAMES
@@ -276,15 +298,188 @@ def enriquecer_com_mailing_calendario(df_discagens, df_mailing_hist, df_dw_calen
     df_com_fx_atraso = df_resultado[df_resultado['FX_ATRASO'].notna()].copy()
     df_sem_fx_atraso = df_resultado[df_resultado['FX_ATRASO'].isna()].copy()
     
-    print(f"\n📦 Separação dos DataFrames:")
-    print(f"   ✓ Registros COM FX_ATRASO: {len(df_com_fx_atraso):,}")
-    print(f"   ✓ Registros SEM FX_ATRASO: {len(df_sem_fx_atraso):,}")
-    
+    salvar_log(f"\n📦 Separação dos DataFrames:")
+    salvar_log(f"   ✓ Registros COM FX_ATRASO: {len(df_com_fx_atraso):,}")
+    salvar_log(f"   ✓ Registros SEM FX_ATRASO: {len(df_sem_fx_atraso):,}")
+    salvar_log("="*80)
     return df_com_fx_atraso, df_sem_fx_atraso
+
+@registrar_tempo("Segmentando base de discagens enriquecida")
+def segmentacao_discagens(df):
+    """
+    Separa o DataFrame em 3 grupos conforme critérios específicos:
+    1. ORIGEM = 'Humano' E ACIONAMENTOS = 1
+    2. OPERACAO = 'Outros'
+    3. Restante (demais registros)
+    
+    Parâmetros:
+    -----------
+    df : pandas.DataFrame
+        DataFrame original com os dados de discagens
+        
+    Retorna:
+    --------
+    dict : Dicionário com 3 DataFrames
+        - 'humano_primeiro_acionamento': Registros com ORIGEM='Humano' e ACIONAMENTOS=1
+        - 'operacao_outros': Registros com OPERACAO='Outros'
+        - 'restante': Demais registros
+    """
+    
+    # Criar cópias para evitar warnings do pandas
+    df_trabalho = df.copy()
+    
+    # 1. Filtrar casos: ORIGEM = "Humano" E ACIONAMENTOS = 1
+    condicao_humano = (df_trabalho['ORIGEM'] == 'Humano') & (df_trabalho['ACIONAMENTOS'] == 1)
+    df_humano_primeiro = df_trabalho[condicao_humano].copy()
+    
+    # Remover esses registros do DataFrame de trabalho
+    df_trabalho = df_trabalho[~condicao_humano].copy()
+    
+    # 2. Filtrar casos: OPERACAO = "Outros"
+    condicao_outros = df_trabalho['OPERACAO'] == 'Outros'
+    df_operacao_outros = df_trabalho[condicao_outros].copy()
+    
+    # 3. Restante dos dados
+    df_restante = df_trabalho[~condicao_outros].copy()
+    
+    # Exibir resumo da separação
+    salvar_log("="*60)
+    salvar_log("RESUMO DA SEPARAÇÃO DE DADOS")
+    salvar_log("="*60)
+    salvar_log(f"Total de registros original: {len(df):,}")
+    salvar_log(f"\n1. Humano + Primeiro Acionamento: {len(df_humano_primeiro):,} registros ({len(df_humano_primeiro)/len(df)*100:.2f}%)")
+    salvar_log(f"2. Operação 'Outros': {len(df_operacao_outros):,} registros ({len(df_operacao_outros)/len(df)*100:.2f}%)")
+    salvar_log(f"3. Restante: {len(df_restante):,} registros ({len(df_restante)/len(df)*100:.2f}%)")
+    salvar_log(f"\nVerificação: {len(df_humano_primeiro) + len(df_operacao_outros) + len(df_restante):,} registros")
+    salvar_log("="*60)
+    
+    # Retornar os três DataFrames separados
+    return df_restante, df_humano_primeiro, df_operacao_outros, 
+
 
 # FUNIL
 
-def acionamentos_unique_origem_expert(df_com_fx_atraso, df_dw_calendario):
+@registrar_tempo("Funil unique expert")
+def acionamentos_unique_expert(df_com_fx_atraso, df_dw_calendario):
+    """
+    Gera contagem acumulada mensal de acionamentos únicos por CPF (melhor score) por FX_ATRASO e ORIGEM.
+    
+    Args:
+        df_com_fx_atraso (pd.DataFrame): DataFrame enriquecido com FX_ATRASO preenchido
+        df_dw_calendario (pd.DataFrame): DataFrame com dados de calendário
+    
+    Returns:
+        pd.DataFrame: DataFrame com contagens acumuladas mensais únicas por faixa de atraso e origem
+    """
+    import warnings
+    warnings.filterwarnings("ignore", category=FutureWarning)
+
+    df = df_com_fx_atraso.copy()
+    
+    # Criar coluna ORIGEM com valor "Robô"
+    
+    df['DATA'] = pd.to_datetime(df['DATA'])
+
+    # Datas únicas ordenadas
+    datas_unicas = df['DATA'].sort_values().unique()
+    resultados = []
+
+    salvar_log("="*80)
+    salvar_log(f"📊 Processando acumulado mensal ÚNICO (melhor score por CPF) para {len(datas_unicas)} datas...")
+
+    for i, data in enumerate(datas_unicas, 1):
+        if i % 10 == 0 or i == len(datas_unicas):
+            salvar_log(f"   Processando {i}/{len(datas_unicas)} datas...")
+        
+        inicio_mes = pd.Timestamp(data.year, data.month, 1)
+        
+        # 1. Filtrar intervalo do início do mês até a data atual
+        df_intervalo = df[(df['DATA'] >= inicio_mes) & (df['DATA'] <= data)].copy()
+        
+        # 2. Calcular score de tabulação
+        df_intervalo['TABULACAO_SCORE'] = (
+            df_intervalo['PROMESSA'].astype(int) * 4 +
+            df_intervalo['CPCA'].astype(int) * 3 +
+            df_intervalo['CPC'].astype(int) * 2 +
+            df_intervalo['ACIONAMENTOS'].astype(int) * 1
+        )
+        
+        # 3. Ordenar por CPF e score (maior score primeiro)
+        df_intervalo = df_intervalo.sort_values(
+            ['CPF', 'TABULACAO_SCORE'],
+            ascending=[True, False]
+        )
+        
+        # 4. Manter apenas o melhor score por CPF (unique)
+        df_unique = df_intervalo.drop_duplicates(
+            subset=['CPF'],
+            keep='first'
+        ).copy()
+        
+        # 5. Agrupar por FX_ATRASO e ORIGEM
+        agrupado = df_unique.groupby(['FX_ATRASO', 'ORIGEM']).apply(lambda g: pd.Series({
+            'TRABALHADO': g['TRABALHADO'].sum(),
+            'VALORPRIN_FIN_TRABALHADO': g.loc[g['TRABALHADO'] == 1, 'VALORPRIN_FIN'].sum(),
+            'ACIONAMENTOS': g['ACIONAMENTOS'].sum(),
+            'VALORPRIN_FIN_ACIONAMENTOS': g.loc[g['ACIONAMENTOS'] == 1, 'VALORPRIN_FIN'].sum(),
+            'CPC': g['CPC'].sum(),
+            'VALORPRIN_FIN_CPC': g.loc[g['CPC'] == 1, 'VALORPRIN_FIN'].sum(),
+            'CPCA': g['CPCA'].sum(),
+            'VALORPRIN_FIN_CPCA': g.loc[g['CPCA'] == 1, 'VALORPRIN_FIN'].sum(),
+            'PROMESSA': g['PROMESSA'].sum(),
+            'VALORPRIN_FIN_PROMESSA': g.loc[g['PROMESSA'] == 1, 'VALORPRIN_FIN'].sum()
+        })).reset_index()
+        
+        agrupado['DATA'] = data
+        
+        resultados.append(agrupado)
+
+    # Concatenar tudo
+    df_final = pd.concat(resultados, ignore_index=True)
+
+    # Cruzar com calendário
+    df_dw_calendario_temp = df_dw_calendario.copy()
+    df_dw_calendario_temp['dt_data'] = pd.to_datetime(df_dw_calendario_temp['dt_data'])
+    
+    salvar_log(f"\n📅 Merge com dw_calendario...")
+    df_final = df_final.merge(
+        df_dw_calendario_temp[['dt_data', 'nr_dia_util', 'quartil', 'dt_mes', 'mes_abreviado']],
+        left_on='DATA',
+        right_on='dt_data',
+        how='left'
+    ).drop(columns=['dt_data'])
+
+    # Identificar colunas numéricas
+    colunas_numericas = df_final.select_dtypes(include=['number']).columns
+
+    # Preencher NaN com 0 apenas nas colunas numéricas
+    df_final[colunas_numericas] = df_final[colunas_numericas].fillna(0)
+
+    # Reordenar colunas
+    colunas_ordenadas = [
+        'DATA', 'FX_ATRASO', 'ORIGEM',
+        'TRABALHADO', 'VALORPRIN_FIN_TRABALHADO',
+        'ACIONAMENTOS', 'VALORPRIN_FIN_ACIONAMENTOS',
+        'CPC', 'VALORPRIN_FIN_CPC',
+        'CPCA', 'VALORPRIN_FIN_CPCA',
+        'PROMESSA', 'VALORPRIN_FIN_PROMESSA',
+        'nr_dia_util', 'quartil', 'dt_mes', 'mes_abreviado'
+    ]
+    df_final = df_final[colunas_ordenadas]
+
+    salvar_log(f"   ✓ Registros finais: {len(df_final):,}")
+    salvar_log(f"\n📈 Totais acumulados ÚNICOS (última data):")
+    salvar_log(f"   ✓ TRABALHADO: {df_final[df_final['DATA'] == df_final['DATA'].max()]['TRABALHADO'].sum():,}")
+    salvar_log(f"   ✓ ACIONAMENTOS: {df_final[df_final['DATA'] == df_final['DATA'].max()]['ACIONAMENTOS'].sum():,}")
+    salvar_log(f"   ✓ CPC: {df_final[df_final['DATA'] == df_final['DATA'].max()]['CPC'].sum():,}")
+    salvar_log(f"   ✓ CPCA: {df_final[df_final['DATA'] == df_final['DATA'].max()]['CPCA'].sum():,}")
+    salvar_log(f"   ✓ PROMESSA: {df_final[df_final['DATA'] == df_final['DATA'].max()]['PROMESSA'].sum():,}")
+    salvar_log("="*80)
+
+    df_final['FX_ATRASO'] = 'Unique'
+    return df_final
+
+#def acionamentos_unique_expert(df_com_fx_atraso, df_dw_calendario):
     """
     Gera contagem acumulada mensal de acionamentos únicos por CPF (melhor score) por FX_ATRASO e ORIGEM.
     
@@ -397,7 +592,106 @@ def acionamentos_unique_origem_expert(df_com_fx_atraso, df_dw_calendario):
     df_final['FX_ATRASO'] = 'Unique'
     return df_final
 
-def acionamentos_esforco_fxAtraso_origem_expert(df_com_fx_atraso, df_dw_calendario):
+@registrar_tempo("Funil esforço expert")
+def acionamentos_esforco_expert(df_com_fx_atraso, df_dw_calendario):
+    """
+    Gera contagem acumulada mensal de acionamentos por FX_ATRASO e ORIGEM.
+    
+    Args:
+        df_com_fx_atraso (pd.DataFrame): DataFrame enriquecido com FX_ATRASO preenchido
+        df_dw_calendario (pd.DataFrame): DataFrame com dados de calendário
+    
+    Returns:
+        pd.DataFrame: DataFrame com contagens acumuladas mensais por faixa de atraso e origem
+    """
+    import warnings
+    warnings.filterwarnings("ignore", category=FutureWarning)
+
+    df = df_com_fx_atraso.copy()
+    
+    # Criar coluna ORIGEM com valor "Robô"
+    
+    df['DATA'] = pd.to_datetime(df['DATA'])
+
+    # Datas únicas ordenadas
+    datas_unicas = df['DATA'].sort_values().unique()
+    resultados = []
+
+    salvar_log("="*80)
+    salvar_log(f"📊 Processando acumulado mensal para {len(datas_unicas)} datas...")
+
+    for i, data in enumerate(datas_unicas, 1):
+        if i % 10 == 0 or i == len(datas_unicas):
+            salvar_log(f"   Processando {i}/{len(datas_unicas)} datas...")
+        
+        inicio_mes = pd.Timestamp(data.year, data.month, 1)
+        
+        # 1. Filtrar intervalo do início do mês até a data atual
+        df_intervalo = df[(df['DATA'] >= inicio_mes) & (df['DATA'] <= data)].copy()
+        
+        # 2. Agrupar por FX_ATRASO e ORIGEM (sem deduplicação, soma tudo)
+        agrupado = df_intervalo.groupby(['FX_ATRASO', 'ORIGEM']).apply(lambda g: pd.Series({
+            'TRABALHADO': g['TRABALHADO'].sum(),
+            'VALORPRIN_FIN_TRABALHADO': g.loc[g['TRABALHADO'] == 1, 'VALORPRIN_FIN'].sum(),
+            'ACIONAMENTOS': g['ACIONAMENTOS'].sum(),
+            'VALORPRIN_FIN_ACIONAMENTOS': g.loc[g['ACIONAMENTOS'] == 1, 'VALORPRIN_FIN'].sum(),
+            'CPC': g['CPC'].sum(),
+            'VALORPRIN_FIN_CPC': g.loc[g['CPC'] == 1, 'VALORPRIN_FIN'].sum(),
+            'CPCA': g['CPCA'].sum(),
+            'VALORPRIN_FIN_CPCA': g.loc[g['CPCA'] == 1, 'VALORPRIN_FIN'].sum(),
+            'PROMESSA': g['PROMESSA'].sum(),
+            'VALORPRIN_FIN_PROMESSA': g.loc[g['PROMESSA'] == 1, 'VALORPRIN_FIN'].sum()
+        })).reset_index()
+        
+        agrupado['DATA'] = data
+        resultados.append(agrupado)
+
+    # Concatenar tudo
+    df_final = pd.concat(resultados, ignore_index=True)
+
+    # Cruzar com calendário
+    df_dw_calendario_temp = df_dw_calendario.copy()
+    df_dw_calendario_temp['dt_data'] = pd.to_datetime(df_dw_calendario_temp['dt_data'])
+    
+    salvar_log(f"\n📅 Merge com dw_calendario...")
+    df_final = df_final.merge(
+        df_dw_calendario_temp[['dt_data', 'nr_dia_util', 'quartil', 'dt_mes', 'mes_abreviado']],
+        left_on='DATA',
+        right_on='dt_data',
+        how='left'
+    ).drop(columns=['dt_data'])
+
+    # Identificar colunas numéricas
+    colunas_numericas = df_final.select_dtypes(include=['number']).columns
+
+    # Preencher NaN com 0 apenas nas colunas numéricas
+    df_final[colunas_numericas] = df_final[colunas_numericas].fillna(0)
+
+    # Reordenar colunas
+    colunas_ordenadas = [
+        'DATA', 'FX_ATRASO', 'ORIGEM',
+        'TRABALHADO', 'VALORPRIN_FIN_TRABALHADO',
+        'ACIONAMENTOS', 'VALORPRIN_FIN_ACIONAMENTOS',
+        'CPC', 'VALORPRIN_FIN_CPC',
+        'CPCA', 'VALORPRIN_FIN_CPCA',
+        'PROMESSA', 'VALORPRIN_FIN_PROMESSA',
+        'nr_dia_util', 'quartil', 'dt_mes', 'mes_abreviado'
+    ]
+    df_final = df_final[colunas_ordenadas]
+
+    salvar_log(f"   ✓ Registros finais: {len(df_final):,}")
+    salvar_log(f"\n📈 Totais acumulados:")
+    salvar_log(f"   ✓ TRABALHADO: {df_final[df_final['DATA'] == df_final['DATA'].max()]['TRABALHADO'].sum():,}")
+    salvar_log(f"   ✓ ACIONAMENTOS: {df_final[df_final['DATA'] == df_final['DATA'].max()]['ACIONAMENTOS'].sum():,}")
+    salvar_log(f"   ✓ CPC: {df_final[df_final['DATA'] == df_final['DATA'].max()]['CPC'].sum():,}")
+    salvar_log(f"   ✓ CPCA: {df_final[df_final['DATA'] == df_final['DATA'].max()]['CPCA'].sum():,}")
+    salvar_log(f"   ✓ PROMESSA: {df_final[df_final['DATA'] == df_final['DATA'].max()]['PROMESSA'].sum():,}")
+    salvar_log("="*80)
+
+    df_final['FX_ATRASO'] = 'Esforço'
+    return df_final
+
+#def acionamentos_esforco_expert(df_com_fx_atraso, df_dw_calendario):
     """
     Gera contagem acumulada mensal de acionamentos por FX_ATRASO e ORIGEM.
     
@@ -490,7 +784,8 @@ def acionamentos_esforco_fxAtraso_origem_expert(df_com_fx_atraso, df_dw_calendar
     df_final['FX_ATRASO'] = 'Esforço'
     return df_final
 
-def acionamentos_unique_fxAtraso_origem(df_com_fx_atraso, df_dw_calendario):
+@registrar_tempo("Funil fxAtraso e Origem expert")
+def acionamentos_fxAtraso_origem_expert(df_com_fx_atraso, df_dw_calendario):
     """
     Gera contagem acumulada mensal de acionamentos únicos por CPF e FX_ATRASO (melhor score) por ORIGEM.
     Permite que o mesmo CPF seja contado em faixas de atraso diferentes.
@@ -507,20 +802,18 @@ def acionamentos_unique_fxAtraso_origem(df_com_fx_atraso, df_dw_calendario):
 
     df = df_com_fx_atraso.copy()
     
-    # Criar coluna ORIGEM com valor "Robô"
-    df['ORIGEM'] = 'Robô'
-    
     df['DATA'] = pd.to_datetime(df['DATA'])
 
     # Datas únicas ordenadas
     datas_unicas = df['DATA'].sort_values().unique()
     resultados = []
 
-    print(f"📊 Processando acumulado mensal ÚNICO por CPF + FX_ATRASO (melhor score) para {len(datas_unicas)} datas...")
+    salvar_log("="*80)
+    salvar_log(f"📊 Processando acumulado mensal ÚNICO por CPF + FX_ATRASO (melhor score) para {len(datas_unicas)} datas...")
 
     for i, data in enumerate(datas_unicas, 1):
         if i % 10 == 0 or i == len(datas_unicas):
-            print(f"   Processando {i}/{len(datas_unicas)} datas...")
+            salvar_log(f"   Processando {i}/{len(datas_unicas)} datas...")
         
         inicio_mes = pd.Timestamp(data.year, data.month, 1)
         
@@ -529,9 +822,10 @@ def acionamentos_unique_fxAtraso_origem(df_com_fx_atraso, df_dw_calendario):
         
         # 2. Calcular score de tabulação
         df_intervalo['TABULACAO_SCORE'] = (
-            df_intervalo['PROMESSA'].astype(int) * 3 +
-            df_intervalo['CPCA'].astype(int) * 2 +
-            df_intervalo['CPC'].astype(int) * 1
+            df_intervalo['PROMESSA'].astype(int) * 4 +
+            df_intervalo['CPCA'].astype(int) * 3 +
+            df_intervalo['CPC'].astype(int) * 2 +
+            df_intervalo['ACIONAMENTOS'].astype(int) * 1
         )
         
         # 3. Ordenar por CPF, FX_ATRASO e score (maior score primeiro)
@@ -548,6 +842,8 @@ def acionamentos_unique_fxAtraso_origem(df_com_fx_atraso, df_dw_calendario):
         
         # 5. Agrupar por FX_ATRASO e ORIGEM
         agrupado = df_unique.groupby(['FX_ATRASO', 'ORIGEM']).apply(lambda g: pd.Series({
+            'TRABALHADO': g['TRABALHADO'].sum(),
+            'VALORPRIN_FIN_TRABALHADO': g.loc[g['TRABALHADO'] == 1, 'VALORPRIN_FIN'].sum(),
             'ACIONAMENTOS': g['ACIONAMENTOS'].sum(),
             'VALORPRIN_FIN_ACIONAMENTOS': g.loc[g['ACIONAMENTOS'] == 1, 'VALORPRIN_FIN'].sum(),
             'CPC': g['CPC'].sum(),
@@ -568,7 +864,7 @@ def acionamentos_unique_fxAtraso_origem(df_com_fx_atraso, df_dw_calendario):
     df_dw_calendario_temp = df_dw_calendario.copy()
     df_dw_calendario_temp['dt_data'] = pd.to_datetime(df_dw_calendario_temp['dt_data'])
     
-    print(f"\n📅 Merge com dw_calendario...")
+    salvar_log(f"\n📅 Merge com dw_calendario...")
     df_final = df_final.merge(
         df_dw_calendario_temp[['dt_data', 'nr_dia_util', 'quartil', 'dt_mes', 'mes_abreviado']],
         left_on='DATA',
@@ -585,6 +881,7 @@ def acionamentos_unique_fxAtraso_origem(df_com_fx_atraso, df_dw_calendario):
     # Reordenar colunas
     colunas_ordenadas = [
         'DATA', 'FX_ATRASO', 'ORIGEM',
+        'TRABALHADO', 'VALORPRIN_FIN_TRABALHADO',
         'ACIONAMENTOS', 'VALORPRIN_FIN_ACIONAMENTOS',
         'CPC', 'VALORPRIN_FIN_CPC',
         'CPCA', 'VALORPRIN_FIN_CPCA',
@@ -593,11 +890,53 @@ def acionamentos_unique_fxAtraso_origem(df_com_fx_atraso, df_dw_calendario):
     ]
     df_final = df_final[colunas_ordenadas]
 
-    print(f"   ✓ Registros finais: {len(df_final):,}")
-    print(f"\n📈 Totais acumulados ÚNICOS por CPF+FAIXA (última data):")
-    print(f"   ✓ ACIONAMENTOS: {df_final[df_final['DATA'] == df_final['DATA'].max()]['ACIONAMENTOS'].sum():,}")
-    print(f"   ✓ CPC: {df_final[df_final['DATA'] == df_final['DATA'].max()]['CPC'].sum():,}")
-    print(f"   ✓ CPCA: {df_final[df_final['DATA'] == df_final['DATA'].max()]['CPCA'].sum():,}")
-    print(f"   ✓ PROMESSA: {df_final[df_final['DATA'] == df_final['DATA'].max()]['PROMESSA'].sum():,}")
+    salvar_log(f"   ✓ Registros finais: {len(df_final):,}")
+    salvar_log(f"\n📈 Totais acumulados ÚNICOS por CPF+FAIXA (última data):")
+    salvar_log(f"   ✓ TRABALHADO: {df_final[df_final['DATA'] == df_final['DATA'].max()]['TRABALHADO'].sum():,}")
+    salvar_log(f"   ✓ ACIONAMENTOS: {df_final[df_final['DATA'] == df_final['DATA'].max()]['ACIONAMENTOS'].sum():,}")
+    salvar_log(f"   ✓ CPC: {df_final[df_final['DATA'] == df_final['DATA'].max()]['CPC'].sum():,}")
+    salvar_log(f"   ✓ CPCA: {df_final[df_final['DATA'] == df_final['DATA'].max()]['CPCA'].sum():,}")
+    salvar_log(f"   ✓ PROMESSA: {df_final[df_final['DATA'] == df_final['DATA'].max()]['PROMESSA'].sum():,}")
+    salvar_log("="*80)
 
     return df_final
+
+def vadicao_unique(df_acionamentos_unique_expert, df_enriquecer_discagens_expert_limpo):
+    soma_trabalhado_0930 = df_acionamentos_unique_expert.loc[
+    df_acionamentos_unique_expert['DATA'] == '2025-09-30', 'TRABALHADO'].sum()
+    print(f"🔹 Soma de 'trabalhado' em df_acionamentos_unique_expert na data 2025-09-30: {soma_trabalhado_0930:,}")
+    total_cpfs_unicos = df_enriquecer_discagens_expert_limpo['CPF'].nunique()
+    print(f"🔹 Total de CPFs únicos: {total_cpfs_unicos:,}")
+
+def vadicao_fxAtraso(df_acionamentos_origem_fxAtraso_expert, df_enriquecer_discagens_expert_limpo):
+    soma_trabalhado_0930 = df_acionamentos_origem_fxAtraso_expert.loc[
+    df_acionamentos_origem_fxAtraso_expert['DATA'] == '2025-09-30', 'TRABALHADO'].sum()
+    print(f"🔹 Soma de 'trabalhado' em df_acionamentos_origem_fxAtraso_expert na data 2025-09-30: {soma_trabalhado_0930:,}")
+    total_cpfs_unicos = df_enriquecer_discagens_expert_limpo[['CPF', 'FX_ATRASO']].drop_duplicates().shape[0]
+    print(f"🔹 Total de combinações únicas CPF + FX_ATRASO: {total_cpfs_unicos:,}")
+
+def validacao_esforco(df_acionamentos_esforco_expert, df_enriquecer_discagens_expert_limpo):
+    df_acionamentos_esforco_expert['DATA'] = pd.to_datetime(df_acionamentos_esforco_expert['DATA'])
+    soma_trabalhado_0930 = df_acionamentos_esforco_expert.loc[
+        df_acionamentos_esforco_expert['DATA'] == '2025-09-30', 'TRABALHADO'
+    ].sum()
+    print(f"🔹 Soma de 'trabalhado' em df_acionamentos_esforco_expert na data 2025-09-30: {soma_trabalhado_0930:,}")
+    total_cpfs = df_enriquecer_discagens_expert_limpo['CPF'].count()
+    print(f"🔹 Total de combinações de CPFs: {total_cpfs:,}")
+
+def acionamentos_expert(df_discagens_expert, df_dw_calendario, df_maling_hist):
+
+    df_acionamentos_tabulacaoRobo = df_acionamento_robo()
+    df_enriquecido_discagens_expert = enriquecer_discagens_expert(df_discagens_expert, df_acionamentos_tabulacaoRobo)
+    df_enriquecido_discagens_expert = tratar_base_discagens(df_enriquecido_discagens_expert)
+    df_enriquecido_discagens_expert_comFaixa, df_enriquecido_discagens_expert_semFaixa = enriquecer_com_mailing_calendario(df_enriquecido_discagens_expert, df_maling_hist, df_dw_calendario)
+    df_enriquecido_discagens_expert_limpo, df_humano_tabulados_como_robo, df_dicagens_operacaoOutros = segmentacao_discagens(df_enriquecido_discagens_expert_comFaixa)
+
+    df_acionamentos_esforco_expert = acionamentos_esforco_expert(df_enriquecido_discagens_expert_limpo, df_dw_calendario)
+    df_acionamentos_unique_expert = acionamentos_unique_expert(df_enriquecido_discagens_expert_limpo, df_dw_calendario)
+    df_acionamentos_origem_fxAtraso_expert = acionamentos_fxAtraso_origem_expert(df_enriquecido_discagens_expert_limpo, df_dw_calendario)
+
+    df_analitico_expert = df_enriquecido_discagens_expert_limpo.copy()
+    df_acionamentos_expert = unir_dataframes(df_acionamentos_origem_fxAtraso_expert, df_acionamentos_unique_expert, df_acionamentos_esforco_expert)
+
+    return df_acionamentos_expert, df_analitico_expert, df_enriquecido_discagens_expert_semFaixa, df_humano_tabulados_como_robo, df_dicagens_operacaoOutros

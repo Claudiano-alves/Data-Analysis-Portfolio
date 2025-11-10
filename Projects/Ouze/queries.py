@@ -1,4 +1,6 @@
 from datetime import datetime
+import warnings
+warnings.filterwarnings("ignore", category=FutureWarning)
 
 def get_query_discagens(dt_ini, dt_fim):
     """
