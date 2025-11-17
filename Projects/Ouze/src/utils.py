@@ -1,7 +1,4 @@
 import pandas as pd
-from src.data_wrangling_acionamentos import acionamentos_humano
-from src.data_wrangling_discagens_expert import acionamentos_expert
-from src.data_wrangling_discagens_trestto import acionamentos_trestto
 from datetime import datetime
 import time
 from functools import wraps
@@ -111,13 +108,83 @@ def unir_dataframes(*dfs, validar_colunas=True, colunas_esperadas=None, mapeamen
     return df_unido
 
 def acionamentos_funil(df_tab_acionamentos, df_tabulacao_aciona, df_dw_calendario, df_maling_hist, df_discagens_trestto, df_discagens_expert):
-    df_acionamentos_humano, df_analitico_acionamentos_humano, df_acion_semFaixa_humano, df_acion_semDescricao_humano, df_acion_semOrigem_humano = acionamentos_humano(df_tab_acionamentos, df_tabulacao_aciona, df_dw_calendario, df_maling_hist)
+    from src.data_wrangling_acionamentos import acionamentos_humano
+    from src.data_wrangling_discagens_expert import acionamentos_expert
+    from src.data_wrangling_discagens_trestto import acionamentos_trestto
+
+    df_acionamentos_humano, df_analitico_acionamentos_humano, df_acion_semFaixa_humano, df_acion_semDescricao_humano, df_acion_semOrigem_humano, df_acionamentos_funil_long = acionamentos_humano(df_tab_acionamentos, df_tabulacao_aciona, df_dw_calendario, df_maling_hist)
     df_acionamentos_expert, df_analitico_expert, df_enriquecido_discagens_expert_semFaixa, df_humano_tabulados_como_robo, df_dicagens_operacaoOutros = acionamentos_expert(df_discagens_expert, df_dw_calendario, df_maling_hist)
     df_acionamentos_trestto, df_analitico_trestto, df_enriquecido_discagens_trestto_semFaixa = acionamentos_trestto(df_discagens_trestto, df_maling_hist, df_dw_calendario)
 
     df_acionamentos_funil = unir_dataframes(df_acionamentos_humano, df_acionamentos_expert, df_acionamentos_trestto)
 
-    return df_acionamentos_funil, df_analitico_acionamentos_humano, df_acion_semFaixa_humano, df_acion_semDescricao_humano, df_acion_semOrigem_humano, df_analitico_trestto, df_enriquecido_discagens_trestto_semFaixa, df_analitico_expert, df_enriquecido_discagens_expert_semFaixa, df_humano_tabulados_como_robo, df_dicagens_operacaoOutros
+    return df_acionamentos_funil, df_analitico_acionamentos_humano, df_acion_semFaixa_humano, df_acion_semDescricao_humano, df_acion_semOrigem_humano, df_analitico_trestto, df_enriquecido_discagens_trestto_semFaixa, df_analitico_expert, df_enriquecido_discagens_expert_semFaixa, df_humano_tabulados_como_robo, df_dicagens_operacaoOutros, df_acionamentos_funil_long
+
+def consolidar_dataframes(df_mailing_acumulado, df_pagamentos_funil, df_acionamentos_funil_long):
+    """
+    Consolida três DataFrames em um único DataFrame unificado.
+    
+    Parâmetros:
+    -----------
+    df_mailing_acumulado : DataFrame
+        DataFrame com colunas: DATA, Indicador, qte, FX_ATRASO, MesAbreviado, 
+        nr_dia_util, quartil, dt_mes, VALORPRIN_FIN
+    
+    df_pagamentos_funil : DataFrame
+        DataFrame com colunas: DATA_PAGTO, Indicador, qte, FX_ATRASO, TIPO, 
+        MesAbreviado, nr_dia_util, quartil, dt_mes, VALOR_PARC
+    
+    df_acionamentos_funil_long : DataFrame
+        DataFrame com colunas: DATA, Indicador, qte, FX_ATRASO, ORIGEM, 
+        MesAbreviado, nr_dia_util, quartil, dt_mes, VALORPRIN_FIN
+    
+    Retorna:
+    --------
+    DataFrame consolidado com colunas padronizadas:
+        DATA, Indicador, qte, FX_ATRASO, TIPO_ORIGEM, MesAbreviado, 
+        nr_dia_util, quartil, dt_mes, VALOR
+    """
+    import pandas as pd
+    
+    # Preparar df_mailing_acumulado
+    df_mailing = df_mailing_acumulado.copy()
+    df_mailing['TIPO_ORIGEM'] = ''
+    df_mailing = df_mailing.rename(columns={'VALORPRIN_FIN': 'VALOR'})
+
+    # Preparar df_pagamentos_funil
+    df_pagamentos = df_pagamentos_funil.copy()
+    df_pagamentos = df_pagamentos.rename(columns={
+        'DATA_PAGTO': 'DATA',
+        'TIPO': 'TIPO_ORIGEM',
+        'VALOR_PARC': 'VALOR'
+    })
+
+    # Preparar df_acionamentos_funil_long
+    df_acionamentos = df_acionamentos_funil_long.copy()
+    df_acionamentos = df_acionamentos.rename(columns={
+        'ORIGEM': 'TIPO_ORIGEM',
+        'VALORPRIN_FIN': 'VALOR'
+    })
+    
+
+    # Garantir que todos tenham as mesmas colunas na mesma ordem
+    colunas_padrao = ['DATA', 'Indicador', 'qte', 'FX_ATRASO', 'TIPO_ORIGEM', 
+                      'MesAbreviado', 'nr_dia_util', 'quartil', 'dt_mes', 'VALOR']
+    
+    df_mailing = df_mailing[colunas_padrao]
+    df_pagamentos = df_pagamentos[colunas_padrao]
+    df_acionamentos = df_acionamentos[colunas_padrao]
+    
+    # Concatenar os três DataFrames
+    df_consolidado = pd.concat([df_mailing, df_pagamentos, df_acionamentos], ignore_index=True)
+    
+    df_consolidado['DATA'] = pd.to_datetime(df_consolidado['DATA']).dt.date
+
+    return df_consolidado
+
+
+# Exemplo de uso:
+# df_resultado = consolidar_dataframes(df_mailing_acumulado, df_pagamentos_funil, df_acionamentos_funil_long)
 
 LOG_FILE = 'logs/acionamentos.txt'
 

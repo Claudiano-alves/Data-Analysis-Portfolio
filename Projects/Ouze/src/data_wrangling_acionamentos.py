@@ -867,6 +867,77 @@ def acionamentos_duplicados(df_acionamentos_enriquecido_limpo):
     df_conflitos_score = df_acionamentos_score.merge(cpf_data_com_conflito, on=['CONTRATO_FIN', 'DATA_ACIONA'], how='inner')
     return df_conflitos_score
 
+def transformar_funil_formato_long(df_acionamentos_funil):
+    """
+    Transforma o DataFrame de acionamentos do formato wide para long.
+    
+    De: DATA | FX_ATRASO | ORIGEM | TRABALHADO | ACIONAMENTOS | CPC | CPCA | PROMESSA | ...
+    Para: DATA | Indicador | qte | FX_ATRASO | ORIGEM | MesAbreviado | nr_dia_util | quartil | dt_mes | VALORPRIN_FIN
+    """
+    
+    # Definir os indicadores que serão transformados
+    indicadores = {
+        'TRABALHADO': 'VALORPRIN_FIN_TRABALHADO',
+        'ACIONAMENTOS': 'VALORPRIN_FIN_ACIONAMENTOS',
+        'CPC': 'VALORPRIN_FIN_CPC',
+        'CPCA': 'VALORPRIN_FIN_CPCA',
+        'PROMESSA': 'VALORPRIN_FIN_PROMESSA'
+    }
+    
+    resultados = []
+    
+    for indicador, col_valor in indicadores.items():
+        # Criar um DataFrame para cada indicador
+        df_temp = df_acionamentos_funil[[
+            'DATA',
+            'FX_ATRASO',
+            'ORIGEM',
+            indicador,
+            col_valor,
+            'mes_abreviado',
+            'nr_dia_util',
+            'quartil',
+            'dt_mes'
+        ]].copy()
+        
+        # Renomear colunas
+        df_temp = df_temp.rename(columns={
+            indicador: 'qte',
+            col_valor: 'VALORPRIN_FIN',
+            'mes_abreviado': 'MesAbreviado'
+        })
+        
+        # Adicionar coluna Indicador
+        df_temp['Indicador'] = indicador.lower()
+        
+        resultados.append(df_temp)
+    
+    # Concatenar todos os indicadores
+    df_final = pd.concat(resultados, ignore_index=True)
+    
+    # Reordenar colunas conforme solicitado
+    df_final = df_final[[
+        'DATA',
+        'Indicador',
+        'qte',
+        'FX_ATRASO',
+        'ORIGEM',
+        'MesAbreviado',
+        'nr_dia_util',
+        'quartil',
+        'dt_mes',
+        'VALORPRIN_FIN'
+    ]]
+    
+    # Ordenar por DATA, FX_ATRASO e Indicador
+    df_final = df_final.sort_values(['DATA', 'FX_ATRASO', 'Indicador']).reset_index(drop=True)
+    
+    return df_final
+
+
+# Exemplo de uso:
+# df_funil_transformado = transformar_funil_formato_long(df_acionamentos_funil)
+
 def acionamentos_humano(df_tab_acionamentos, df_tabulacao_aciona, df_dw_calendario, df_maling_hist):
     df_tabulacao_aciona = tratar_acionamentos_tabulacao(df_tabulacao_aciona)
     df_acionamentos_tabulados = confere_tabulacao_acionamentos(df_tab_acionamentos, df_tabulacao_aciona)
@@ -877,9 +948,10 @@ def acionamentos_humano(df_tab_acionamentos, df_tabulacao_aciona, df_dw_calendar
     df_acionamentos_esforco_humano = acionamentos_esforco_humano(df_acionamentos_enriquecido_limpo, df_dw_calendario)
 
     df_acionamentos_humano = unir_dataframes(df_acionamentos_fxAtraso_origem_humano, df_acionamentos_unique_humano, df_acionamentos_esforco_humano)
+    df_acionamentos_funil_long = transformar_funil_formato_long(df_acionamentos_humano)
 
     df_analitico_acionamentos_humano = df_acionamentos_enriquecido_limpo.copy()
-    return df_acionamentos_humano, df_analitico_acionamentos_humano, df_acion_semFaixa_humano, df_acion_semDescricao_humano, df_acion_semOrigem_humano
+    return df_acionamentos_humano, df_analitico_acionamentos_humano, df_acion_semFaixa_humano, df_acion_semDescricao_humano, df_acion_semOrigem_humano, df_acionamentos_funil_long
 
 
 # ===== USO DA FUNÇÃO =====

@@ -178,3 +178,46 @@ def get_query_dw_calendario():
         FROM DW_CALENDARIO
     """
     return query
+
+def get_query_pagamentos(dt_ini, dt_fim):
+    query = f"""
+        SELECT 
+            CAST(R.DATA_PAGTO AS DATE) AS DATA_PAGTO,
+            R.VALOR_PARC,
+            R.NACORDO_ACO,
+            R.CONTRATO_FIN,
+            B.CPF_DEV,
+            B.COD_CLI,
+            B.VALORPRIN_FIN,
+            B.VALOR_FIN,
+            B.STATCONT_FIN,
+            B.DTDEVOL_FIN
+        FROM RECIBOCREDOR R
+        INNER JOIN CAD_DEVF		B WITH (NOLOCK) ON B.CONTRATO_FIN = R.CONTRATO_FIN
+        WHERE CAST(R.DATA_PAGTO AS DATE) BETWEEN '{dt_ini}' AND '{dt_fim}'
+        AND B.COD_CLI IN(198, 196, 228)
+    """
+    return query
+
+def get_query_acordos(dt_ini, dt_fim):
+    query = f"""
+        SELECT 
+            CAST(A.DTACORDOHORA_ACO AS DATE) DATA_ACORDO,       
+            CAST(A.DTACORDOHORA_ACO AS TIME) HORA_ACORDO,       
+            B.CPF_DEV,
+            A.CONTRATO_FIN,
+            CAST(A.DTCANCELAMENTOACO_ACO AS DATE) CANC_ACORDO, 
+            A.NACORDO_ACO,                                         
+            A.VLRACORDO_ACO, 
+            B.VALORPRIN_FIN,
+            B.DTDEVOL_FIN, 
+            CASE
+                WHEN A.RECUP_ACO IN(1626, 1, 11003) THEN 'ROBÔ'
+                ELSE 'HUMANO'
+            END TIPO
+        FROM CAD_ACO A
+        INNER JOIN CAD_DEVF		B WITH (NOLOCK) ON B.CONTRATO_FIN = A.CONTRATO_FIN
+        WHERE CAST(A.DTACORDOHORA_ACO AS DATE) BETWEEN '{dt_ini}' AND '{dt_fim}'
+        AND B.COD_CLI IN(198, 196, 228)
+    """
+    return query
