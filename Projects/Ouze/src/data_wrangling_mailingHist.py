@@ -1,6 +1,6 @@
 import numpy as np
 import pandas as pd
-from src.utils import unir_dataframes, salvar_log, registrar_tempo
+from utils import unir_dataframes, salvar_log, registrar_tempo
 
 FAIXAS_ATRASO_BINS = [float('-inf'), 0, 30, 60, 90, 120, 150, 180, 360, 720, float('inf')]
 FAIXAS_ATRASO_LABELS = [
@@ -147,7 +147,7 @@ def gerar_acumulado_maling_hist_fxAtraso(df_maling_hist, df_dw_calendario):
         df_calendario_reduzido,
         left_on='DATA',
         right_on='dt_data',
-        how='left'
+        how='inner'
     ).drop(columns=['dt_data'])
     
     salvar_log(f"Registros após merge com calendário: {len(df_reduzido)}")
@@ -210,7 +210,7 @@ def gerar_acumulado_maling_hist_fxAtraso(df_maling_hist, df_dw_calendario):
         }).reset_index()
         
         agrupado_cpfs['DATA'] = data
-        agrupado_cpfs['Indicador'] = 'CPF'
+        agrupado_cpfs['Indicador'] = 'Carteira (CPFs)'
         agrupado_cpfs['MesAbreviado'] = info_data['mes_abreviado']
         agrupado_cpfs['nr_dia_util'] = info_data['nr_dia_util']
         agrupado_cpfs['quartil'] = info_data['quartil']
@@ -276,7 +276,7 @@ def gerar_acumulado_maling_hist_unique(df_maling_hist, df_dw_calendario):
         df_calendario_reduzido,
         left_on='DATA',
         right_on='dt_data',
-        how='left'
+        how='inner'
     ).drop(columns=['dt_data'])
     
     salvar_log(f"Registros após merge com calendário: {len(df_reduzido)}")
@@ -320,7 +320,7 @@ def gerar_acumulado_maling_hist_unique(df_maling_hist, df_dw_calendario):
         
         resultado_contratos = {
             'DATA': data,
-            'Indicador': 'Contrato',
+            'Indicador': 'Contratos',
             'qte': total_contratos,
             'FX_ATRASO': 'Unique',
             'MesAbreviado': info_data['mes_abreviado'],
@@ -339,7 +339,7 @@ def gerar_acumulado_maling_hist_unique(df_maling_hist, df_dw_calendario):
         
         resultado_cpfs = {
             'DATA': data,
-            'Indicador': 'CPF',
+            'Indicador': 'Carteira (CPFs)',
             'qte': total_cpfs,
             'FX_ATRASO': 'Unique',
             'MesAbreviado': info_data['mes_abreviado'],

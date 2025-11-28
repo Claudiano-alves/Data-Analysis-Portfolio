@@ -1,5 +1,5 @@
 import pandas as pd
-from src.utils import unir_dataframes, salvar_log, registrar_tempo
+from utils import unir_dataframes, salvar_log, registrar_tempo
 
 @registrar_tempo("Enriquecimento base de discagens trestto")
 def enriquecer_discagens_trestto(df_discagens_trestto, df_mailing_hist, df_dw_calendario):
@@ -187,6 +187,7 @@ def enriquecer_discagens_trestto(df_discagens_trestto, df_mailing_hist, df_dw_ca
 def acionamentos_esforco_trestto(df_discagens, df_dw_calendario):
     """
     Gera contagem acumulada mensal de acionamentos de discagens por FX_ATRASO e ORIGEM.
+    Preenche dias úteis faltantes até D-1 calculando o acumulado até aquela data.
     
     Args:
         df_discagens (pd.DataFrame): DataFrame com dados de discagens enriquecido
@@ -201,25 +202,94 @@ def acionamentos_esforco_trestto(df_discagens, df_dw_calendario):
     df = df_discagens.copy()
     
     # Criar coluna ORIGEM com valor "Robô"
-    df['ORIGEM'] = 'Robô'
-    
+    df['ORIGEM'] = 'ROBÔ'
     df['DATA'] = pd.to_datetime(df['DATA'])
-
-    # Datas únicas ordenadas
-    datas_unicas = df['DATA'].sort_values().unique()
+    
+    # Preparar calendário
+    df_dw_calendario_temp = df_dw_calendario.copy()
+    df_dw_calendario_temp['dt_data'] = pd.to_datetime(df_dw_calendario_temp['dt_data'])
+    
+    # ===== IDENTIFICAR RANGE COMPLETO E DIAS FALTANTES =====
+    print("="*80)
+    print(f"📊 Iniciando processamento de acumulado mensal ESFORÇO (todas as discagens)...")
+    
+    # Obter primeira e última data do arquivo origem
+    primeira_data_origem = df['DATA'].min()
+    ultima_data_origem = df['DATA'].max()
+    
+    # Definir D-1 (ontem)
+    data_d_menos_1 = pd.Timestamp.now().normalize() - pd.Timedelta(days=1)
+    
+    # Definir range completo: da primeira data do arquivo até D-1
+    data_final_desejada = max(ultima_data_origem, data_d_menos_1)
+    
+    print(f"\n📅 Range de processamento:")
+    print(f"   • Primeira data com dados: {primeira_data_origem.strftime('%Y-%m-%d')}")
+    print(f"   • Última data com dados: {ultima_data_origem.strftime('%Y-%m-%d')}")
+    print(f"   • Data D-1 (ontem): {data_d_menos_1.strftime('%Y-%m-%d')}")
+    print(f"   • Data final do processamento: {data_final_desejada.strftime('%Y-%m-%d')}")
+    
+    # Obter TODOS os dias úteis do calendário nesse range
+    todos_dias_uteis = df_dw_calendario_temp[
+        (df_dw_calendario_temp['dt_data'] >= primeira_data_origem) &
+        (df_dw_calendario_temp['dt_data'] <= data_final_desejada)
+    ]['dt_data'].sort_values().unique()
+    
+    # Identificar dias que existem no arquivo
+    datas_com_dados = set(df['DATA'].unique())
+    
+    # Identificar dias faltantes (sem dados)
+    datas_faltantes = sorted([d for d in todos_dias_uteis if d not in datas_com_dados])
+    
+    print(f"\n📊 Análise de completude:")
+    print(f"   • Total de dias úteis no range: {len(todos_dias_uteis)}")
+    print(f"   • Dias com dados: {len(datas_com_dados)}")
+    print(f"   • Dias sem dados (a calcular): {len(datas_faltantes)}")
+    
+    if len(datas_faltantes) > 0:
+        print(f"\n⚠️  Dias úteis sem dados que serão processados:")
+        for i, data_faltante in enumerate(datas_faltantes[:10], 1):  # Mostrar primeiros 10
+            print(f"      {i}. {data_faltante.strftime('%Y-%m-%d')}")
+        if len(datas_faltantes) > 10:
+            print(f"      ... e mais {len(datas_faltantes) - 10} dias")
+    
+    # ===== PROCESSAR TODAS AS DATAS (COM E SEM DADOS) =====
+    # Usar todos os dias úteis como base para processamento
+    datas_para_processar = sorted(todos_dias_uteis)
+    
     resultados = []
+    
+    print(f"\n🔄 Processando acumulados para {len(datas_para_processar)} dias úteis...")
 
-    salvar_log("="*80)
-    salvar_log(f"📊 Processando acumulado mensal de discagens para {len(datas_unicas)} datas...")
-
-    for i, data in enumerate(datas_unicas, 1):
-        if i % 10 == 0 or i == len(datas_unicas):
-            salvar_log(f"   Processando {i}/{len(datas_unicas)} datas...")
+    for i, data in enumerate(datas_para_processar, 1):
+        if i % 10 == 0 or i == len(datas_para_processar):
+            print(f"    Processando {i}/{len(datas_para_processar)} datas...")
         
         inicio_mes = pd.Timestamp(data.year, data.month, 1)
         
         # 1. Filtrar intervalo do início do mês até a data atual
         df_intervalo = df[(df['DATA'] >= inicio_mes) & (df['DATA'] <= data)].copy()
+        
+        # Se não houver dados até esta data, criar resultado vazio para esta data
+        if len(df_intervalo) == 0:
+            # Criar DataFrame vazio com estrutura correta
+            agrupado = pd.DataFrame({
+                'FX_ATRASO': [],
+                'ORIGEM': [],
+                'TRABALHADO': [],
+                'VALORPRIN_FIN_TRABALHADO': [],
+                'ACIONAMENTOS': [],
+                'VALORPRIN_FIN_ACIONAMENTOS': [],
+                'CPC': [],
+                'VALORPRIN_FIN_CPC': [],
+                'CPCA': [],
+                'VALORPRIN_FIN_CPCA': [],
+                'PROMESSA': [],
+                'VALORPRIN_FIN_PROMESSA': []
+            })
+            agrupado['DATA'] = data
+            resultados.append(agrupado)
+            continue
         
         # 2. Agrupar por FX_ATRASO e ORIGEM (sem deduplicação, soma tudo)
         agrupado = df_intervalo.groupby(['FX_ATRASO', 'ORIGEM']).apply(lambda g: pd.Series({
@@ -240,18 +310,22 @@ def acionamentos_esforco_trestto(df_discagens, df_dw_calendario):
 
     # Concatenar tudo
     df_final = pd.concat(resultados, ignore_index=True)
+    
+    print(f"\n✓ Processamento concluído!")
+    print(f"  • Total de registros gerados: {len(df_final):,}")
 
     # Cruzar com calendário
-    df_dw_calendario_temp = df_dw_calendario.copy()
-    df_dw_calendario_temp['dt_data'] = pd.to_datetime(df_dw_calendario_temp['dt_data'])
+    print(f"\n📅 Merge com dw_calendario...")
+    print(f"   Registros antes do merge: {len(df_final):,}")
     
-    salvar_log(f"\n📅 Merge com dw_calendario...")
     df_final = df_final.merge(
         df_dw_calendario_temp[['dt_data', 'nr_dia_util', 'quartil', 'dt_mes', 'mes_abreviado']],
         left_on='DATA',
         right_on='dt_data',
         how='left'
     ).drop(columns=['dt_data'])
+    
+    print(f"   Registros após o merge: {len(df_final):,}")
 
     # Identificar colunas numéricas
     colunas_numericas = df_final.select_dtypes(include=['number']).columns
@@ -270,15 +344,17 @@ def acionamentos_esforco_trestto(df_discagens, df_dw_calendario):
         'nr_dia_util', 'quartil', 'dt_mes', 'mes_abreviado'
     ]
     df_final = df_final[colunas_ordenadas]
+    
+    # Ordenar por data
+    df_final = df_final.sort_values('DATA').reset_index(drop=True)
 
-    salvar_log(f"   ✓ Registros finais: {len(df_final):,}")
-    salvar_log(f"\n📈 Totais acumulados (última data):")
-    salvar_log(f"   ✓ TRABALHADO: {df_final[df_final['DATA'] == df_final['DATA'].max()]['TRABALHADO'].sum():,}")
-    salvar_log(f"   ✓ ACIONAMENTOS: {df_final[df_final['DATA'] == df_final['DATA'].max()]['ACIONAMENTOS'].sum():,}")
-    salvar_log(f"   ✓ CPC: {df_final[df_final['DATA'] == df_final['DATA'].max()]['CPC'].sum():,}")
-    salvar_log(f"   ✓ CPCA: {df_final[df_final['DATA'] == df_final['DATA'].max()]['CPCA'].sum():,}")
-    salvar_log(f"   ✓ PROMESSA: {df_final[df_final['DATA'] == df_final['DATA'].max()]['PROMESSA'].sum():,}")
-    salvar_log("="*80)
+    print(f"\n📈 Totais acumulados ESFORÇO (última data - {df_final['DATA'].max().strftime('%Y-%m-%d')}):")
+    print(f"   ✓ TRABALHADO: {df_final[df_final['DATA'] == df_final['DATA'].max()]['TRABALHADO'].sum():,}")
+    print(f"   ✓ ACIONAMENTOS: {df_final[df_final['DATA'] == df_final['DATA'].max()]['ACIONAMENTOS'].sum():,}")
+    print(f"   ✓ CPC: {df_final[df_final['DATA'] == df_final['DATA'].max()]['CPC'].sum():,}")
+    print(f"   ✓ CPCA: {df_final[df_final['DATA'] == df_final['DATA'].max()]['CPCA'].sum():,}")
+    print(f"   ✓ PROMESSA: {df_final[df_final['DATA'] == df_final['DATA'].max()]['PROMESSA'].sum():,}")
+    print("="*80)
 
     # Setar FX_ATRASO como 'Esforço'
     df_final['FX_ATRASO'] = 'Esforço'
@@ -289,39 +365,109 @@ def acionamentos_esforco_trestto(df_discagens, df_dw_calendario):
 def acionamentos_unique_trestto(df_discagens, df_dw_calendario):
     """
     Gera contagem acumulada mensal de acionamentos únicos por CPF (melhor score) por FX_ATRASO e ORIGEM.
+    Preenche dias úteis faltantes até D-1 calculando o acumulado até aquela data.
     
     Args:
         df_discagens (pd.DataFrame): DataFrame com dados de discagens enriquecido
         df_dw_calendario (pd.DataFrame): DataFrame com dados de calendário
-    
+        
     Returns:
         pd.DataFrame: DataFrame com contagens acumuladas mensais únicas por faixa de atraso e origem
     """
     import warnings
     warnings.filterwarnings("ignore", category=FutureWarning)
-
+    
     df = df_discagens.copy()
     
     # Criar coluna ORIGEM com valor "Robô"
-    df['ORIGEM'] = 'Robô'
-    
+    df['ORIGEM'] = 'ROBÔ'
     df['DATA'] = pd.to_datetime(df['DATA'])
-
-    # Datas únicas ordenadas
-    datas_unicas = df['DATA'].sort_values().unique()
-    resultados = []
-
+    
+    # Preparar calendário
+    df_dw_calendario_temp = df_dw_calendario.copy()
+    df_dw_calendario_temp['dt_data'] = pd.to_datetime(df_dw_calendario_temp['dt_data'])
+    
+    # ===== IDENTIFICAR RANGE COMPLETO E DIAS FALTANTES =====
     salvar_log("="*80)
-    salvar_log(f"📊 Processando acumulado mensal ÚNICO (melhor score por CPF) para {len(datas_unicas)} datas...")
-
-    for i, data in enumerate(datas_unicas, 1):
-        if i % 10 == 0 or i == len(datas_unicas):
-            salvar_log(f"   Processando {i}/{len(datas_unicas)} datas...")
+    salvar_log(f"📊 Iniciando processamento de acumulado mensal ÚNICO (melhor score por CPF)...")
+    
+    # Obter primeira e última data do arquivo origem
+    primeira_data_origem = df['DATA'].min()
+    ultima_data_origem = df['DATA'].max()
+    
+    # Definir D-1 (ontem)
+    data_d_menos_1 = pd.Timestamp.now().normalize() - pd.Timedelta(days=1)
+    
+    # Definir range completo: da primeira data do arquivo até D-1
+    data_final_desejada = max(ultima_data_origem, data_d_menos_1)
+    
+    salvar_log(f"\n📅 Range de processamento:")
+    salvar_log(f"   • Primeira data com dados: {primeira_data_origem.strftime('%Y-%m-%d')}")
+    salvar_log(f"   • Última data com dados: {ultima_data_origem.strftime('%Y-%m-%d')}")
+    salvar_log(f"   • Data D-1 (ontem): {data_d_menos_1.strftime('%Y-%m-%d')}")
+    salvar_log(f"   • Data final do processamento: {data_final_desejada.strftime('%Y-%m-%d')}")
+    
+    # Obter TODOS os dias úteis do calendário nesse range
+    todos_dias_uteis = df_dw_calendario_temp[
+        (df_dw_calendario_temp['dt_data'] >= primeira_data_origem) &
+        (df_dw_calendario_temp['dt_data'] <= data_final_desejada)
+    ]['dt_data'].sort_values().unique()
+    
+    # Identificar dias que existem no arquivo
+    datas_com_dados = set(df['DATA'].unique())
+    
+    # Identificar dias faltantes (sem dados)
+    datas_faltantes = sorted([d for d in todos_dias_uteis if d not in datas_com_dados])
+    
+    salvar_log(f"\n📊 Análise de completude:")
+    salvar_log(f"   • Total de dias úteis no range: {len(todos_dias_uteis)}")
+    salvar_log(f"   • Dias com dados: {len(datas_com_dados)}")
+    salvar_log(f"   • Dias sem dados (a calcular): {len(datas_faltantes)}")
+    
+    if len(datas_faltantes) > 0:
+        salvar_log(f"\n⚠️  Dias úteis sem dados que serão processados:")
+        for i, data_faltante in enumerate(datas_faltantes[:10], 1):  # Mostrar primeiros 10
+            salvar_log(f"      {i}. {data_faltante.strftime('%Y-%m-%d')}")
+        if len(datas_faltantes) > 10:
+            salvar_log(f"      ... e mais {len(datas_faltantes) - 10} dias")
+    
+    # ===== PROCESSAR TODAS AS DATAS (COM E SEM DADOS) =====
+    # Usar todos os dias úteis como base para processamento
+    datas_para_processar = sorted(todos_dias_uteis)
+    
+    resultados = []
+    
+    salvar_log(f"\n🔄 Processando acumulados para {len(datas_para_processar)} dias úteis...")
+    
+    for i, data in enumerate(datas_para_processar, 1):
+        if i % 10 == 0 or i == len(datas_para_processar):
+            salvar_log(f"    Processando {i}/{len(datas_para_processar)} datas...")
         
         inicio_mes = pd.Timestamp(data.year, data.month, 1)
         
         # 1. Filtrar intervalo do início do mês até a data atual
         df_intervalo = df[(df['DATA'] >= inicio_mes) & (df['DATA'] <= data)].copy()
+        
+        # Se não houver dados até esta data, criar resultado vazio para esta data
+        if len(df_intervalo) == 0:
+            # Criar DataFrame vazio com estrutura correta
+            agrupado = pd.DataFrame({
+                'FX_ATRASO': [],
+                'ORIGEM': [],
+                'TRABALHADO': [],
+                'VALORPRIN_FIN_TRABALHADO': [],
+                'ACIONAMENTOS': [],
+                'VALORPRIN_FIN_ACIONAMENTOS': [],
+                'CPC': [],
+                'VALORPRIN_FIN_CPC': [],
+                'CPCA': [],
+                'VALORPRIN_FIN_CPCA': [],
+                'PROMESSA': [],
+                'VALORPRIN_FIN_PROMESSA': []
+            })
+            agrupado['DATA'] = data
+            resultados.append(agrupado)
+            continue
         
         # 2. Calcular score de tabulação COM VALORES ORIGINAIS (não binários)
         # Prioridade: PROMESSA > CPCA > CPC > ACIONAMENTOS
@@ -368,28 +514,32 @@ def acionamentos_unique_trestto(df_discagens, df_dw_calendario):
         
         agrupado['DATA'] = data
         resultados.append(agrupado)
-
+    
     # Concatenar tudo
     df_final = pd.concat(resultados, ignore_index=True)
-
-    # Cruzar com calendário
-    df_dw_calendario_temp = df_dw_calendario.copy()
-    df_dw_calendario_temp['dt_data'] = pd.to_datetime(df_dw_calendario_temp['dt_data'])
     
+    salvar_log(f"\n✓ Processamento concluído!")
+    salvar_log(f"  • Total de registros gerados: {len(df_final):,}")
+    
+    # Cruzar com calendário
     salvar_log(f"\n📅 Merge com dw_calendario...")
+    salvar_log(f"   Registros antes do merge: {len(df_final):,}")
+    
     df_final = df_final.merge(
         df_dw_calendario_temp[['dt_data', 'nr_dia_util', 'quartil', 'dt_mes', 'mes_abreviado']],
         left_on='DATA',
         right_on='dt_data',
         how='left'
     ).drop(columns=['dt_data'])
-
+    
+    salvar_log(f"   Registros após o merge: {len(df_final):,}")
+    
     # Identificar colunas numéricas
     colunas_numericas = df_final.select_dtypes(include=['number']).columns
-
+    
     # Preencher NaN com 0 apenas nas colunas numéricas
     df_final[colunas_numericas] = df_final[colunas_numericas].fillna(0)
-
+    
     # Reordenar colunas
     colunas_ordenadas = [
         'DATA', 'FX_ATRASO', 'ORIGEM',
@@ -400,19 +550,22 @@ def acionamentos_unique_trestto(df_discagens, df_dw_calendario):
         'PROMESSA', 'VALORPRIN_FIN_PROMESSA',
         'nr_dia_util', 'quartil', 'dt_mes', 'mes_abreviado'
     ]
+    
     df_final = df_final[colunas_ordenadas]
-
-    salvar_log(f"   ✓ Registros finais: {len(df_final):,}")
-    salvar_log(f"\n📈 Totais acumulados ÚNICOS (última data):")
+    
+    # Ordenar por data
+    df_final = df_final.sort_values('DATA').reset_index(drop=True)
+    
+    salvar_log(f"\n📈 Totais acumulados ÚNICOS (última data - {df_final['DATA'].max().strftime('%Y-%m-%d')}):")
     salvar_log(f"   ✓ TRABALHADO: {df_final[df_final['DATA'] == df_final['DATA'].max()]['TRABALHADO'].sum():,}")
     salvar_log(f"   ✓ ACIONAMENTOS: {df_final[df_final['DATA'] == df_final['DATA'].max()]['ACIONAMENTOS'].sum():,}")
     salvar_log(f"   ✓ CPC: {df_final[df_final['DATA'] == df_final['DATA'].max()]['CPC'].sum():,}")
     salvar_log(f"   ✓ CPCA: {df_final[df_final['DATA'] == df_final['DATA'].max()]['CPCA'].sum():,}")
     salvar_log(f"   ✓ PROMESSA: {df_final[df_final['DATA'] == df_final['DATA'].max()]['PROMESSA'].sum():,}")
     salvar_log("="*80)
-
+    
     df_final['FX_ATRASO'] = 'Unique'
-
+    
     return df_final
 
 @registrar_tempo("Funil por fxAtraso e origem trestto")
@@ -420,6 +573,7 @@ def acionamentos_fxAtraso_origem_trestto(df_discagens, df_dw_calendario):
     """
     Gera contagem acumulada mensal de acionamentos únicos por CPF e FX_ATRASO (melhor score) por ORIGEM.
     Permite que o mesmo CPF seja contado em faixas de atraso diferentes.
+    Preenche dias úteis faltantes até D-1 com os valores da última data disponível.
     
     Args:
         df_discagens (pd.DataFrame): DataFrame com dados de discagens enriquecido
@@ -434,7 +588,7 @@ def acionamentos_fxAtraso_origem_trestto(df_discagens, df_dw_calendario):
     df = df_discagens.copy()
     
     # Criar coluna ORIGEM com valor "Robô"
-    df['ORIGEM'] = 'Robô'
+    df['ORIGEM'] = 'ROBÔ'
     
     # Converter métricas para binário (>= 1 vira 1)
     df['TRABALHADO'] = (df['TRABALHADO'] >= 1).astype(int)
@@ -502,6 +656,69 @@ def acionamentos_fxAtraso_origem_trestto(df_discagens, df_dw_calendario):
     # Concatenar tudo
     df_final = pd.concat(resultados, ignore_index=True)
 
+    # ===== NOVO: PREENCHER BURACOS E DIAS ÚTEIS FALTANTES ATÉ D-1 =====
+    salvar_log(f"\n🔄 Verificando buracos no range e dias úteis faltantes...")
+    
+    # Preparar calendário
+    df_dw_calendario_temp = df_dw_calendario.copy()
+    df_dw_calendario_temp['dt_data'] = pd.to_datetime(df_dw_calendario_temp['dt_data'])
+    
+    # Obter primeira e última data do arquivo origem
+    primeira_data_origem = df_final['DATA'].min()
+    ultima_data_origem = df_final['DATA'].max()
+    
+    # Definir D-1 (ontem)
+    data_d_menos_1 = pd.Timestamp.now().normalize() - pd.Timedelta(days=1)
+    
+    salvar_log(f"   Primeira data do arquivo: {primeira_data_origem.strftime('%Y-%m-%d')}")
+    salvar_log(f"   Última data do arquivo: {ultima_data_origem.strftime('%Y-%m-%d')}")
+    salvar_log(f"   Data D-1 (ontem): {data_d_menos_1.strftime('%Y-%m-%d')}")
+    
+    # Definir range completo: da primeira data do arquivo até D-1
+    data_final_desejada = max(ultima_data_origem, data_d_menos_1)
+    
+    # Obter TODOS os dias úteis do calendário nesse range
+    todos_dias_uteis = df_dw_calendario_temp[
+        (df_dw_calendario_temp['dt_data'] >= primeira_data_origem) & 
+        (df_dw_calendario_temp['dt_data'] <= data_final_desejada)
+    ]['dt_data'].sort_values().unique()
+    
+    # Identificar dias que existem no arquivo
+    datas_existentes = set(df_final['DATA'].unique())
+    
+    # Identificar dias faltantes (buracos)
+    datas_faltantes = sorted([d for d in todos_dias_uteis if d not in datas_existentes])
+    
+    if len(datas_faltantes) > 0:
+        salvar_log(f"   ⚠️  Encontrados {len(datas_faltantes)} dias úteis faltantes (buracos no range)")
+        
+        dfs_duplicados = []
+        
+        # Para cada data faltante, encontrar a última data disponível ANTES dela
+        for data_faltante in datas_faltantes:
+            # Buscar a última data que existe ANTES da data faltante
+            datas_anteriores = [d for d in datas_existentes if d < data_faltante]
+            
+            if len(datas_anteriores) > 0:
+                ultima_data_anterior = max(datas_anteriores)
+                
+                # Copiar dados dessa data anterior
+                df_duplicado = df_final[df_final['DATA'] == ultima_data_anterior].copy()
+                df_duplicado['DATA'] = data_faltante
+                dfs_duplicados.append(df_duplicado)
+                
+                # Adicionar ao conjunto de datas existentes para próximas iterações
+                datas_existentes.add(data_faltante)
+        
+        if len(dfs_duplicados) > 0:
+            # Adicionar ao dataframe final
+            df_final = pd.concat([df_final] + dfs_duplicados, ignore_index=True)
+            salvar_log(f"   ✓ Preenchimento de {len(dfs_duplicados)} dias concluído!")
+    else:
+        salvar_log(f"   ✓ Não há buracos no range. Dados completos!")
+    
+    # ===== FIM DO PREENCHIMENTO =====
+
     # Cruzar com calendário
     df_dw_calendario_temp = df_dw_calendario.copy()
     df_dw_calendario_temp['dt_data'] = pd.to_datetime(df_dw_calendario_temp['dt_data'])
@@ -511,7 +728,7 @@ def acionamentos_fxAtraso_origem_trestto(df_discagens, df_dw_calendario):
         df_dw_calendario_temp[['dt_data', 'nr_dia_util', 'quartil', 'dt_mes', 'mes_abreviado']],
         left_on='DATA',
         right_on='dt_data',
-        how='left'
+        how='inner'
     ).drop(columns=['dt_data'])
 
     # Identificar colunas numéricas

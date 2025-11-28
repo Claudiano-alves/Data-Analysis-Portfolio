@@ -1,5 +1,5 @@
 import pandas as pd
-from src.utils import salvar_log, registrar_tempo
+from utils import salvar_log, registrar_tempo, unir_dataframes
 
 @registrar_tempo("Dados de pagamentos")
 def data_pagamentos(df_pagamentos, df_acordos, df_maling_hist, df_dw_calendario):
@@ -193,11 +193,16 @@ def gerar_acumulado_por_dia_util(df_agrupado):
     salvar_log("="*60)
     
     df_acumulado = df_acumulado[df_acumulado['qte'] > 0]
-
-    return df_acumulado
+    df_unique = df_acumulado.copy()
+    df_unique['FX_ATRASO'] = 'Unique'
+    df_esforco = df_acumulado.copy()
+    df_esforco['FX_ATRASO'] = 'Esforço'
+    return df_acumulado, df_esforco, df_unique
 
 def tratar_pagamentos(df_pagamentos, df_acordos, df_maling_hist, df_dw_calendario):
     df_pagamentos, df_sem_fx_atraso, df_pagamento_analitico = data_pagamentos(df_pagamentos, df_acordos, df_maling_hist, df_dw_calendario)
-    df_pagamentos_funil = gerar_acumulado_por_dia_util(df_pagamentos)
+    df_pagamentos_funil, df_esforco, df_unique = gerar_acumulado_por_dia_util(df_pagamentos)
+
+    df_pagamentos_funil = unir_dataframes(df_pagamentos_funil, df_esforco, df_unique)
 
     return df_pagamentos_funil, df_sem_fx_atraso, df_pagamento_analitico

@@ -1,5 +1,5 @@
 import pandas as pd
-from src.utils import unir_dataframes, salvar_log, registrar_tempo
+from utils import unir_dataframes, salvar_log, registrar_tempo
 
 
 # SUBSTITUÍ POR 0 E 1
@@ -456,89 +456,6 @@ def acionamentos_esforco_origem_fxAtraso(df_acionamentos_enriquecido, df_dw_cale
 
     return df_final
 
-#def acionamentos_esforco_origem_fxAtraso(df_acionamentos_enriquecido, df_dw_calendario):
-
-    df_esforco = df_acionamentos_enriquecido.copy()
-
-    df_esforco['TABULACAO_SCORE'] = (
-        df_esforco['PROMESSA'].astype(int) * 3 +
-        df_esforco['CPCA'].astype(int) * 2 +
-        df_esforco['CPC'].astype(int) * 1
-    )
-    
-    # Ordenar por score (maior score primeiro)
-    df_ordenado = df_esforco.sort_values(
-        ['CPF_DEV', 'DATA_ACIONA', 'TABULACAO_SCORE'],
-        ascending=[True, True, False]
-    )
-    
-    # Manter apenas o melhor score por CPF_DEV + DATA_ACIONA
-    df_ordenado = df_ordenado.drop_duplicates(
-        subset=['CPF_DEV', 'DATA_ACIONA', 'TABULACAO_SCORE'],
-        keep='first'
-    ).copy()
-    
-    df_esforco.loc[:, 'ACIONAMENTOS'] = df_esforco['ACIONAMENTOS'].astype(int)
-    df_esforco.loc[:, 'CPC'] = df_esforco['CPC'].astype(int)
-    df_esforco.loc[:, 'CPCA'] = df_esforco['CPCA'].astype(int)
-    df_esforco.loc[:, 'PROMESSA'] = df_esforco['PROMESSA'].astype(int)
-
-    # Filtrar registros com pelo menos 1 de cada métrica (sem remover duplicados)
-    df_aciona = df_esforco[df_esforco['ACIONAMENTOS'] >= 1].copy()
-    df_cpc = df_esforco[df_esforco['CPC'] >= 1].copy()
-    df_cpca = df_esforco[df_esforco['CPCA'] >= 1].copy()
-    df_promessa = df_esforco[df_esforco['PROMESSA'] >= 1].copy()
-
-    def contar_esforco(df_filtrado, nome_coluna):
-        return (
-            df_filtrado.groupby(
-                ['DATA_ACIONA', 'FX_ATRASO', 'ORIGEM'],
-                observed=True
-            )
-            .agg({ 
-                nome_coluna: 'sum',  # Soma o total de acionamentos/CPC/CPCA/PROMESSA
-                'VALORPRIN_FIN': 'sum'
-            })
-            .rename(columns={
-                'VALORPRIN_FIN': f'VALORPRIN_FIN_{nome_coluna}'
-            })
-            .reset_index()
-        )
-
-    df_contagem_aciona = contar_esforco(df_aciona, 'ACIONAMENTOS')
-    df_contagem_cpc = contar_esforco(df_cpc, 'CPC')
-    df_contagem_cpca = contar_esforco(df_cpca, 'CPCA')
-    df_contagem_promessa = contar_esforco(df_promessa, 'PROMESSA')
-
-    from functools import reduce
-
-    dfs = [df_contagem_aciona, df_contagem_cpc, df_contagem_cpca, df_contagem_promessa]
-
-    df_final = reduce(lambda left, right: pd.merge(
-        left, right,
-        on=['DATA_ACIONA', 'FX_ATRASO', 'ORIGEM'],
-        how='outer'
-    ), dfs)
-
-    # Preencher apenas as colunas numéricas com 0
-    colunas_metricas = ['ACIONAMENTOS', 'CPC', 'CPCA', 'PROMESSA']
-    colunas_valor = ['VALORPRIN_FIN_ACIONAMENTOS', 'VALORPRIN_FIN_CPC', 'VALORPRIN_FIN_CPCA', 'VALORPRIN_FIN_PROMESSA']
-    
-    df_final[colunas_metricas] = df_final[colunas_metricas].fillna(0).astype(int)
-    df_final[colunas_valor] = df_final[colunas_valor].fillna(0)
-
-    # Fazer merge com o calendário usando os nomes corretos das colunas
-    df_final = df_final.merge(
-        df_dw_calendario[['dt_data', 'nr_dia_util', 'quartil', 'dt_mes', 'mes_abreviado']].drop_duplicates(),
-        left_on='DATA_ACIONA',
-        right_on='dt_data',
-        how='left'
-    ).drop('dt_data', axis=1)
-
-    df_final['FX_ATRASO'] = 'Esforço'
-
-    return df_final
-
 # FUNIL
 @registrar_tempo("Funil de acionamentos fxAtraso e origem humano")
 def acionamentos_fxAtraso_origem_humano(df_acionamentos_enriquecido_limpo, df_dw_calendario):
@@ -604,7 +521,7 @@ def acionamentos_fxAtraso_origem_humano(df_acionamentos_enriquecido_limpo, df_dw
         df_dw_calendario[['dt_data', 'nr_dia_util', 'quartil', 'dt_mes', 'mes_abreviado']],
         left_on='DATA_ACIONA',
         right_on='dt_data',
-        how='left'
+        how='inner'
     ).drop(columns=['dt_data'])
 
     # Identificar colunas numéricas
@@ -713,7 +630,7 @@ def acionamentos_unique_humano(df_acionamentos_enriquecido_limpo, df_dw_calendar
         df_dw_calendario_temp[['dt_data', 'nr_dia_util', 'quartil', 'dt_mes', 'mes_abreviado']],
         left_on='DATA_ACIONA',
         right_on='dt_data',
-        how='left'
+        how='inner'
     ).drop(columns=['dt_data'])
 
     # Identificar colunas numéricas
@@ -812,7 +729,7 @@ def acionamentos_esforco_humano(df_acionamentos_enriquecido_limpo, df_dw_calenda
         df_dw_calendario_temp[['dt_data', 'nr_dia_util', 'quartil', 'dt_mes', 'mes_abreviado']],
         left_on='DATA_ACIONA',
         right_on='dt_data',
-        how='left'
+        how='inner'
     ).drop(columns=['dt_data'])
     
     # Identificar colunas numéricas
@@ -867,77 +784,6 @@ def acionamentos_duplicados(df_acionamentos_enriquecido_limpo):
     df_conflitos_score = df_acionamentos_score.merge(cpf_data_com_conflito, on=['CONTRATO_FIN', 'DATA_ACIONA'], how='inner')
     return df_conflitos_score
 
-def transformar_funil_formato_long(df_acionamentos_funil):
-    """
-    Transforma o DataFrame de acionamentos do formato wide para long.
-    
-    De: DATA | FX_ATRASO | ORIGEM | TRABALHADO | ACIONAMENTOS | CPC | CPCA | PROMESSA | ...
-    Para: DATA | Indicador | qte | FX_ATRASO | ORIGEM | MesAbreviado | nr_dia_util | quartil | dt_mes | VALORPRIN_FIN
-    """
-    
-    # Definir os indicadores que serão transformados
-    indicadores = {
-        'TRABALHADO': 'VALORPRIN_FIN_TRABALHADO',
-        'ACIONAMENTOS': 'VALORPRIN_FIN_ACIONAMENTOS',
-        'CPC': 'VALORPRIN_FIN_CPC',
-        'CPCA': 'VALORPRIN_FIN_CPCA',
-        'PROMESSA': 'VALORPRIN_FIN_PROMESSA'
-    }
-    
-    resultados = []
-    
-    for indicador, col_valor in indicadores.items():
-        # Criar um DataFrame para cada indicador
-        df_temp = df_acionamentos_funil[[
-            'DATA',
-            'FX_ATRASO',
-            'ORIGEM',
-            indicador,
-            col_valor,
-            'mes_abreviado',
-            'nr_dia_util',
-            'quartil',
-            'dt_mes'
-        ]].copy()
-        
-        # Renomear colunas
-        df_temp = df_temp.rename(columns={
-            indicador: 'qte',
-            col_valor: 'VALORPRIN_FIN',
-            'mes_abreviado': 'MesAbreviado'
-        })
-        
-        # Adicionar coluna Indicador
-        df_temp['Indicador'] = indicador.lower()
-        
-        resultados.append(df_temp)
-    
-    # Concatenar todos os indicadores
-    df_final = pd.concat(resultados, ignore_index=True)
-    
-    # Reordenar colunas conforme solicitado
-    df_final = df_final[[
-        'DATA',
-        'Indicador',
-        'qte',
-        'FX_ATRASO',
-        'ORIGEM',
-        'MesAbreviado',
-        'nr_dia_util',
-        'quartil',
-        'dt_mes',
-        'VALORPRIN_FIN'
-    ]]
-    
-    # Ordenar por DATA, FX_ATRASO e Indicador
-    df_final = df_final.sort_values(['DATA', 'FX_ATRASO', 'Indicador']).reset_index(drop=True)
-    
-    return df_final
-
-
-# Exemplo de uso:
-# df_funil_transformado = transformar_funil_formato_long(df_acionamentos_funil)
-
 def acionamentos_humano(df_tab_acionamentos, df_tabulacao_aciona, df_dw_calendario, df_maling_hist):
     df_tabulacao_aciona = tratar_acionamentos_tabulacao(df_tabulacao_aciona)
     df_acionamentos_tabulados = confere_tabulacao_acionamentos(df_tab_acionamentos, df_tabulacao_aciona)
@@ -948,10 +794,9 @@ def acionamentos_humano(df_tab_acionamentos, df_tabulacao_aciona, df_dw_calendar
     df_acionamentos_esforco_humano = acionamentos_esforco_humano(df_acionamentos_enriquecido_limpo, df_dw_calendario)
 
     df_acionamentos_humano = unir_dataframes(df_acionamentos_fxAtraso_origem_humano, df_acionamentos_unique_humano, df_acionamentos_esforco_humano)
-    df_acionamentos_funil_long = transformar_funil_formato_long(df_acionamentos_humano)
 
     df_analitico_acionamentos_humano = df_acionamentos_enriquecido_limpo.copy()
-    return df_acionamentos_humano, df_analitico_acionamentos_humano, df_acion_semFaixa_humano, df_acion_semDescricao_humano, df_acion_semOrigem_humano, df_acionamentos_funil_long
+    return df_acionamentos_humano, df_analitico_acionamentos_humano, df_acion_semFaixa_humano, df_acion_semDescricao_humano, df_acion_semOrigem_humano
 
 
 # ===== USO DA FUNÇÃO =====

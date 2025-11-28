@@ -7,3 +7,4 @@ ENV/
 __pycache__/
 .env
 logs
+*.csv

@@ -4,8 +4,8 @@ from pathlib import Path
 from typing import Tuple, Optional
 from contextlib import contextmanager
 
-from src.data_wrangling_mailingHist import tratar_base_mailing_hist
-from src.db_connection import get_connection
+from data_wrangling_mailingHist import tratar_base_mailing_hist
+from db_connection import get_connection
 from queries import (
     get_query_discagens, 
     get_query_cad_devf, 
@@ -18,35 +18,32 @@ from queries import (
     get_query_acordos
 )
 
-
 def get_date_range_from_csv(csv_path: Optional[str] = None) -> Tuple[str, str]:
     """
-    Lê um arquivo CSV e retorna o range de datas baseado na última data encontrada.
+    Lê um arquivo XLSX e retorna o range de datas baseado na última data encontrada.
+    
+    Lógica:
+    - Se última data está no mês atual: busca do dia 1 do mês até ontem
+    - Se última data está em mês anterior: busca do dia seguinte à última data até ontem
     
     Args:
-        csv_path: Caminho do arquivo CSV. Se None, usa o caminho padrão do servidor.
+        csv_path: Caminho do arquivo XLSX. Se None, usa o caminho padrão do servidor.
         
     Returns:
         Tupla com (data_inicio, data_fim) no formato 'YYYY-MM-DD'
-        
-    Exemplo:
-        Última data no CSV: 2025-11-11
-        Hoje: 2025-11-14
-        Retorna: ('2025-11-01', '2025-11-13')
     """
     # Define caminho padrão se não fornecido
     if csv_path is None:
-        csv_path = r"\\trc-dc-ad\Planejamento\MIS\CARTEIRAS\GetNet\df_csvBI_padronizado.csv"
+        csv_path = r"\\trc-dc-ad\Planejamento\MIS\CARTEIRAS\GetNet\df_csvBI_padronizado.xlsx"
     
     try:
         print(f"📂 Lendo arquivo: {csv_path}")
         
-        # Lê o CSV (primeira coluna é 'data')
-        df = pd.read_csv(csv_path)
+        # Lê o XLSX da segunda aba
+        df = pd.read_excel(csv_path, sheet_name='df_csvBI_padronizado')
         
         # Verifica se coluna 'data' existe
         if 'data' not in df.columns:
-            # Se não existir, tenta a primeira coluna
             date_col = df.columns[0]
             print(f"⚠️ Coluna 'data' não encontrada. Usando primeira coluna: '{date_col}'")
         else:
@@ -59,9 +56,9 @@ def get_date_range_from_csv(csv_path: Optional[str] = None) -> Tuple[str, str]:
         df_validos = df[df[date_col].notna()]
         
         if len(df_validos) == 0:
-            raise ValueError("Nenhuma data válida encontrada no CSV")
+            raise ValueError("Nenhuma data válida encontrada no XLSX")
         
-        # FILTRO: Remove datas muito antigas (antes de 2020) - considera dados inválidos
+        # Filtro: Remove datas muito antigas (antes de 2020)
         ano_minimo = 2020
         df_validos = df_validos[df_validos[date_col].dt.year >= ano_minimo]
         
@@ -69,16 +66,23 @@ def get_date_range_from_csv(csv_path: Optional[str] = None) -> Tuple[str, str]:
             raise ValueError(f"Nenhuma data válida encontrada após {ano_minimo}")
         
         ultima_data = df_validos[date_col].max()
+        hoje = datetime.now()
+        data_fim = (hoje - timedelta(days=1)).strftime('%Y-%m-%d')
         
-        # Define data_inicio como primeiro dia do mês da última data
-        data_inicio = ultima_data.replace(day=1).strftime('%Y-%m-%d')
-        
-        # Define data_fim como hoje - 1 dia
-        data_fim = (datetime.now() - timedelta(days=1)).strftime('%Y-%m-%d')
+        # ⭐ LÓGICA CORRIGIDA ⭐
+        # Verifica se última data está no mês atual
+        if ultima_data.year == hoje.year and ultima_data.month == hoje.month:
+            # Mesmo mês: pega do dia 1 do mês
+            data_inicio = ultima_data.replace(day=1).strftime('%Y-%m-%d')
+            print(f"📅 Última data no mês atual - buscando do início do mês")
+        else:
+            # Mês diferente: pega do dia seguinte à última data
+            data_inicio = (ultima_data + timedelta(days=1)).strftime('%Y-%m-%d')
+            print(f"📅 Última data em mês anterior - buscando do dia seguinte")
         
         print(f"✅ Arquivo lido com sucesso!")
         print(f"📅 Range de datas calculado:")
-        print(f"   Última data no CSV: {ultima_data.strftime('%Y-%m-%d')}")
+        print(f"   Última data no XLSX: {ultima_data.strftime('%Y-%m-%d')}")
         print(f"   Data início: {data_inicio}")
         print(f"   Data fim: {data_fim}")
         
@@ -88,15 +92,16 @@ def get_date_range_from_csv(csv_path: Optional[str] = None) -> Tuple[str, str]:
         print(f"❌ Arquivo não encontrado: {csv_path}")
         print(f"⚠️ Usando datas padrão.")
         return get_default_date_range()
+        
     except PermissionError:
         print(f"❌ Sem permissão para acessar: {csv_path}")
         print(f"⚠️ Usando datas padrão.")
         return get_default_date_range()
+        
     except Exception as e:
-        print(f"❌ Erro ao processar CSV: {e}")
+        print(f"❌ Erro ao processar XLSX: {e}")
         print(f"⚠️ Usando datas padrão.")
         return get_default_date_range()
-
 
 def get_default_date_range() -> Tuple[str, str]:
     """
@@ -210,7 +215,7 @@ def data_loader(
 
     print("⏳ Carregando dw_calendario...")
     df_dw_calendario = pd.read_sql(
-        get_query_dw_calendario(), 
+        get_query_dw_calendario(data_inicio, data_fim), 
         conn_bd2
     )
     print(f"   ✓ {len(df_dw_calendario)} registros")

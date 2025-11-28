@@ -1,6 +1,6 @@
 import numpy as np
 import pandas as pd
-from src.utils import unir_dataframes, salvar_log, registrar_tempo
+from utils import unir_dataframes, salvar_log, registrar_tempo
 
 # ============================================
 # DICIONÁRIOS E CONSTANTES
@@ -86,7 +86,7 @@ def adicionar_definir_humano_robo(df_discagens_expert):
     """
     df_discagens_expert = df_discagens_expert.copy()
     df_discagens_expert['ORIGEM'] = df_discagens_expert['OPERACAO'].apply(
-        lambda x: 'Robô' if x == 'AGV NEGOCIADORA' else 'Humano'
+        lambda x: 'Robô' if x == 'AGV NEGOCIADORA' else 'HUMANO'
     )
     return df_discagens_expert
 
@@ -446,7 +446,7 @@ def acionamentos_unique_expert(df_com_fx_atraso, df_dw_calendario):
         df_dw_calendario_temp[['dt_data', 'nr_dia_util', 'quartil', 'dt_mes', 'mes_abreviado']],
         left_on='DATA',
         right_on='dt_data',
-        how='left'
+        how='inner'
     ).drop(columns=['dt_data'])
 
     # Identificar colunas numéricas
@@ -658,7 +658,7 @@ def acionamentos_esforco_expert(df_com_fx_atraso, df_dw_calendario):
         df_dw_calendario_temp[['dt_data', 'nr_dia_util', 'quartil', 'dt_mes', 'mes_abreviado']],
         left_on='DATA',
         right_on='dt_data',
-        how='left'
+        how='inner'
     ).drop(columns=['dt_data'])
 
     # Identificar colunas numéricas
@@ -869,7 +869,7 @@ def acionamentos_fxAtraso_origem_expert(df_com_fx_atraso, df_dw_calendario):
         df_dw_calendario_temp[['dt_data', 'nr_dia_util', 'quartil', 'dt_mes', 'mes_abreviado']],
         left_on='DATA',
         right_on='dt_data',
-        how='left'
+        how='inner'
     ).drop(columns=['dt_data'])
 
     # Identificar colunas numéricas

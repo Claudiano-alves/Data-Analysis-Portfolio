@@ -1,14 +1,13 @@
 # pipeline_funil.py
 
-from src.data_wrangling_mailingHist import (
+from data_wrangling_mailingHist import (
     gerar_acumulado_mailing_hist,
     gerar_acumulado_maling_hist_unique
 )
-from src.data_wrangling_acionamentos import transformar_funil_formato_long
-from src.data_wrangling_pagamentos import data_pagamentos, tratar_pagamentos
-from src.data_wrangling_discagens_expert import acionamentos_expert
-from src.data_loader import load_all_data
-from src.utils import acionamentos_funil, consolidar_dataframes
+from data_wrangling_pagamentos import data_pagamentos, tratar_pagamentos
+from data_wrangling_discagens_expert import acionamentos_expert
+from data_loader import load_all_data
+from utils import acionamentos_funil, consolidar_dataframes, salvar_analiticos_acionamentos
 
 
 def executar_pipeline_funil():
@@ -41,15 +40,15 @@ def executar_pipeline_funil():
     """
     dados = load_all_data()
 
-    df_discagens_expert = dados[0]
-    df_cad_devf = dados[1]
-    df_tab_acionamentos = dados[2]
-    df_maling_hist = dados[3]
-    df_dw_calendario = dados[4]
-    df_tabulacao_aciona = dados[5]
-    df_pagamentos = dados[6]
-    df_acordos = dados[7]
-    df_discagens_trestto = dados[8]
+    (df_discagens_expert, 
+     df_cad_devf, 
+     df_tab_acionamentos, 
+     df_maling_hist, 
+     df_dw_calendario, 
+     df_tabulacao_aciona, 
+     df_pagamentos, 
+     df_acordos, 
+     df_discagens_trestto) = dados
 
     # 1. Monta mailing acumulado
     df_mailing_acumulado = gerar_acumulado_mailing_hist(df_maling_hist, df_dw_calendario)
@@ -75,6 +74,21 @@ def executar_pipeline_funil():
         df_maling_hist,
         df_discagens_trestto,
         df_discagens_expert
+    )
+
+    arquivos_salvos = salvar_analiticos_acionamentos(
+        df_acionamentos_funil,
+        df_analitico_acionamentos_humano,
+        df_acion_semFaixa_humano,
+        df_acion_semDescricao_humano,
+        df_acion_semOrigem_humano,
+        df_analitico_trestto,
+        df_enriquecido_discagens_trestto_semFaixa,
+        df_analitico_expert,
+        df_enriquecido_discagens_expert_semFaixa,
+        df_humano_tabulados_como_robo,
+        df_dicagens_operacaoOutros,
+        df_acionamentos_funil_long
     )
 
     # 4. Executa tratamento de pagamentos

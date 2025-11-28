@@ -1,4 +1,4 @@
-from src.utils import unir_dataframes
+from utils import unir_dataframes
 import pandas as pd
 import numpy as np
 
@@ -158,6 +158,61 @@ def csv_carteira_saldoDevedor(df_funil_powerBI):
 
     return df_carteira_saldo_unificado
 
+def csv_contrato_saldoDevedor(df_funil_powerBI):
+    # Lista de indicadores
+    indicadores_carteira = ['Contratos']
+    indicadores_saldo = ['Saldo Devedor']
+
+    # Filtrar apenas os indicadores desejados
+    df_filtrado_carteira_saldo = df_funil_powerBI[df_funil_powerBI['indicador'].isin(indicadores_carteira + indicadores_saldo)]
+
+    # Remover coluna 'poroduto'
+    df_sem_poroduto_cs = df_filtrado_carteira_saldo.drop(columns=['poroduto'])
+
+    # Colunas de agrupamento
+    colunas_carteira = [
+        'data', 'fx_atraso', 'MesAbreviado', 'nr_dia_util', 'quartil', 'dt_mes'
+    ]
+
+    # -------------------------------
+    # Agrupar Carteira (CPFs)
+    df_carteira = df_sem_poroduto_cs[df_sem_poroduto_cs['indicador'] == 'Contratos']
+    # REMOVE DUPLICADOS ANTES DE AGRUPAR (mantém a linha com maior valor)
+    df_carteira = df_carteira.sort_values('qte', ascending=False).drop_duplicates(subset=colunas_carteira, keep='first')
+    df_carteira_agrupado = df_carteira.groupby(colunas_carteira, as_index=False)['qte'].sum()
+
+    # -------------------------------
+    # Agrupar Saldo Devedor
+    df_saldo = df_sem_poroduto_cs[df_sem_poroduto_cs['indicador'] == 'Saldo Devedor']
+    # REMOVE DUPLICADOS ANTES DE AGRUPAR (mantém a linha com maior valor)
+    df_saldo = df_saldo.sort_values('qte', ascending=False).drop_duplicates(subset=colunas_carteira, keep='first')
+    df_saldo_agrupado = df_saldo.groupby(colunas_carteira, as_index=False)['qte'].sum()
+
+    # Renomear colunas
+    df_carteira_agrupado = df_carteira_agrupado.rename(columns={'qte': 'qte'})
+    df_saldo_agrupado = df_saldo_agrupado.rename(columns={'qte': 'VALORPRIN_FIN'})
+
+    # -------------------------------
+    # Merge alinhando Carteira (CPFs) com Saldo Devedor
+    df_contrato_saldo_unificado = pd.merge(
+        df_carteira_agrupado[colunas_carteira + ['qte']],
+        df_saldo_agrupado[colunas_carteira + ['VALORPRIN_FIN']],
+        on=colunas_carteira,
+        how='left'
+    )
+
+    # Adicionar coluna Indicador e tipo
+    df_contrato_saldo_unificado['Indicador'] = 'Contratos'
+    df_contrato_saldo_unificado['tipo'] = ''
+
+    # Reordenar colunas
+    df_contrato_saldo_unificado = df_contrato_saldo_unificado[[
+        'data', 'Indicador', 'qte', 'fx_atraso', 'tipo',
+        'MesAbreviado', 'nr_dia_util', 'quartil', 'dt_mes', 'VALORPRIN_FIN'
+    ]]
+
+    return df_contrato_saldo_unificado
+
 def csv_promessa(df_funil_powerBI):
 
     # Lista de indicadores
@@ -262,10 +317,11 @@ def tratar_base_csv():
 
     df_pagamentos = csv_pagamentos(df_funil_powerBI)
     df_carteira_saldoDevedor = csv_carteira_saldoDevedor(df_funil_powerBI)
+    df_contrato_saldoDevedor = csv_contrato_saldoDevedor(df_funil_powerBI)
     df_promessa = csv_promessa(df_funil_powerBI)
     df_outrosIndicadores = csv_outrosIndicadores(df_funil_powerBI)
 
-    df_csvBI_padronizado = unir_dataframes(df_pagamentos, df_carteira_saldoDevedor, df_promessa, df_outrosIndicadores)
+    df_csvBI_padronizado = unir_dataframes(df_pagamentos, df_carteira_saldoDevedor, df_contrato_saldoDevedor, df_promessa, df_outrosIndicadores)
 
     return df_csvBI_padronizado
 

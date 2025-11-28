@@ -1,0 +1,1586 @@
+[2025-11-25 16:15:04] ▶️  Iniciando: Acumulado mailing hist por faixa de atraso
+[2025-11-25 16:15:04] ============================================================
+[2025-11-25 16:15:04] INÍCIO DO PROCESSAMENTO DE MALING_HIST
+[2025-11-25 16:15:04] ============================================================
+[2025-11-25 16:15:04] Total de registros em df_maling_hist: 6059667
+[2025-11-25 16:15:05] Memória reduzida - trabalhando com 5 colunas
+[2025-11-25 16:15:08] Registros após merge com calendário: 3777035
+[2025-11-25 16:15:08] Total de datas únicas a processar: 15
+[2025-11-25 16:15:41]    Processando 10/15 datas...
+[2025-11-25 16:16:17]    Processando 15/15 datas...
+[2025-11-25 16:16:25] ============================================================
+[2025-11-25 16:16:25] RESUMO FINAL MALING_HIST
+[2025-11-25 16:16:25] ============================================================
+[2025-11-25 16:16:25] Total de registros acumulados gerados: 300
+[2025-11-25 16:16:25] Registros de Contratos: 150
+[2025-11-25 16:16:25] Registros de CPFs: 0
+[2025-11-25 16:16:25] Valor total final: R$ 2,618,956,860.85
+[2025-11-25 16:16:25] ============================================================
+[2025-11-25 16:16:26] ✅ Concluído: Acumulado mailing hist por faixa de atraso - Tempo: 1.36min (81.52s)
+[2025-11-25 16:16:26] ▶️  Iniciando: Acumulado mailing hist unique
+[2025-11-25 16:16:26] ============================================================
+[2025-11-25 16:16:26] INÍCIO DO PROCESSAMENTO DE MALING_HIST
+[2025-11-25 16:16:26] ============================================================
+[2025-11-25 16:16:26] Total de registros em df_maling_hist: 6059667
+[2025-11-25 16:16:27] Memória reduzida - trabalhando com 4 colunas
+[2025-11-25 16:16:29] Registros após merge com calendário: 3777035
+[2025-11-25 16:16:29] Total de datas únicas a processar: 15
+[2025-11-25 16:16:58]    Processando 10/15 datas...
+[2025-11-25 16:17:30]    Processando 15/15 datas...
+[2025-11-25 16:17:38] ============================================================
+[2025-11-25 16:17:38] RESUMO FINAL MALING_HIST
+[2025-11-25 16:17:38] ============================================================
+[2025-11-25 16:17:38] Total de registros acumulados gerados: 30
+[2025-11-25 16:17:38] Registros de Contratos: 15
+[2025-11-25 16:17:38] Registros de CPFs: 0
+[2025-11-25 16:17:38] Valor total final: R$ 2,379,274,583.82
+[2025-11-25 16:17:38] ============================================================
+[2025-11-25 16:17:38] ✅ Concluído: Acumulado mailing hist unique - Tempo: 1.21min (72.44s)
+[2025-11-25 16:17:38] ▶️  Iniciando: Substituindo tabulações por 0 e 1
+[2025-11-25 16:17:38] Finalizado!
+[2025-11-25 16:17:38] ✅ Concluído: Substituindo tabulações por 0 e 1 - Tempo: 0.00s
+[2025-11-25 16:17:38] ▶️  Iniciando: Conferindo tabulações aos acionamentos
+[2025-11-25 16:17:38] ================================================================================
+[2025-11-25 16:17:38] 📊 Antes do merge - Acionamentos: 4,572 | Tabulações: 79
+[2025-11-25 16:17:38] 📊 Após merge: 4,572
+[2025-11-25 16:17:38] 📊 Acionamentos com DESC_ACIONA: 4,459
+[2025-11-25 16:17:38] ================================================================================
+[2025-11-25 16:17:38] ✅ Concluído: Conferindo tabulações aos acionamentos - Tempo: 0.02s
+[2025-11-25 16:17:38] ▶️  Iniciando: Enriquecendo acionamentos mailing hist e calendário
+[2025-11-25 16:17:38] ================================================================================
+[2025-11-25 16:17:38] 📊 Classificando origem do acionamento...
+[2025-11-25 16:17:38]    ✓ Robô: 0
+[2025-11-25 16:17:38]    ✓ Humano: 4,572
+[2025-11-25 16:17:42] 📊 Merge com mailing_hist...
+[2025-11-25 16:17:45]    ✓ Registros: 4,572
+[2025-11-25 16:17:45]    ✓ Registros finais: 4,572
+[2025-11-25 16:17:45]    ✓ Com FX_ATRASO: 4,420
+[2025-11-25 16:17:45]    ✓ Com DESC_ACIONA: 4,459
+[2025-11-25 16:17:45]    ✓ Com ORIGEM: 4,572
+[2025-11-25 16:17:45] ================================================================================
+[2025-11-25 16:17:45] ▶️  Iniciando: Separando inconsistências
+[2025-11-25 16:17:45] ================================================================================
+[2025-11-25 16:17:45] 
+📋 ANÁLISE DE INCONSISTÊNCIAS:
+[2025-11-25 16:17:45]    ✓ Registros limpos: 4,314
+[2025-11-25 16:17:45]    ⚠️  Sem FX_ATRASO (fora da mailing): 152
+[2025-11-25 16:17:45]    ⚠️  Sem DESC_ACIONA (erro de tabulação): 113
+[2025-11-25 16:17:45]    ⚠️  Sem ORIGEM (fora do discador): 0
+[2025-11-25 16:17:45]    📊 Total de registros: 4,572
+[2025-11-25 16:17:45] ================================================================================
+[2025-11-25 16:17:45] ✅ Concluído: Separando inconsistências - Tempo: 0.01s
+[2025-11-25 16:17:45] ✅ Concluído: Enriquecendo acionamentos mailing hist e calendário - Tempo: 6.91s
+[2025-11-25 16:17:45] ▶️  Iniciando: Funil de acionamentos fxAtraso e origem humano
+[2025-11-25 16:17:46] ✅ Concluído: Funil de acionamentos fxAtraso e origem humano - Tempo: 0.68s
+[2025-11-25 16:17:46] ▶️  Iniciando: Funil de acionamentos unique humano
+[2025-11-25 16:17:46] ================================================================================
+[2025-11-25 16:17:46] 📊 Processando acumulado mensal ÚNICO (melhor score por CPF) para 18 datas...
+[2025-11-25 16:17:46]    Processando 10/18 datas...
+[2025-11-25 16:17:46]    Processando 18/18 datas...
+[2025-11-25 16:17:46] 
+📅 Merge com dw_calendario...
+[2025-11-25 16:17:46]    ✓ Registros finais: 150
+[2025-11-25 16:17:46] 
+📈 Totais acumulados ÚNICOS (última data):
+[2025-11-25 16:17:47]    ✓ ACIONAMENTOS: 3,456.0
+[2025-11-25 16:17:47]    ✓ CPC: 1,241.0
+[2025-11-25 16:17:47]    ✓ CPCA: 919.0
+[2025-11-25 16:17:47]    ✓ PROMESSA: 489.0
+[2025-11-25 16:17:47] ================================================================================
+[2025-11-25 16:17:47] ✅ Concluído: Funil de acionamentos unique humano - Tempo: 0.64s
+[2025-11-25 16:17:47] ▶️  Iniciando: Funil de acionamentos esforço humano
+[2025-11-25 16:17:47] ================================================================================
+[2025-11-25 16:17:47] 📊 Processando acumulado mensal para 18 datas...
+[2025-11-25 16:17:47]    Processando 10/18 datas...
+[2025-11-25 16:17:47]    Processando 18/18 datas...
+[2025-11-25 16:17:47] 
+📅 Merge com dw_calendario...
+[2025-11-25 16:17:47]    ✓ Registros finais: 150
+[2025-11-25 16:17:47] 
+📈 Totais acumulados:
+[2025-11-25 16:17:47]    ✓ ACIONAMENTOS: 4,314.0
+[2025-11-25 16:17:47]    ✓ CPC: 1,348.0
+[2025-11-25 16:17:47]    ✓ CPCA: 970.0
+[2025-11-25 16:17:47]    ✓ PROMESSA: 508.0
+[2025-11-25 16:17:47] ================================================================================
+[2025-11-25 16:17:47] ✅ Concluído: Funil de acionamentos esforço humano - Tempo: 0.52s
+[2025-11-25 16:17:47] ▶️  Iniciando: DF com as tabulações do Robô
+[2025-11-25 16:17:47] ================================================================================
+[2025-11-25 16:17:47] ✅ DataFrame de classificação de tabulações criado!
+[2025-11-25 16:17:47]    📊 Total de códigos: 57
+[2025-11-25 16:17:47]    ✓ ACIONAMENTOS: 57 códigos
+[2025-11-25 16:17:47]    ✓ CPC: 36 códigos
+[2025-11-25 16:17:47]    ✓ CPCA: 29 códigos
+[2025-11-25 16:17:47]    ✓ PROMESSA: 14 códigos
+[2025-11-25 16:17:47] ================================================================================
+[2025-11-25 16:17:47] ✅ Concluído: DF com as tabulações do Robô - Tempo: 0.01s
+[2025-11-25 16:17:47] ▶️  Iniciando: Discagens Expert
+[2025-11-25 16:17:47] ================================================================================
+[2025-11-25 16:17:47] 📊 Merge com classificações de tabulação...
+[2025-11-25 16:17:47]    Registros antes: 845,106
+[2025-11-25 16:17:48]    ✓ Registros após merge: 845,106
+[2025-11-25 16:17:48]    ✓ Registros perdidos: 0
+[2025-11-25 16:17:48] 
+📈 Distribuição das classificações:
+[2025-11-25 16:17:48]    ✓ TRABALHADO: 845,106 registros
+[2025-11-25 16:17:48]    ✓ ACIONAMENTOS: 4,716 registros
+[2025-11-25 16:17:48]    ✓ CPC: 295 registros
+[2025-11-25 16:17:48]    ✓ CPCA: 193 registros
+[2025-11-25 16:17:48]    ✓ PROMESSA: 193 registros
+[2025-11-25 16:17:48] ================================================================================
+[2025-11-25 16:17:48] ✅ Concluído: Discagens Expert - Tempo: 0.52s
+[2025-11-25 16:17:48] ▶️  Iniciando: Enriquecimento base de discagens expert
+[2025-11-25 16:17:49] ✅ Enriquecido!
+[2025-11-25 16:17:49] ✅ Concluído: Enriquecimento base de discagens expert - Tempo: 1.30s
+[2025-11-25 16:17:49] ▶️  Iniciando: Enriquecimento maling hist e calendário
+[2025-11-25 16:17:56] ================================================================================
+[2025-11-25 16:17:56] 📊 Merge com mailing_hist...
+[2025-11-25 16:17:56]    Registros antes: 845,106
+[2025-11-25 16:18:01]    ✓ Registros após merge: 845,106
+[2025-11-25 16:18:01]    ⚠️  Registros sem FX_ATRASO: 48,852
+[2025-11-25 16:18:01] 
+📅 Merge com dw_calendario...
+[2025-11-25 16:18:01]    Registros antes: 845,106
+[2025-11-25 16:18:03]    ✓ Registros após merge: 845,106
+[2025-11-25 16:18:03]    ⚠️  Registros sem dados de calendário: 92,228
+[2025-11-25 16:18:04] 
+📦 Separação dos DataFrames:
+[2025-11-25 16:18:04]    ✓ Registros COM FX_ATRASO: 796,254
+[2025-11-25 16:18:04]    ✓ Registros SEM FX_ATRASO: 48,852
+[2025-11-25 16:18:04] ================================================================================
+[2025-11-25 16:18:04] ✅ Concluído: Enriquecimento maling hist e calendário - Tempo: 15.16s
+[2025-11-25 16:18:04] ▶️  Iniciando: Segmentando base de discagens enriquecida
+[2025-11-25 16:18:05] ============================================================
+[2025-11-25 16:18:05] RESUMO DA SEPARAÇÃO DE DADOS
+[2025-11-25 16:18:05] ============================================================
+[2025-11-25 16:18:05] Total de registros original: 796,254
+[2025-11-25 16:18:05] 
+1. Humano + Primeiro Acionamento: 0 registros (0.00%)
+[2025-11-25 16:18:05] 2. Operação 'Outros': 302,993 registros (38.05%)
+[2025-11-25 16:18:05] 3. Restante: 493,261 registros (61.95%)
+[2025-11-25 16:18:05] 
+Verificação: 796,254 registros
+[2025-11-25 16:18:05] ============================================================
+[2025-11-25 16:18:05] ✅ Concluído: Segmentando base de discagens enriquecida - Tempo: 1.23s
+[2025-11-25 16:18:05] ▶️  Iniciando: Funil esforço expert
+[2025-11-25 16:18:06] ================================================================================
+[2025-11-25 16:18:06] 📊 Processando acumulado mensal para 18 datas...
+[2025-11-25 16:18:07]    Processando 10/18 datas...
+[2025-11-25 16:18:11]    Processando 18/18 datas...
+[2025-11-25 16:18:12] 
+📅 Merge com dw_calendario...
+[2025-11-25 16:18:12]    ✓ Registros finais: 150
+[2025-11-25 16:18:12] 
+📈 Totais acumulados:
+[2025-11-25 16:18:12]    ✓ TRABALHADO: 493,261.0
+[2025-11-25 16:18:12]    ✓ ACIONAMENTOS: 110.0
+[2025-11-25 16:18:12]    ✓ CPC: 0.0
+[2025-11-25 16:18:12]    ✓ CPCA: 0.0
+[2025-11-25 16:18:12]    ✓ PROMESSA: 0.0
+[2025-11-25 16:18:12] ================================================================================
+[2025-11-25 16:18:12] ✅ Concluído: Funil esforço expert - Tempo: 6.62s
+[2025-11-25 16:18:12] ▶️  Iniciando: Funil unique expert
+[2025-11-25 16:18:12] ================================================================================
+[2025-11-25 16:18:12] 📊 Processando acumulado mensal ÚNICO (melhor score por CPF) para 18 datas...
+[2025-11-25 16:18:16]    Processando 10/18 datas...
+[2025-11-25 16:18:25]    Processando 18/18 datas...
+[2025-11-25 16:18:26] 
+📅 Merge com dw_calendario...
+[2025-11-25 16:18:26]    ✓ Registros finais: 150
+[2025-11-25 16:18:26] 
+📈 Totais acumulados ÚNICOS (última data):
+[2025-11-25 16:18:26]    ✓ TRABALHADO: 91,772.0
+[2025-11-25 16:18:26]    ✓ ACIONAMENTOS: 109.0
+[2025-11-25 16:18:26]    ✓ CPC: 0.0
+[2025-11-25 16:18:26]    ✓ CPCA: 0.0
+[2025-11-25 16:18:26]    ✓ PROMESSA: 0.0
+[2025-11-25 16:18:26] ================================================================================
+[2025-11-25 16:18:26] ✅ Concluído: Funil unique expert - Tempo: 14.16s
+[2025-11-25 16:18:26] ▶️  Iniciando: Funil fxAtraso e Origem expert
+[2025-11-25 16:18:26] ================================================================================
+[2025-11-25 16:18:26] 📊 Processando acumulado mensal ÚNICO por CPF + FX_ATRASO (melhor score) para 18 datas...
+[2025-11-25 16:18:30]    Processando 10/18 datas...
+[2025-11-25 16:18:40]    Processando 18/18 datas...
+[2025-11-25 16:18:42] 
+📅 Merge com dw_calendario...
+[2025-11-25 16:18:42]    ✓ Registros finais: 150
+[2025-11-25 16:18:42] 
+📈 Totais acumulados ÚNICOS por CPF+FAIXA (última data):
+[2025-11-25 16:18:42]    ✓ TRABALHADO: 102,900.0
+[2025-11-25 16:18:42]    ✓ ACIONAMENTOS: 110.0
+[2025-11-25 16:18:42]    ✓ CPC: 0.0
+[2025-11-25 16:18:42]    ✓ CPCA: 0.0
+[2025-11-25 16:18:42]    ✓ PROMESSA: 0.0
+[2025-11-25 16:18:42] ================================================================================
+[2025-11-25 16:18:42] ✅ Concluído: Funil fxAtraso e Origem expert - Tempo: 15.62s
+[2025-11-25 16:18:42] ▶️  Iniciando: Enriquecimento base de discagens trestto
+[2025-11-25 16:18:48] ================================================================================
+[2025-11-25 16:18:48] 📊 Antes da consolidação - Trestto: 2,170,303
+[2025-11-25 16:18:51] 📊 Após consolidação - Trestto: 2,102,827
+[2025-11-25 16:18:51] 📊 Mailing: 6,059,667
+[2025-11-25 16:18:56] 
+📊 Merge com mailing_hist...
+[2025-11-25 16:18:56]    Registros antes: 2,102,827
+[2025-11-25 16:19:04]    ✓ Registros após merge: 2,103,130
+[2025-11-25 16:19:04]    ⚠️  Registros sem FX_ATRASO: 1,531,866
+[2025-11-25 16:19:04] 
+📅 Merge com dw_calendario...
+[2025-11-25 16:19:04]    Registros antes: 2,103,130
+[2025-11-25 16:19:06]    ✓ Registros após merge: 2,103,130
+[2025-11-25 16:19:06]    ⚠️  Registros sem dados de calendário: 174,398
+[2025-11-25 16:19:07] 
+📦 Separação dos DataFrames:
+[2025-11-25 16:19:07]    ✓ Registros COM FX_ATRASO: 571,264
+[2025-11-25 16:19:07]    ✓ Registros SEM FX_ATRASO (fora da mailing): 1,531,866
+[2025-11-25 16:19:07]    ✓ CPFs únicos SEM FX_ATRASO: 318,683
+[2025-11-25 16:19:07] ================================================================================
+[2025-11-25 16:19:08] ✅ Concluído: Enriquecimento base de discagens trestto - Tempo: 26.18s
+[2025-11-25 16:19:08] ▶️  Iniciando: Funil esforço trestto
+[2025-11-25 16:19:08] ================================================================================
+[2025-11-25 16:19:08] 📊 Processando acumulado mensal de discagens para 16 datas...
+[2025-11-25 16:19:10]    Processando 10/16 datas...
+[2025-11-25 16:19:13]    Processando 16/16 datas...
+[2025-11-25 16:19:13] 
+📅 Merge com dw_calendario...
+[2025-11-25 16:19:13]    ✓ Registros finais: 130
+[2025-11-25 16:19:13] 
+📈 Totais acumulados (última data):
+[2025-11-25 16:19:13]    ✓ TRABALHADO: 4,307,634.0
+[2025-11-25 16:19:13]    ✓ ACIONAMENTOS: 40,569.0
+[2025-11-25 16:19:13]    ✓ CPC: 6,111.0
+[2025-11-25 16:19:13]    ✓ CPCA: 5,806.0
+[2025-11-25 16:19:13]    ✓ PROMESSA: 1,216.0
+[2025-11-25 16:19:13] ================================================================================
+[2025-11-25 16:19:13] ✅ Concluído: Funil esforço trestto - Tempo: 4.92s
+[2025-11-25 16:19:13] ▶️  Iniciando: Funil unique trestto
+[2025-11-25 16:19:13] ================================================================================
+[2025-11-25 16:19:13] 📊 Processando acumulado mensal ÚNICO (melhor score por CPF) para 16 datas...
+[2025-11-25 16:19:17]    Processando 10/16 datas...
+[2025-11-25 16:19:21]    Processando 16/16 datas...
+[2025-11-25 16:19:22] 
+📅 Merge com dw_calendario...
+[2025-11-25 16:19:22]    ✓ Registros finais: 130
+[2025-11-25 16:19:22] 
+📈 Totais acumulados ÚNICOS (última data):
+[2025-11-25 16:19:22]    ✓ TRABALHADO: 67,993.0
+[2025-11-25 16:19:22]    ✓ ACIONAMENTOS: 6,947.0
+[2025-11-25 16:19:22]    ✓ CPC: 4,555.0
+[2025-11-25 16:19:22]    ✓ CPCA: 4,480.0
+[2025-11-25 16:19:22]    ✓ PROMESSA: 1,193.0
+[2025-11-25 16:19:22] ================================================================================
+[2025-11-25 16:19:22] ✅ Concluído: Funil unique trestto - Tempo: 8.50s
+[2025-11-25 16:19:22] ▶️  Iniciando: Funil por fxAtraso e origem trestto
+[2025-11-25 16:19:22] ================================================================================
+[2025-11-25 16:19:22] 📊 Processando acumulado mensal ÚNICO por CPF + FX_ATRASO (melhor score) para 16 datas...
+[2025-11-25 16:19:26]    Processando 10/16 datas...
+[2025-11-25 16:19:31]    Processando 16/16 datas...
+[2025-11-25 16:19:31] 
+🔄 Verificando buracos no range e dias úteis faltantes...
+[2025-11-25 16:19:31]    Primeira data do arquivo: 2025-11-01
+[2025-11-25 16:19:31]    Última data do arquivo: 2025-11-21
+[2025-11-25 16:19:31]    Data D-1 (ontem): 2025-11-24
+[2025-11-25 16:19:31]    ⚠️  Encontrados 2 dias úteis faltantes (buracos no range)
+[2025-11-25 16:19:31]    ✓ Preenchimento de 2 dias concluído!
+[2025-11-25 16:19:31] 
+📅 Merge com dw_calendario...
+[2025-11-25 16:19:31]    ✓ Registros finais: 150
+[2025-11-25 16:19:31] 
+📈 Totais acumulados ÚNICOS por CPF+FAIXA (última data):
+[2025-11-25 16:19:31]    ✓ TRABALHADO: 111,201.0
+[2025-11-25 16:19:31]    ✓ ACIONAMENTOS: 19,879.0
+[2025-11-25 16:19:31]    ✓ CPC: 5,027.0
+[2025-11-25 16:19:31]    ✓ CPCA: 4,832.0
+[2025-11-25 16:19:31]    ✓ PROMESSA: 1,199.0
+[2025-11-25 16:19:31] ================================================================================
+[2025-11-25 16:19:31] ✅ Concluído: Funil por fxAtraso e origem trestto - Tempo: 9.75s
+[2025-11-25 16:21:28] ▶️  Iniciando: Dados de pagamentos
+[2025-11-25 16:21:33] ============================================================
+[2025-11-25 16:21:33] INÍCIO DO PROCESSAMENTO DE PAGAMENTOS
+[2025-11-25 16:21:33] ============================================================
+[2025-11-25 16:21:33] Total de registros em df_pagamentos: 15879
+[2025-11-25 16:21:33] Total de registros em df_acordos: 2451
+[2025-11-25 16:21:33] Total de registros únicos em df_maling_hist: 6059667
+[2025-11-25 16:21:33] Total de acordos válidos (não cancelados): 899
+[2025-11-25 16:21:33] Total de registros após cruzamento com acordos: 538
+[2025-11-25 16:21:33] Total de registros após cruzamento com calendário: 538
+[2025-11-25 16:21:35] Total de registros após cruzamento com histórico: 538
+[2025-11-25 16:21:35] ============================================================
+[2025-11-25 16:21:35] SEPARAÇÃO DE DADOS POR FX_ATRASO
+[2025-11-25 16:21:35] ============================================================
+[2025-11-25 16:21:35] Pagamentos COM FX_ATRASO: 501
+[2025-11-25 16:21:35] Pagamentos SEM FX_ATRASO: 37
+[2025-11-25 16:21:35] Percentual COM FX_ATRASO: 93.12%
+[2025-11-25 16:21:35] Percentual SEM FX_ATRASO: 6.88%
+[2025-11-25 16:21:35] Total de linhas agrupadas (antes de remover qte=0): 3920
+[2025-11-25 16:21:35] Linhas removidas com qte=0: 3805
+[2025-11-25 16:21:35] Total de linhas finais no DataFrame agrupado: 115
+[2025-11-25 16:21:35] ============================================================
+[2025-11-25 16:21:35] RESUMO FINAL
+[2025-11-25 16:21:35] ============================================================
+[2025-11-25 16:21:35] Valor total de parcelas: R$ 40,608.44
+[2025-11-25 16:21:35] Quantidade total de pagamentos: 501
+[2025-11-25 16:21:35] ============================================================
+[2025-11-25 16:21:35] ✅ Concluído: Dados de pagamentos - Tempo: 7.38s
+[2025-11-25 16:21:35] ▶️  Iniciando: Gerando acumulado de pagamentos
+[2025-11-25 16:21:35] ============================================================
+[2025-11-25 16:21:35] GERANDO ACUMULADO POR DIA ÚTIL
+[2025-11-25 16:21:35] ============================================================
+[2025-11-25 16:21:35] Total de datas únicas a processar: 14
+[2025-11-25 16:21:36]    Processando 10/14 datas...
+[2025-11-25 16:21:36]    Processando 14/14 datas...
+[2025-11-25 16:21:36] Total de registros acumulados gerados: 280
+[2025-11-25 16:21:36] Quantidade total final: 3736
+[2025-11-25 16:21:36] Valor total final: R$ 309,371.34
+[2025-11-25 16:21:36] ============================================================
+[2025-11-25 16:21:36] ✅ Concluído: Gerando acumulado de pagamentos - Tempo: 0.13s
+[2025-11-26 13:11:05] ▶️  Iniciando: Acumulado mailing hist por faixa de atraso
+[2025-11-26 13:11:05] ============================================================
+[2025-11-26 13:11:05] INÍCIO DO PROCESSAMENTO DE MALING_HIST
+[2025-11-26 13:11:05] ============================================================
+[2025-11-26 13:11:05] Total de registros em df_maling_hist: 13382345
+[2025-11-26 13:11:10] Memória reduzida - trabalhando com 5 colunas
+[2025-11-26 13:11:18] Registros após merge com calendário: 9440100
+[2025-11-26 13:11:18] Total de datas únicas a processar: 39
+[2025-11-26 13:11:45]    Processando 10/39 datas...
+[2025-11-26 13:12:59]    Processando 20/39 datas...
+[2025-11-26 13:13:58]    Processando 30/39 datas...
+[2025-11-26 13:14:53]    Processando 39/39 datas...
+[2025-11-26 13:15:02] ============================================================
+[2025-11-26 13:15:02] RESUMO FINAL MALING_HIST
+[2025-11-26 13:15:02] ============================================================
+[2025-11-26 13:15:02] Total de registros acumulados gerados: 780
+[2025-11-26 13:15:02] Registros de Contratos: 390
+[2025-11-26 13:15:02] Registros de CPFs: 0
+[2025-11-26 13:15:02] Valor total final: R$ 7,120,913,222.28
+[2025-11-26 13:15:02] ============================================================
+[2025-11-26 13:15:03] ✅ Concluído: Acumulado mailing hist por faixa de atraso - Tempo: 3.96min (237.46s)
+[2025-11-26 13:15:03] ▶️  Iniciando: Acumulado mailing hist unique
+[2025-11-26 13:15:03] ============================================================
+[2025-11-26 13:15:03] INÍCIO DO PROCESSAMENTO DE MALING_HIST
+[2025-11-26 13:15:03] ============================================================
+[2025-11-26 13:15:03] Total de registros em df_maling_hist: 13382345
+[2025-11-26 13:15:04] Memória reduzida - trabalhando com 4 colunas
+[2025-11-26 13:15:09] Registros após merge com calendário: 9440100
+[2025-11-26 13:15:09] Total de datas únicas a processar: 39
+[2025-11-26 13:15:33]    Processando 10/39 datas...
+[2025-11-26 13:16:37]    Processando 20/39 datas...
+[2025-11-26 13:17:30]    Processando 30/39 datas...
+[2025-11-26 13:18:20]    Processando 39/39 datas...
+[2025-11-26 13:18:27] ============================================================
+[2025-11-26 13:18:27] RESUMO FINAL MALING_HIST
+[2025-11-26 13:18:27] ============================================================
+[2025-11-26 13:18:27] Total de registros acumulados gerados: 78
+[2025-11-26 13:18:27] Registros de Contratos: 0
+[2025-11-26 13:18:27] Registros de CPFs: 0
+[2025-11-26 13:18:27] Valor total final: R$ 6,193,850,724.23
+[2025-11-26 13:18:27] ============================================================
+[2025-11-26 13:18:28] ✅ Concluído: Acumulado mailing hist unique - Tempo: 3.42min (205.27s)
+[2025-11-26 13:18:28] ▶️  Iniciando: Substituindo tabulações por 0 e 1
+[2025-11-26 13:18:28] Finalizado!
+[2025-11-26 13:18:28] ✅ Concluído: Substituindo tabulações por 0 e 1 - Tempo: 0.00s
+[2025-11-26 13:18:28] ▶️  Iniciando: Conferindo tabulações aos acionamentos
+[2025-11-26 13:18:28] ================================================================================
+[2025-11-26 13:18:28] 📊 Antes do merge - Acionamentos: 11,134 | Tabulações: 79
+[2025-11-26 13:18:28] 📊 Após merge: 11,134
+[2025-11-26 13:18:28] 📊 Acionamentos com DESC_ACIONA: 10,781
+[2025-11-26 13:18:28] ================================================================================
+[2025-11-26 13:18:28] ✅ Concluído: Conferindo tabulações aos acionamentos - Tempo: 0.08s
+[2025-11-26 13:18:28] ▶️  Iniciando: Enriquecendo acionamentos mailing hist e calendário
+[2025-11-26 13:18:28] ================================================================================
+[2025-11-26 13:18:28] 📊 Classificando origem do acionamento...
+[2025-11-26 13:18:28]    ✓ Robô: 0
+[2025-11-26 13:18:28]    ✓ Humano: 11,134
+[2025-11-26 13:18:35] 📊 Merge com mailing_hist...
+[2025-11-26 13:18:43]    ✓ Registros: 11,134
+[2025-11-26 13:18:43]    ✓ Registros finais: 11,134
+[2025-11-26 13:18:43]    ✓ Com FX_ATRASO: 10,823
+[2025-11-26 13:18:43]    ✓ Com DESC_ACIONA: 10,781
+[2025-11-26 13:18:43]    ✓ Com ORIGEM: 11,134
+[2025-11-26 13:18:43] ================================================================================
+[2025-11-26 13:18:43] ▶️  Iniciando: Separando inconsistências
+[2025-11-26 13:18:43] ================================================================================
+[2025-11-26 13:18:43] 
+📋 ANÁLISE DE INCONSISTÊNCIAS:
+[2025-11-26 13:18:43]    ✓ Registros limpos: 10,499
+[2025-11-26 13:18:43]    ⚠️  Sem FX_ATRASO (fora da mailing): 311
+[2025-11-26 13:18:43]    ⚠️  Sem DESC_ACIONA (erro de tabulação): 353
+[2025-11-26 13:18:43]    ⚠️  Sem ORIGEM (fora do discador): 0
+[2025-11-26 13:18:43]    📊 Total de registros: 11,134
+[2025-11-26 13:18:43] ================================================================================
+[2025-11-26 13:18:43] ✅ Concluído: Separando inconsistências - Tempo: 0.02s
+[2025-11-26 13:18:43] ✅ Concluído: Enriquecendo acionamentos mailing hist e calendário - Tempo: 15.09s
+[2025-11-26 13:18:43] ▶️  Iniciando: Funil de acionamentos fxAtraso e origem humano
+[2025-11-26 13:18:45] ✅ Concluído: Funil de acionamentos fxAtraso e origem humano - Tempo: 1.73s
+[2025-11-26 13:18:45] ▶️  Iniciando: Funil de acionamentos unique humano
+[2025-11-26 13:18:45] ================================================================================
+[2025-11-26 13:18:45] 📊 Processando acumulado mensal ÚNICO (melhor score por CPF) para 46 datas...
+[2025-11-26 13:18:45]    Processando 10/46 datas...
+[2025-11-26 13:18:45]    Processando 20/46 datas...
+[2025-11-26 13:18:46]    Processando 30/46 datas...
+[2025-11-26 13:18:46]    Processando 40/46 datas...
+[2025-11-26 13:18:46]    Processando 46/46 datas...
+[2025-11-26 13:18:46] 
+📅 Merge com dw_calendario...
+[2025-11-26 13:18:46]    ✓ Registros finais: 390
+[2025-11-26 13:18:46] 
+📈 Totais acumulados ÚNICOS (última data):
+[2025-11-26 13:18:46]    ✓ ACIONAMENTOS: 3,620.0
+[2025-11-26 13:18:46]    ✓ CPC: 1,300.0
+[2025-11-26 13:18:46]    ✓ CPCA: 967.0
+[2025-11-26 13:18:46]    ✓ PROMESSA: 514.0
+[2025-11-26 13:18:46] ================================================================================
+[2025-11-26 13:18:46] ✅ Concluído: Funil de acionamentos unique humano - Tempo: 1.58s
+[2025-11-26 13:18:46] ▶️  Iniciando: Funil de acionamentos esforço humano
+[2025-11-26 13:18:46] ================================================================================
+[2025-11-26 13:18:46] 📊 Processando acumulado mensal para 46 datas...
+[2025-11-26 13:18:47]    Processando 10/46 datas...
+[2025-11-26 13:18:47]    Processando 20/46 datas...
+[2025-11-26 13:18:47]    Processando 30/46 datas...
+[2025-11-26 13:18:47]    Processando 40/46 datas...
+[2025-11-26 13:18:48]    Processando 46/46 datas...
+[2025-11-26 13:18:48] 
+📅 Merge com dw_calendario...
+[2025-11-26 13:18:48]    ✓ Registros finais: 390
+[2025-11-26 13:18:48] 
+📈 Totais acumulados:
+[2025-11-26 13:18:48]    ✓ ACIONAMENTOS: 4,573.0
+[2025-11-26 13:18:48]    ✓ CPC: 1,418.0
+[2025-11-26 13:18:48]    ✓ CPCA: 1,026.0
+[2025-11-26 13:18:48]    ✓ PROMESSA: 536.0
+[2025-11-26 13:18:48] ================================================================================
+[2025-11-26 13:18:48] ✅ Concluído: Funil de acionamentos esforço humano - Tempo: 1.25s
+[2025-11-26 13:18:48] ▶️  Iniciando: DF com as tabulações do Robô
+[2025-11-26 13:18:48] ================================================================================
+[2025-11-26 13:18:48] ✅ DataFrame de classificação de tabulações criado!
+[2025-11-26 13:18:48]    📊 Total de códigos: 57
+[2025-11-26 13:18:48]    ✓ ACIONAMENTOS: 57 códigos
+[2025-11-26 13:18:48]    ✓ CPC: 36 códigos
+[2025-11-26 13:18:48]    ✓ CPCA: 29 códigos
+[2025-11-26 13:18:48]    ✓ PROMESSA: 14 códigos
+[2025-11-26 13:18:48] ================================================================================
+[2025-11-26 13:18:48] ✅ Concluído: DF com as tabulações do Robô - Tempo: 0.01s
+[2025-11-26 13:18:48] ▶️  Iniciando: Discagens Expert
+[2025-11-26 13:18:48] ================================================================================
+[2025-11-26 13:18:48] 📊 Merge com classificações de tabulação...
+[2025-11-26 13:18:48]    Registros antes: 1,130,270
+[2025-11-26 13:18:50]    ✓ Registros após merge: 1,130,270
+[2025-11-26 13:18:50]    ✓ Registros perdidos: 0
+[2025-11-26 13:18:50] 
+📈 Distribuição das classificações:
+[2025-11-26 13:18:50]    ✓ TRABALHADO: 1,130,270 registros
+[2025-11-26 13:18:50]    ✓ ACIONAMENTOS: 1,474 registros
+[2025-11-26 13:18:50]    ✓ CPC: 70 registros
+[2025-11-26 13:18:50]    ✓ CPCA: 49 registros
+[2025-11-26 13:18:50]    ✓ PROMESSA: 49 registros
+[2025-11-26 13:18:50] ================================================================================
+[2025-11-26 13:18:50] ✅ Concluído: Discagens Expert - Tempo: 2.28s
+[2025-11-26 13:18:50] ▶️  Iniciando: Enriquecimento base de discagens expert
+[2025-11-26 13:18:51] ✅ Enriquecido!
+[2025-11-26 13:18:51] ✅ Concluído: Enriquecimento base de discagens expert - Tempo: 1.55s
+[2025-11-26 13:18:52] ▶️  Iniciando: Enriquecimento maling hist e calendário
+[2025-11-26 13:19:05] ================================================================================
+[2025-11-26 13:19:05] 📊 Merge com mailing_hist...
+[2025-11-26 13:19:05]    Registros antes: 1,130,270
+[2025-11-26 13:19:18]    ✓ Registros após merge: 1,130,270
+[2025-11-26 13:19:18]    ⚠️  Registros sem FX_ATRASO: 3,296
+[2025-11-26 13:19:18] 
+📅 Merge com dw_calendario...
+[2025-11-26 13:19:18]    Registros antes: 1,130,270
+[2025-11-26 13:19:20]    ✓ Registros após merge: 1,130,270
+[2025-11-26 13:19:20]    ⚠️  Registros sem dados de calendário: 47,660
+[2025-11-26 13:19:21] 
+📦 Separação dos DataFrames:
+[2025-11-26 13:19:21]    ✓ Registros COM FX_ATRASO: 1,126,974
+[2025-11-26 13:19:21]    ✓ Registros SEM FX_ATRASO: 3,296
+[2025-11-26 13:19:21] ================================================================================
+[2025-11-26 13:19:21] ✅ Concluído: Enriquecimento maling hist e calendário - Tempo: 29.89s
+[2025-11-26 13:19:21] ▶️  Iniciando: Segmentando base de discagens enriquecida
+[2025-11-26 13:19:23] ============================================================
+[2025-11-26 13:19:23] RESUMO DA SEPARAÇÃO DE DADOS
+[2025-11-26 13:19:23] ============================================================
+[2025-11-26 13:19:23] Total de registros original: 1,126,974
+[2025-11-26 13:19:23] 
+1. Humano + Primeiro Acionamento: 0 registros (0.00%)
+[2025-11-26 13:19:23] 2. Operação 'Outros': 397,548 registros (35.28%)
+[2025-11-26 13:19:23] 3. Restante: 729,426 registros (64.72%)
+[2025-11-26 13:19:23] 
+Verificação: 1,126,974 registros
+[2025-11-26 13:19:23] ============================================================
+[2025-11-26 13:19:23] ✅ Concluído: Segmentando base de discagens enriquecida - Tempo: 1.53s
+[2025-11-26 13:19:23] ▶️  Iniciando: Funil esforço expert
+[2025-11-26 13:19:23] ================================================================================
+[2025-11-26 13:19:23] 📊 Processando acumulado mensal para 27 datas...
+[2025-11-26 13:19:25]    Processando 10/27 datas...
+[2025-11-26 13:19:29]    Processando 20/27 datas...
+[2025-11-26 13:19:34]    Processando 27/27 datas...
+[2025-11-26 13:19:34] 
+📅 Merge com dw_calendario...
+[2025-11-26 13:19:34]    ✓ Registros finais: 230
+[2025-11-26 13:19:34] 
+📈 Totais acumulados:
+[2025-11-26 13:19:34]    ✓ TRABALHADO: 729,426.0
+[2025-11-26 13:19:35]    ✓ ACIONAMENTOS: 63.0
+[2025-11-26 13:19:35]    ✓ CPC: 0.0
+[2025-11-26 13:19:35]    ✓ CPCA: 0.0
+[2025-11-26 13:19:35]    ✓ PROMESSA: 0.0
+[2025-11-26 13:19:35] ================================================================================
+[2025-11-26 13:19:35] ✅ Concluído: Funil esforço expert - Tempo: 11.64s
+[2025-11-26 13:19:35] ▶️  Iniciando: Funil unique expert
+[2025-11-26 13:19:35] ================================================================================
+[2025-11-26 13:19:35] 📊 Processando acumulado mensal ÚNICO (melhor score por CPF) para 27 datas...
+[2025-11-26 13:19:37]    Processando 10/27 datas...
+[2025-11-26 13:19:47]    Processando 20/27 datas...
+[2025-11-26 13:19:58]    Processando 27/27 datas...
+[2025-11-26 13:20:00] 
+📅 Merge com dw_calendario...
+[2025-11-26 13:20:00]    ✓ Registros finais: 230
+[2025-11-26 13:20:00] 
+📈 Totais acumulados ÚNICOS (última data):
+[2025-11-26 13:20:00]    ✓ TRABALHADO: 66,310.0
+[2025-11-26 13:20:00]    ✓ ACIONAMENTOS: 63.0
+[2025-11-26 13:20:00]    ✓ CPC: 0.0
+[2025-11-26 13:20:00]    ✓ CPCA: 0.0
+[2025-11-26 13:20:00]    ✓ PROMESSA: 0.0
+[2025-11-26 13:20:00] ================================================================================
+[2025-11-26 13:20:00] ✅ Concluído: Funil unique expert - Tempo: 25.79s
+[2025-11-26 13:20:00] ▶️  Iniciando: Funil fxAtraso e Origem expert
+[2025-11-26 13:20:01] ================================================================================
+[2025-11-26 13:20:01] 📊 Processando acumulado mensal ÚNICO por CPF + FX_ATRASO (melhor score) para 27 datas...
+[2025-11-26 13:20:03]    Processando 10/27 datas...
+[2025-11-26 13:20:13]    Processando 20/27 datas...
+[2025-11-26 13:20:25]    Processando 27/27 datas...
+[2025-11-26 13:20:27] 
+📅 Merge com dw_calendario...
+[2025-11-26 13:20:27]    ✓ Registros finais: 230
+[2025-11-26 13:20:27] 
+📈 Totais acumulados ÚNICOS por CPF+FAIXA (última data):
+[2025-11-26 13:20:27]    ✓ TRABALHADO: 68,129.0
+[2025-11-26 13:20:27]    ✓ ACIONAMENTOS: 63.0
+[2025-11-26 13:20:27]    ✓ CPC: 0.0
+[2025-11-26 13:20:27]    ✓ CPCA: 0.0
+[2025-11-26 13:20:27]    ✓ PROMESSA: 0.0
+[2025-11-26 13:20:27] ================================================================================
+[2025-11-26 13:20:28] ✅ Concluído: Funil fxAtraso e Origem expert - Tempo: 27.11s
+[2025-11-26 13:20:28] ▶️  Iniciando: Enriquecimento base de discagens trestto
+[2025-11-26 13:20:43] ================================================================================
+[2025-11-26 13:20:43] 📊 Antes da consolidação - Trestto: 5,069,620
+[2025-11-26 13:20:52] 📊 Após consolidação - Trestto: 4,873,636
+[2025-11-26 13:20:52] 📊 Mailing: 13,382,345
+[2025-11-26 14:48:00] ▶️  Iniciando: Acumulado mailing hist por faixa de atraso
+[2025-11-26 14:48:00] ============================================================
+[2025-11-26 14:48:00] INÍCIO DO PROCESSAMENTO DE MALING_HIST
+[2025-11-26 14:48:00] ============================================================
+[2025-11-26 14:48:00] Total de registros em df_maling_hist: 6283356
+[2025-11-26 14:48:00] Memória reduzida - trabalhando com 5 colunas
+[2025-11-26 14:48:03] Registros após merge com calendário: 4000724
+[2025-11-26 14:48:03] Total de datas únicas a processar: 16
+[2025-11-26 14:48:36]    Processando 10/16 datas...
+[2025-11-26 14:49:23]    Processando 16/16 datas...
+[2025-11-26 14:49:32] ============================================================
+[2025-11-26 14:49:32] RESUMO FINAL MALING_HIST
+[2025-11-26 14:49:32] ============================================================
+[2025-11-26 14:49:32] Total de registros acumulados gerados: 320
+[2025-11-26 14:49:32] Registros de Contratos: 160
+[2025-11-26 14:49:32] Registros de CPFs: 0
+[2025-11-26 14:49:32] Valor total final: R$ 2,810,732,020.96
+[2025-11-26 14:49:32] ============================================================
+[2025-11-26 14:49:32] ✅ Concluído: Acumulado mailing hist por faixa de atraso - Tempo: 1.54min (92.50s)
+[2025-11-26 14:49:32] ▶️  Iniciando: Acumulado mailing hist unique
+[2025-11-26 14:49:32] ============================================================
+[2025-11-26 14:49:32] INÍCIO DO PROCESSAMENTO DE MALING_HIST
+[2025-11-26 14:49:32] ============================================================
+[2025-11-26 14:49:32] Total de registros em df_maling_hist: 6283356
+[2025-11-26 14:49:33] Memória reduzida - trabalhando com 4 colunas
+[2025-11-26 14:49:35] Registros após merge com calendário: 4000724
+[2025-11-26 14:49:35] Total de datas únicas a processar: 16
+[2025-11-26 14:50:05]    Processando 10/16 datas...
+[2025-11-26 14:50:45]    Processando 16/16 datas...
+[2025-11-26 14:50:53] ============================================================
+[2025-11-26 14:50:53] RESUMO FINAL MALING_HIST
+[2025-11-26 14:50:53] ============================================================
+[2025-11-26 14:50:53] Total de registros acumulados gerados: 32
+[2025-11-26 14:50:53] Registros de Contratos: 0
+[2025-11-26 14:50:53] Registros de CPFs: 0
+[2025-11-26 14:50:53] Valor total final: R$ 2,542,203,411.61
+[2025-11-26 14:50:53] ============================================================
+[2025-11-26 14:50:53] ✅ Concluído: Acumulado mailing hist unique - Tempo: 1.35min (80.92s)
+[2025-11-26 14:50:53] ▶️  Iniciando: Substituindo tabulações por 0 e 1
+[2025-11-26 14:50:53] Finalizado!
+[2025-11-26 14:50:53] ✅ Concluído: Substituindo tabulações por 0 e 1 - Tempo: 0.00s
+[2025-11-26 14:50:53] ▶️  Iniciando: Conferindo tabulações aos acionamentos
+[2025-11-26 14:50:53] ================================================================================
+[2025-11-26 14:50:53] 📊 Antes do merge - Acionamentos: 4,839 | Tabulações: 79
+[2025-11-26 14:50:53] 📊 Após merge: 4,839
+[2025-11-26 14:50:53] 📊 Acionamentos com DESC_ACIONA: 4,719
+[2025-11-26 14:50:53] ================================================================================
+[2025-11-26 14:50:53] ✅ Concluído: Conferindo tabulações aos acionamentos - Tempo: 0.02s
+[2025-11-26 14:50:53] ▶️  Iniciando: Enriquecendo acionamentos mailing hist e calendário
+[2025-11-26 14:50:53] ================================================================================
+[2025-11-26 14:50:53] 📊 Classificando origem do acionamento...
+[2025-11-26 14:50:53]    ✓ Robô: 0
+[2025-11-26 14:50:53]    ✓ Humano: 4,839
+[2025-11-26 14:50:56] 📊 Merge com mailing_hist...
+[2025-11-26 14:51:00]    ✓ Registros: 4,839
+[2025-11-26 14:51:00]    ✓ Registros finais: 4,839
+[2025-11-26 14:51:00]    ✓ Com FX_ATRASO: 4,686
+[2025-11-26 14:51:00]    ✓ Com DESC_ACIONA: 4,719
+[2025-11-26 14:51:00]    ✓ Com ORIGEM: 4,839
+[2025-11-26 14:51:00] ================================================================================
+[2025-11-26 14:51:00] ▶️  Iniciando: Separando inconsistências
+[2025-11-26 14:51:00] ================================================================================
+[2025-11-26 14:51:00] 
+📋 ANÁLISE DE INCONSISTÊNCIAS:
+[2025-11-26 14:51:00]    ✓ Registros limpos: 4,573
+[2025-11-26 14:51:00]    ⚠️  Sem FX_ATRASO (fora da mailing): 153
+[2025-11-26 14:51:00]    ⚠️  Sem DESC_ACIONA (erro de tabulação): 120
+[2025-11-26 14:51:00]    ⚠️  Sem ORIGEM (fora do discador): 0
+[2025-11-26 14:51:00]    📊 Total de registros: 4,839
+[2025-11-26 14:51:00] ================================================================================
+[2025-11-26 14:51:00] ✅ Concluído: Separando inconsistências - Tempo: 0.01s
+[2025-11-26 14:51:00] ✅ Concluído: Enriquecendo acionamentos mailing hist e calendário - Tempo: 6.98s
+[2025-11-26 14:51:00] ▶️  Iniciando: Funil de acionamentos fxAtraso e origem humano
+[2025-11-26 14:51:01] ✅ Concluído: Funil de acionamentos fxAtraso e origem humano - Tempo: 0.72s
+[2025-11-26 14:51:01] ▶️  Iniciando: Funil de acionamentos unique humano
+[2025-11-26 14:51:01] ================================================================================
+[2025-11-26 14:51:01] 📊 Processando acumulado mensal ÚNICO (melhor score por CPF) para 19 datas...
+[2025-11-26 14:51:01]    Processando 10/19 datas...
+[2025-11-26 14:51:01]    Processando 19/19 datas...
+[2025-11-26 14:51:01] 
+📅 Merge com dw_calendario...
+[2025-11-26 14:51:01]    ✓ Registros finais: 160
+[2025-11-26 14:51:01] 
+📈 Totais acumulados ÚNICOS (última data):
+[2025-11-26 14:51:01]    ✓ ACIONAMENTOS: 3,620.0
+[2025-11-26 14:51:01]    ✓ CPC: 1,300.0
+[2025-11-26 14:51:01]    ✓ CPCA: 967.0
+[2025-11-26 14:51:01]    ✓ PROMESSA: 514.0
+[2025-11-26 14:51:01] ================================================================================
+[2025-11-26 14:51:01] ✅ Concluído: Funil de acionamentos unique humano - Tempo: 0.65s
+[2025-11-26 14:51:01] ▶️  Iniciando: Funil de acionamentos esforço humano
+[2025-11-26 14:51:01] ================================================================================
+[2025-11-26 14:51:01] 📊 Processando acumulado mensal para 19 datas...
+[2025-11-26 14:51:02]    Processando 10/19 datas...
+[2025-11-26 14:51:02]    Processando 19/19 datas...
+[2025-11-26 14:51:02] 
+📅 Merge com dw_calendario...
+[2025-11-26 14:51:02]    ✓ Registros finais: 160
+[2025-11-26 14:51:02] 
+📈 Totais acumulados:
+[2025-11-26 14:51:02]    ✓ ACIONAMENTOS: 4,573.0
+[2025-11-26 14:51:02]    ✓ CPC: 1,418.0
+[2025-11-26 14:51:02]    ✓ CPCA: 1,026.0
+[2025-11-26 14:51:02]    ✓ PROMESSA: 536.0
+[2025-11-26 14:51:02] ================================================================================
+[2025-11-26 14:51:02] ✅ Concluído: Funil de acionamentos esforço humano - Tempo: 0.52s
+[2025-11-26 14:51:02] ▶️  Iniciando: DF com as tabulações do Robô
+[2025-11-26 14:51:02] ================================================================================
+[2025-11-26 14:51:02] ✅ DataFrame de classificação de tabulações criado!
+[2025-11-26 14:51:02]    📊 Total de códigos: 57
+[2025-11-26 14:51:02]    ✓ ACIONAMENTOS: 57 códigos
+[2025-11-26 14:51:02]    ✓ CPC: 36 códigos
+[2025-11-26 14:51:02]    ✓ CPCA: 29 códigos
+[2025-11-26 14:51:02]    ✓ PROMESSA: 14 códigos
+[2025-11-26 14:51:02] ================================================================================
+[2025-11-26 14:51:02] ✅ Concluído: DF com as tabulações do Robô - Tempo: 0.18s
+[2025-11-26 14:51:02] ▶️  Iniciando: Discagens Expert
+[2025-11-26 14:51:02] ================================================================================
+[2025-11-26 14:51:02] 📊 Merge com classificações de tabulação...
+[2025-11-26 14:51:02]    Registros antes: 879,409
+[2025-11-26 14:51:03]    ✓ Registros após merge: 879,409
+[2025-11-26 14:51:03]    ✓ Registros perdidos: 0
+[2025-11-26 14:51:03] 
+📈 Distribuição das classificações:
+[2025-11-26 14:51:03]    ✓ TRABALHADO: 879,409 registros
+[2025-11-26 14:51:03]    ✓ ACIONAMENTOS: 4,717 registros
+[2025-11-26 14:51:03]    ✓ CPC: 295 registros
+[2025-11-26 14:51:03]    ✓ CPCA: 193 registros
+[2025-11-26 14:51:03]    ✓ PROMESSA: 193 registros
+[2025-11-26 14:51:03] ================================================================================
+[2025-11-26 14:51:03] ✅ Concluído: Discagens Expert - Tempo: 1.01s
+[2025-11-26 14:51:03] ▶️  Iniciando: Enriquecimento base de discagens expert
+[2025-11-26 14:51:04] ✅ Enriquecido!
+[2025-11-26 14:51:04] ✅ Concluído: Enriquecimento base de discagens expert - Tempo: 1.35s
+[2025-11-26 14:51:05] ▶️  Iniciando: Enriquecimento maling hist e calendário
+[2025-11-26 14:51:12] ================================================================================
+[2025-11-26 14:51:12] 📊 Merge com mailing_hist...
+[2025-11-26 14:51:12]    Registros antes: 879,409
+[2025-11-26 14:51:17]    ✓ Registros após merge: 879,409
+[2025-11-26 14:51:17]    ⚠️  Registros sem FX_ATRASO: 25,657
+[2025-11-26 14:51:17] 
+📅 Merge com dw_calendario...
+[2025-11-26 14:51:17]    Registros antes: 879,409
+[2025-11-26 14:51:19]    ✓ Registros após merge: 879,409
+[2025-11-26 14:51:19]    ⚠️  Registros sem dados de calendário: 68,833
+[2025-11-26 14:51:20] 
+📦 Separação dos DataFrames:
+[2025-11-26 14:51:20]    ✓ Registros COM FX_ATRASO: 853,752
+[2025-11-26 14:51:20]    ✓ Registros SEM FX_ATRASO: 25,657
+[2025-11-26 14:51:20] ================================================================================
+[2025-11-26 14:51:20] ✅ Concluído: Enriquecimento maling hist e calendário - Tempo: 15.37s
+[2025-11-26 14:51:20] ▶️  Iniciando: Segmentando base de discagens enriquecida
+[2025-11-26 14:51:21] ============================================================
+[2025-11-26 14:51:21] RESUMO DA SEPARAÇÃO DE DADOS
+[2025-11-26 14:51:21] ============================================================
+[2025-11-26 14:51:21] Total de registros original: 853,752
+[2025-11-26 14:51:21] 
+1. Humano + Primeiro Acionamento: 0 registros (0.00%)
+[2025-11-26 14:51:21] 2. Operação 'Outros': 328,293 registros (38.45%)
+[2025-11-26 14:51:21] 3. Restante: 525,459 registros (61.55%)
+[2025-11-26 14:51:21] 
+Verificação: 853,752 registros
+[2025-11-26 14:51:21] ============================================================
+[2025-11-26 14:51:21] ✅ Concluído: Segmentando base de discagens enriquecida - Tempo: 1.19s
+[2025-11-26 14:51:21] ▶️  Iniciando: Funil esforço expert
+[2025-11-26 14:51:21] ================================================================================
+[2025-11-26 14:51:21] 📊 Processando acumulado mensal para 19 datas...
+[2025-11-26 14:51:23]    Processando 10/19 datas...
+[2025-11-26 14:51:28]    Processando 19/19 datas...
+[2025-11-26 14:51:28] 
+📅 Merge com dw_calendario...
+[2025-11-26 14:51:28]    ✓ Registros finais: 160
+[2025-11-26 14:51:28] 
+📈 Totais acumulados:
+[2025-11-26 14:51:28]    ✓ TRABALHADO: 525,459.0
+[2025-11-26 14:51:28]    ✓ ACIONAMENTOS: 117.0
+[2025-11-26 14:51:28]    ✓ CPC: 0.0
+[2025-11-26 14:51:28]    ✓ CPCA: 0.0
+[2025-11-26 14:51:28]    ✓ PROMESSA: 0.0
+[2025-11-26 14:51:28] ================================================================================
+[2025-11-26 14:51:29] ✅ Concluído: Funil esforço expert - Tempo: 7.40s
+[2025-11-26 14:51:29] ▶️  Iniciando: Funil unique expert
+[2025-11-26 14:51:29] ================================================================================
+[2025-11-26 14:51:29] 📊 Processando acumulado mensal ÚNICO (melhor score por CPF) para 19 datas...
+[2025-11-26 14:51:32]    Processando 10/19 datas...
+[2025-11-26 14:51:43]    Processando 19/19 datas...
+[2025-11-26 14:51:45] 
+📅 Merge com dw_calendario...
+[2025-11-26 14:51:45]    ✓ Registros finais: 160
+[2025-11-26 14:51:45] 
+📈 Totais acumulados ÚNICOS (última data):
+[2025-11-26 14:51:45]    ✓ TRABALHADO: 93,387.0
+[2025-11-26 14:51:45]    ✓ ACIONAMENTOS: 116.0
+[2025-11-26 14:51:45]    ✓ CPC: 0.0
+[2025-11-26 14:51:45]    ✓ CPCA: 0.0
+[2025-11-26 14:51:45]    ✓ PROMESSA: 0.0
+[2025-11-26 14:51:45] ================================================================================
+[2025-11-26 14:51:45] ✅ Concluído: Funil unique expert - Tempo: 16.42s
+[2025-11-26 14:51:45] ▶️  Iniciando: Funil fxAtraso e Origem expert
+[2025-11-26 14:51:45] ================================================================================
+[2025-11-26 14:51:45] 📊 Processando acumulado mensal ÚNICO por CPF + FX_ATRASO (melhor score) para 19 datas...
+[2025-11-26 14:51:49]    Processando 10/19 datas...
+[2025-11-26 14:52:00]    Processando 19/19 datas...
+[2025-11-26 14:52:02] 
+📅 Merge com dw_calendario...
+[2025-11-26 14:52:02]    ✓ Registros finais: 160
+[2025-11-26 14:52:02] 
+📈 Totais acumulados ÚNICOS por CPF+FAIXA (última data):
+[2025-11-26 14:52:02]    ✓ TRABALHADO: 104,648.0
+[2025-11-26 14:52:02]    ✓ ACIONAMENTOS: 117.0
+[2025-11-26 14:52:02]    ✓ CPC: 0.0
+[2025-11-26 14:52:02]    ✓ CPCA: 0.0
+[2025-11-26 14:52:02]    ✓ PROMESSA: 0.0
+[2025-11-26 14:52:02] ================================================================================
+[2025-11-26 14:52:02] ✅ Concluído: Funil fxAtraso e Origem expert - Tempo: 17.40s
+[2025-11-26 14:52:03] ▶️  Iniciando: Enriquecimento base de discagens trestto
+[2025-11-26 14:52:09] ================================================================================
+[2025-11-26 14:52:09] 📊 Antes da consolidação - Trestto: 2,170,303
+[2025-11-26 14:52:12] 📊 Após consolidação - Trestto: 2,102,827
+[2025-11-26 14:52:12] 📊 Mailing: 6,283,356
+[2025-11-26 14:52:16] 
+📊 Merge com mailing_hist...
+[2025-11-26 14:52:16]    Registros antes: 2,102,827
+[2025-11-26 14:52:23]    ✓ Registros após merge: 2,103,130
+[2025-11-26 14:52:23]    ⚠️  Registros sem FX_ATRASO: 1,531,866
+[2025-11-26 14:52:23] 
+📅 Merge com dw_calendario...
+[2025-11-26 14:52:23]    Registros antes: 2,103,130
+[2025-11-26 14:52:25]    ✓ Registros após merge: 2,103,130
+[2025-11-26 14:52:25]    ⚠️  Registros sem dados de calendário: 174,398
+[2025-11-26 14:52:26] 
+📦 Separação dos DataFrames:
+[2025-11-26 14:52:26]    ✓ Registros COM FX_ATRASO: 571,264
+[2025-11-26 14:52:26]    ✓ Registros SEM FX_ATRASO (fora da mailing): 1,531,866
+[2025-11-26 14:52:27]    ✓ CPFs únicos SEM FX_ATRASO: 318,683
+[2025-11-26 14:52:27] ================================================================================
+[2025-11-26 14:52:27] ✅ Concluído: Enriquecimento base de discagens trestto - Tempo: 24.65s
+[2025-11-26 14:52:27] ▶️  Iniciando: Funil esforço trestto
+[2025-11-26 14:52:28] ================================================================================
+[2025-11-26 14:52:28] 📊 Processando acumulado mensal de discagens para 16 datas...
+[2025-11-26 14:52:29]    Processando 10/16 datas...
+[2025-11-26 14:52:32]    Processando 16/16 datas...
+[2025-11-26 14:52:32] 
+📅 Merge com dw_calendario...
+[2025-11-26 14:52:32]    ✓ Registros finais: 130
+[2025-11-26 14:52:32] 
+📈 Totais acumulados (última data):
+[2025-11-26 14:52:32]    ✓ TRABALHADO: 4,307,634.0
+[2025-11-26 14:52:32]    ✓ ACIONAMENTOS: 40,569.0
+[2025-11-26 14:52:32]    ✓ CPC: 6,111.0
+[2025-11-26 14:52:32]    ✓ CPCA: 5,806.0
+[2025-11-26 14:52:32]    ✓ PROMESSA: 1,216.0
+[2025-11-26 14:52:32] ================================================================================
+[2025-11-26 14:52:32] ✅ Concluído: Funil esforço trestto - Tempo: 4.86s
+[2025-11-26 14:52:32] ▶️  Iniciando: Funil unique trestto
+[2025-11-26 14:52:32] ================================================================================
+[2025-11-26 14:52:32] 📊 Processando acumulado mensal ÚNICO (melhor score por CPF) para 16 datas...
+[2025-11-26 14:52:36]    Processando 10/16 datas...
+[2025-11-26 14:52:40]    Processando 16/16 datas...
+[2025-11-26 14:52:41] 
+📅 Merge com dw_calendario...
+[2025-11-26 14:52:41]    ✓ Registros finais: 130
+[2025-11-26 14:52:41] 
+📈 Totais acumulados ÚNICOS (última data):
+[2025-11-26 14:52:41]    ✓ TRABALHADO: 67,993.0
+[2025-11-26 14:52:41]    ✓ ACIONAMENTOS: 6,947.0
+[2025-11-26 14:52:41]    ✓ CPC: 4,555.0
+[2025-11-26 14:52:41]    ✓ CPCA: 4,480.0
+[2025-11-26 14:52:41]    ✓ PROMESSA: 1,193.0
+[2025-11-26 14:52:41] ================================================================================
+[2025-11-26 14:52:41] ✅ Concluído: Funil unique trestto - Tempo: 8.74s
+[2025-11-26 14:52:41] ▶️  Iniciando: Funil por fxAtraso e origem trestto
+[2025-11-26 14:52:41] ================================================================================
+[2025-11-26 14:52:41] 📊 Processando acumulado mensal ÚNICO por CPF + FX_ATRASO (melhor score) para 16 datas...
+[2025-11-26 14:52:45]    Processando 10/16 datas...
+[2025-11-26 14:52:50]    Processando 16/16 datas...
+[2025-11-26 14:52:51] 
+🔄 Verificando buracos no range e dias úteis faltantes...
+[2025-11-26 14:52:51]    Primeira data do arquivo: 2025-11-01
+[2025-11-26 14:52:51]    Última data do arquivo: 2025-11-21
+[2025-11-26 14:52:51]    Data D-1 (ontem): 2025-11-25
+[2025-11-26 14:52:51]    ⚠️  Encontrados 3 dias úteis faltantes (buracos no range)
+[2025-11-26 14:52:52]    ✓ Preenchimento de 3 dias concluído!
+[2025-11-26 14:52:52] 
+📅 Merge com dw_calendario...
+[2025-11-26 14:52:52]    ✓ Registros finais: 150
+[2025-11-26 14:52:52] 
+📈 Totais acumulados ÚNICOS por CPF+FAIXA (última data):
+[2025-11-26 14:52:52]    ✓ TRABALHADO: 111,201.0
+[2025-11-26 14:52:52]    ✓ ACIONAMENTOS: 19,879.0
+[2025-11-26 14:52:52]    ✓ CPC: 5,027.0
+[2025-11-26 14:52:52]    ✓ CPCA: 4,832.0
+[2025-11-26 14:52:52]    ✓ PROMESSA: 1,199.0
+[2025-11-26 14:52:52] ================================================================================
+[2025-11-26 14:52:52] ✅ Concluído: Funil por fxAtraso e origem trestto - Tempo: 10.60s
+[2025-11-26 14:54:13] ▶️  Iniciando: Dados de pagamentos
+[2025-11-26 14:54:17] ============================================================
+[2025-11-26 14:54:17] INÍCIO DO PROCESSAMENTO DE PAGAMENTOS
+[2025-11-26 14:54:17] ============================================================
+[2025-11-26 14:54:17] Total de registros em df_pagamentos: 19269
+[2025-11-26 14:54:17] Total de registros em df_acordos: 2591
+[2025-11-26 14:54:17] Total de registros únicos em df_maling_hist: 6283356
+[2025-11-26 14:54:17] Total de acordos válidos (não cancelados): 851
+[2025-11-26 14:54:17] Total de registros após cruzamento com acordos: 589
+[2025-11-26 14:54:17] Total de registros após cruzamento com calendário: 589
+[2025-11-26 14:54:20] Total de registros após cruzamento com histórico: 589
+[2025-11-26 14:54:20] ============================================================
+[2025-11-26 14:54:20] SEPARAÇÃO DE DADOS POR FX_ATRASO
+[2025-11-26 14:54:20] ============================================================
+[2025-11-26 14:54:20] Pagamentos COM FX_ATRASO: 544
+[2025-11-26 14:54:20] Pagamentos SEM FX_ATRASO: 45
+[2025-11-26 14:54:20] Percentual COM FX_ATRASO: 92.36%
+[2025-11-26 14:54:20] Percentual SEM FX_ATRASO: 7.64%
+[2025-11-26 14:54:20] Total de linhas agrupadas (antes de remover qte=0): 4500
+[2025-11-26 14:54:20] Linhas removidas com qte=0: 4376
+[2025-11-26 14:54:20] Total de linhas finais no DataFrame agrupado: 124
+[2025-11-26 14:54:20] ============================================================
+[2025-11-26 14:54:20] RESUMO FINAL
+[2025-11-26 14:54:20] ============================================================
+[2025-11-26 14:54:20] Valor total de parcelas: R$ 45,086.16
+[2025-11-26 14:54:20] Quantidade total de pagamentos: 544
+[2025-11-26 14:54:20] ============================================================
+[2025-11-26 14:54:20] ✅ Concluído: Dados de pagamentos - Tempo: 7.62s
+[2025-11-26 14:54:20] ▶️  Iniciando: Gerando acumulado de pagamentos
+[2025-11-26 14:54:20] ============================================================
+[2025-11-26 14:54:20] GERANDO ACUMULADO POR DIA ÚTIL
+[2025-11-26 14:54:20] ============================================================
+[2025-11-26 14:54:20] Total de datas únicas a processar: 15
+[2025-11-26 14:54:20]    Processando 10/15 datas...
+[2025-11-26 14:54:20]    Processando 15/15 datas...
+[2025-11-26 14:54:20] Total de registros acumulados gerados: 300
+[2025-11-26 14:54:20] Quantidade total final: 4280
+[2025-11-26 14:54:20] Valor total final: R$ 354,457.50
+[2025-11-26 14:54:20] ============================================================
+[2025-11-26 14:54:20] ✅ Concluído: Gerando acumulado de pagamentos - Tempo: 0.15s
+[2025-11-27 11:13:54] ▶️  Iniciando: Acumulado mailing hist por faixa de atraso
+[2025-11-27 11:13:54] ============================================================
+[2025-11-27 11:13:54] INÍCIO DO PROCESSAMENTO DE MALING_HIST
+[2025-11-27 11:13:54] ============================================================
+[2025-11-27 11:13:54] Total de registros em df_maling_hist: 6500569
+[2025-11-27 11:13:56] Memória reduzida - trabalhando com 5 colunas
+[2025-11-27 11:14:02] Registros após merge com calendário: 4217937
+[2025-11-27 11:14:02] Total de datas únicas a processar: 17
+[2025-11-27 11:14:35]    Processando 10/17 datas...
+[2025-11-27 11:15:35]    Processando 17/17 datas...
+[2025-11-27 11:15:46] ============================================================
+[2025-11-27 11:15:46] RESUMO FINAL MALING_HIST
+[2025-11-27 11:15:46] ============================================================
+[2025-11-27 11:15:46] Total de registros acumulados gerados: 340
+[2025-11-27 11:15:46] Registros de Contratos: 170
+[2025-11-27 11:15:46] Registros de CPFs: 0
+[2025-11-27 11:15:46] Valor total final: R$ 3,004,023,412.72
+[2025-11-27 11:15:46] ============================================================
+[2025-11-27 11:15:46] ✅ Concluído: Acumulado mailing hist por faixa de atraso - Tempo: 1.86min (111.38s)
+[2025-11-27 11:15:46] ▶️  Iniciando: Acumulado mailing hist unique
+[2025-11-27 11:15:46] ============================================================
+[2025-11-27 11:15:46] INÍCIO DO PROCESSAMENTO DE MALING_HIST
+[2025-11-27 11:15:46] ============================================================
+[2025-11-27 11:15:46] Total de registros em df_maling_hist: 6500569
+[2025-11-27 11:15:47] Memória reduzida - trabalhando com 4 colunas
+[2025-11-27 11:15:49] Registros após merge com calendário: 4217937
+[2025-11-27 11:15:49] Total de datas únicas a processar: 17
+[2025-11-27 11:16:20]    Processando 10/17 datas...
+[2025-11-27 11:17:10]    Processando 17/17 datas...
+[2025-11-27 11:17:19] ============================================================
+[2025-11-27 11:17:19] RESUMO FINAL MALING_HIST
+[2025-11-27 11:17:19] ============================================================
+[2025-11-27 11:17:19] Total de registros acumulados gerados: 34
+[2025-11-27 11:17:19] Registros de Contratos: 0
+[2025-11-27 11:17:19] Registros de CPFs: 0
+[2025-11-27 11:17:19] Valor total final: R$ 2,705,215,870.95
+[2025-11-27 11:17:19] ============================================================
+[2025-11-27 11:17:19] ✅ Concluído: Acumulado mailing hist unique - Tempo: 1.55min (93.16s)
+[2025-11-27 11:17:19] ▶️  Iniciando: Substituindo tabulações por 0 e 1
+[2025-11-27 11:17:19] Finalizado!
+[2025-11-27 11:17:19] ✅ Concluído: Substituindo tabulações por 0 e 1 - Tempo: 0.00s
+[2025-11-27 11:17:19] ▶️  Iniciando: Conferindo tabulações aos acionamentos
+[2025-11-27 11:17:19] ================================================================================
+[2025-11-27 11:17:19] 📊 Antes do merge - Acionamentos: 5,154 | Tabulações: 79
+[2025-11-27 11:17:19] 📊 Após merge: 5,154
+[2025-11-27 11:17:19] 📊 Acionamentos com DESC_ACIONA: 5,021
+[2025-11-27 11:17:19] ================================================================================
+[2025-11-27 11:17:19] ✅ Concluído: Conferindo tabulações aos acionamentos - Tempo: 0.04s
+[2025-11-27 11:17:19] ▶️  Iniciando: Enriquecendo acionamentos mailing hist e calendário
+[2025-11-27 11:17:19] ================================================================================
+[2025-11-27 11:17:19] 📊 Classificando origem do acionamento...
+[2025-11-27 11:17:19]    ✓ Robô: 0
+[2025-11-27 11:17:19]    ✓ Humano: 5,154
+[2025-11-27 11:17:23] 📊 Merge com mailing_hist...
+[2025-11-27 11:17:26]    ✓ Registros: 5,154
+[2025-11-27 11:17:27]    ✓ Registros finais: 5,154
+[2025-11-27 11:17:27]    ✓ Com FX_ATRASO: 5,001
+[2025-11-27 11:17:27]    ✓ Com DESC_ACIONA: 5,021
+[2025-11-27 11:17:27]    ✓ Com ORIGEM: 5,154
+[2025-11-27 11:17:27] ================================================================================
+[2025-11-27 11:17:27] ▶️  Iniciando: Separando inconsistências
+[2025-11-27 11:17:27] ================================================================================
+[2025-11-27 11:17:27] 
+📋 ANÁLISE DE INCONSISTÊNCIAS:
+[2025-11-27 11:17:27]    ✓ Registros limpos: 4,875
+[2025-11-27 11:17:27]    ⚠️  Sem FX_ATRASO (fora da mailing): 153
+[2025-11-27 11:17:27]    ⚠️  Sem DESC_ACIONA (erro de tabulação): 133
+[2025-11-27 11:17:27]    ⚠️  Sem ORIGEM (fora do discador): 0
+[2025-11-27 11:17:27]    📊 Total de registros: 5,154
+[2025-11-27 11:17:27] ================================================================================
+[2025-11-27 11:17:27] ✅ Concluído: Separando inconsistências - Tempo: 0.02s
+[2025-11-27 11:17:27] ✅ Concluído: Enriquecendo acionamentos mailing hist e calendário - Tempo: 7.64s
+[2025-11-27 11:17:27] ▶️  Iniciando: Funil de acionamentos fxAtraso e origem humano
+[2025-11-27 11:17:28] ✅ Concluído: Funil de acionamentos fxAtraso e origem humano - Tempo: 0.79s
+[2025-11-27 11:17:28] ▶️  Iniciando: Funil de acionamentos unique humano
+[2025-11-27 11:17:28] ================================================================================
+[2025-11-27 11:17:28] 📊 Processando acumulado mensal ÚNICO (melhor score por CPF) para 20 datas...
+[2025-11-27 11:17:28]    Processando 10/20 datas...
+[2025-11-27 11:17:28]    Processando 20/20 datas...
+[2025-11-27 11:17:28] 
+📅 Merge com dw_calendario...
+[2025-11-27 11:17:28]    ✓ Registros finais: 170
+[2025-11-27 11:17:28] 
+📈 Totais acumulados ÚNICOS (última data):
+[2025-11-27 11:17:28]    ✓ ACIONAMENTOS: 3,874.0
+[2025-11-27 11:17:28]    ✓ CPC: 1,388.0
+[2025-11-27 11:17:28]    ✓ CPCA: 1,036.0
+[2025-11-27 11:17:28]    ✓ PROMESSA: 553.0
+[2025-11-27 11:17:28] ================================================================================
+[2025-11-27 11:17:28] ✅ Concluído: Funil de acionamentos unique humano - Tempo: 0.76s
+[2025-11-27 11:17:28] ▶️  Iniciando: Funil de acionamentos esforço humano
+[2025-11-27 11:17:28] ================================================================================
+[2025-11-27 11:17:28] 📊 Processando acumulado mensal para 20 datas...
+[2025-11-27 11:17:29]    Processando 10/20 datas...
+[2025-11-27 11:17:29]    Processando 20/20 datas...
+[2025-11-27 11:17:29] 
+📅 Merge com dw_calendario...
+[2025-11-27 11:17:29]    ✓ Registros finais: 170
+[2025-11-27 11:17:29] 
+📈 Totais acumulados:
+[2025-11-27 11:17:29]    ✓ ACIONAMENTOS: 4,875.0
+[2025-11-27 11:17:29]    ✓ CPC: 1,514.0
+[2025-11-27 11:17:29]    ✓ CPCA: 1,099.0
+[2025-11-27 11:17:29]    ✓ PROMESSA: 576.0
+[2025-11-27 11:17:29] ================================================================================
+[2025-11-27 11:17:29] ✅ Concluído: Funil de acionamentos esforço humano - Tempo: 0.62s
+[2025-11-27 11:17:29] ▶️  Iniciando: DF com as tabulações do Robô
+[2025-11-27 11:17:29] ================================================================================
+[2025-11-27 11:17:29] ✅ DataFrame de classificação de tabulações criado!
+[2025-11-27 11:17:29]    📊 Total de códigos: 57
+[2025-11-27 11:17:29]    ✓ ACIONAMENTOS: 57 códigos
+[2025-11-27 11:17:29]    ✓ CPC: 36 códigos
+[2025-11-27 11:17:29]    ✓ CPCA: 29 códigos
+[2025-11-27 11:17:29]    ✓ PROMESSA: 14 códigos
+[2025-11-27 11:17:29] ================================================================================
+[2025-11-27 11:17:29] ✅ Concluído: DF com as tabulações do Robô - Tempo: 0.01s
+[2025-11-27 11:17:29] ▶️  Iniciando: Discagens Expert
+[2025-11-27 11:17:29] ================================================================================
+[2025-11-27 11:17:29] 📊 Merge com classificações de tabulação...
+[2025-11-27 11:17:29]    Registros antes: 896,406
+[2025-11-27 11:17:31]    ✓ Registros após merge: 896,406
+[2025-11-27 11:17:31]    ✓ Registros perdidos: 0
+[2025-11-27 11:17:31] 
+📈 Distribuição das classificações:
+[2025-11-27 11:17:31]    ✓ TRABALHADO: 896,406 registros
+[2025-11-27 11:17:31]    ✓ ACIONAMENTOS: 4,811 registros
+[2025-11-27 11:17:31]    ✓ CPC: 301 registros
+[2025-11-27 11:17:31]    ✓ CPCA: 197 registros
+[2025-11-27 11:17:31]    ✓ PROMESSA: 197 registros
+[2025-11-27 11:17:31] ================================================================================
+[2025-11-27 11:17:31] ✅ Concluído: Discagens Expert - Tempo: 1.98s
+[2025-11-27 11:17:31] ▶️  Iniciando: Enriquecimento base de discagens expert
+[2025-11-27 11:17:32] ✅ Enriquecido!
+[2025-11-27 11:17:32] ✅ Concluído: Enriquecimento base de discagens expert - Tempo: 1.42s
+[2025-11-27 11:17:33] ▶️  Iniciando: Enriquecimento maling hist e calendário
+[2025-11-27 11:17:40] ================================================================================
+[2025-11-27 11:17:40] 📊 Merge com mailing_hist...
+[2025-11-27 11:17:40]    Registros antes: 896,406
+[2025-11-27 11:17:47]    ✓ Registros após merge: 896,406
+[2025-11-27 11:17:47]    ⚠️  Registros sem FX_ATRASO: 15,519
+[2025-11-27 11:17:48] 
+📅 Merge com dw_calendario...
+[2025-11-27 11:17:48]    Registros antes: 896,406
+[2025-11-27 11:17:49]    ✓ Registros após merge: 896,406
+[2025-11-27 11:17:49]    ⚠️  Registros sem dados de calendário: 58,644
+[2025-11-27 11:17:50] 
+📦 Separação dos DataFrames:
+[2025-11-27 11:17:50]    ✓ Registros COM FX_ATRASO: 880,887
+[2025-11-27 11:17:50]    ✓ Registros SEM FX_ATRASO: 15,519
+[2025-11-27 11:17:50] ================================================================================
+[2025-11-27 11:17:50] ✅ Concluído: Enriquecimento maling hist e calendário - Tempo: 17.91s
+[2025-11-27 11:17:50] ▶️  Iniciando: Segmentando base de discagens enriquecida
+[2025-11-27 11:17:52] ============================================================
+[2025-11-27 11:17:52] RESUMO DA SEPARAÇÃO DE DADOS
+[2025-11-27 11:17:52] ============================================================
+[2025-11-27 11:17:52] Total de registros original: 880,887
+[2025-11-27 11:17:52] 
+1. Humano + Primeiro Acionamento: 0 registros (0.00%)
+[2025-11-27 11:17:52] 2. Operação 'Outros': 328,293 registros (37.27%)
+[2025-11-27 11:17:52] 3. Restante: 552,594 registros (62.73%)
+[2025-11-27 11:17:52] 
+Verificação: 880,887 registros
+[2025-11-27 11:17:52] ============================================================
+[2025-11-27 11:17:52] ✅ Concluído: Segmentando base de discagens enriquecida - Tempo: 1.44s
+[2025-11-27 11:17:52] ▶️  Iniciando: Funil esforço expert
+[2025-11-27 11:17:52] ================================================================================
+[2025-11-27 11:17:52] 📊 Processando acumulado mensal para 20 datas...
+[2025-11-27 11:17:54]    Processando 10/20 datas...
+[2025-11-27 11:18:00]    Processando 20/20 datas...
+[2025-11-27 11:18:01] 
+📅 Merge com dw_calendario...
+[2025-11-27 11:18:01]    ✓ Registros finais: 170
+[2025-11-27 11:18:01] 
+📈 Totais acumulados:
+[2025-11-27 11:18:01]    ✓ TRABALHADO: 552,594.0
+[2025-11-27 11:18:01]    ✓ ACIONAMENTOS: 119.0
+[2025-11-27 11:18:01]    ✓ CPC: 0.0
+[2025-11-27 11:18:01]    ✓ CPCA: 0.0
+[2025-11-27 11:18:01]    ✓ PROMESSA: 0.0
+[2025-11-27 11:18:01] ================================================================================
+[2025-11-27 11:18:01] ✅ Concluído: Funil esforço expert - Tempo: 9.29s
+[2025-11-27 11:18:01] ▶️  Iniciando: Funil unique expert
+[2025-11-27 11:18:01] ================================================================================
+[2025-11-27 11:18:01] 📊 Processando acumulado mensal ÚNICO (melhor score por CPF) para 20 datas...
+[2025-11-27 11:18:05]    Processando 10/20 datas...
+[2025-11-27 11:18:19]    Processando 20/20 datas...
+[2025-11-27 11:18:21] 
+📅 Merge com dw_calendario...
+[2025-11-27 11:18:21]    ✓ Registros finais: 170
+[2025-11-27 11:18:21] 
+📈 Totais acumulados ÚNICOS (última data):
+[2025-11-27 11:18:21]    ✓ TRABALHADO: 97,316.0
+[2025-11-27 11:18:21]    ✓ ACIONAMENTOS: 118.0
+[2025-11-27 11:18:21]    ✓ CPC: 0.0
+[2025-11-27 11:18:21]    ✓ CPCA: 0.0
+[2025-11-27 11:18:21]    ✓ PROMESSA: 0.0
+[2025-11-27 11:18:21] ================================================================================
+[2025-11-27 11:18:21] ✅ Concluído: Funil unique expert - Tempo: 19.77s
+[2025-11-27 11:18:21] ▶️  Iniciando: Funil fxAtraso e Origem expert
+[2025-11-27 11:18:21] ================================================================================
+[2025-11-27 11:18:21] 📊 Processando acumulado mensal ÚNICO por CPF + FX_ATRASO (melhor score) para 20 datas...
+[2025-11-27 11:18:25]    Processando 10/20 datas...
+[2025-11-27 11:18:40]    Processando 20/20 datas...
+[2025-11-27 11:18:42] 
+📅 Merge com dw_calendario...
+[2025-11-27 11:18:42]    ✓ Registros finais: 170
+[2025-11-27 11:18:42] 
+📈 Totais acumulados ÚNICOS por CPF+FAIXA (última data):
+[2025-11-27 11:18:42]    ✓ TRABALHADO: 108,938.0
+[2025-11-27 11:18:42]    ✓ ACIONAMENTOS: 119.0
+[2025-11-27 11:18:42]    ✓ CPC: 0.0
+[2025-11-27 11:18:42]    ✓ CPCA: 0.0
+[2025-11-27 11:18:42]    ✓ PROMESSA: 0.0
+[2025-11-27 11:18:42] ================================================================================
+[2025-11-27 11:18:42] ✅ Concluído: Funil fxAtraso e Origem expert - Tempo: 20.92s
+[2025-11-27 11:18:42] ▶️  Iniciando: Enriquecimento base de discagens trestto
+[2025-11-27 11:18:49] ================================================================================
+[2025-11-27 11:18:49] 📊 Antes da consolidação - Trestto: 2,170,303
+[2025-11-27 11:18:52] 📊 Após consolidação - Trestto: 2,102,827
+[2025-11-27 11:18:52] 📊 Mailing: 6,500,569
+[2025-11-27 11:18:57] 
+📊 Merge com mailing_hist...
+[2025-11-27 11:18:57]    Registros antes: 2,102,827
+[2025-11-27 11:19:04]    ✓ Registros após merge: 2,103,130
+[2025-11-27 11:19:04]    ⚠️  Registros sem FX_ATRASO: 1,531,866
+[2025-11-27 11:19:05] 
+📅 Merge com dw_calendario...
+[2025-11-27 11:19:05]    Registros antes: 2,103,130
+[2025-11-27 11:19:07]    ✓ Registros após merge: 2,103,130
+[2025-11-27 11:19:07]    ⚠️  Registros sem dados de calendário: 174,398
+[2025-11-27 11:19:08] 
+📦 Separação dos DataFrames:
+[2025-11-27 11:19:08]    ✓ Registros COM FX_ATRASO: 571,264
+[2025-11-27 11:19:08]    ✓ Registros SEM FX_ATRASO (fora da mailing): 1,531,866
+[2025-11-27 11:19:09]    ✓ CPFs únicos SEM FX_ATRASO: 318,683
+[2025-11-27 11:19:09] ================================================================================
+[2025-11-27 11:19:10] ✅ Concluído: Enriquecimento base de discagens trestto - Tempo: 27.36s
+[2025-11-27 11:19:10] ▶️  Iniciando: Funil esforço trestto
+[2025-11-27 11:19:16] ✅ Concluído: Funil esforço trestto - Tempo: 6.42s
+[2025-11-27 11:19:16] ▶️  Iniciando: Funil unique trestto
+[2025-11-27 11:19:16] ================================================================================
+[2025-11-27 11:19:16] 📊 Iniciando processamento de acumulado mensal ÚNICO (melhor score por CPF)...
+[2025-11-27 11:19:16] 
+📅 Range de processamento:
+[2025-11-27 11:19:16]    • Primeira data com dados: 2025-11-01
+[2025-11-27 11:19:16]    • Última data com dados: 2025-11-21
+[2025-11-27 11:19:16]    • Data D-1 (ontem): 2025-11-26
+[2025-11-27 11:19:16]    • Data final do processamento: 2025-11-26
+[2025-11-27 11:19:16] 
+📊 Análise de completude:
+[2025-11-27 11:19:16]    • Total de dias úteis no range: 17
+[2025-11-27 11:19:16]    • Dias com dados: 16
+[2025-11-27 11:19:16]    • Dias sem dados (a calcular): 4
+[2025-11-27 11:19:16] 
+⚠️  Dias úteis sem dados que serão processados:
+[2025-11-27 11:19:16]       1. 2025-11-18
+[2025-11-27 11:19:16]       2. 2025-11-24
+[2025-11-27 11:19:16]       3. 2025-11-25
+[2025-11-27 11:19:16]       4. 2025-11-26
+[2025-11-27 11:19:16] 
+🔄 Processando acumulados para 17 dias úteis...
+[2025-11-27 11:19:21]     Processando 10/17 datas...
+[2025-11-27 11:19:27]     Processando 17/17 datas...
+[2025-11-27 11:19:28] 
+✓ Processamento concluído!
+[2025-11-27 11:19:28]   • Total de registros gerados: 170
+[2025-11-27 11:19:28] 
+📅 Merge com dw_calendario...
+[2025-11-27 11:19:28]    Registros antes do merge: 170
+[2025-11-27 11:19:28]    Registros após o merge: 170
+[2025-11-27 11:19:28] 
+📈 Totais acumulados ÚNICOS (última data - 2025-11-26):
+[2025-11-27 11:19:28]    ✓ TRABALHADO: 67,993.0
+[2025-11-27 11:19:28]    ✓ ACIONAMENTOS: 6,947.0
+[2025-11-27 11:19:28]    ✓ CPC: 4,555.0
+[2025-11-27 11:19:28]    ✓ CPCA: 4,480.0
+[2025-11-27 11:19:28]    ✓ PROMESSA: 1,193.0
+[2025-11-27 11:19:28] ================================================================================
+[2025-11-27 11:19:28] ✅ Concluído: Funil unique trestto - Tempo: 11.77s
+[2025-11-27 11:19:28] ▶️  Iniciando: Funil por fxAtraso e origem trestto
+[2025-11-27 11:19:28] ================================================================================
+[2025-11-27 11:19:28] 📊 Processando acumulado mensal ÚNICO por CPF + FX_ATRASO (melhor score) para 16 datas...
+[2025-11-27 11:19:32]    Processando 10/16 datas...
+[2025-11-27 11:19:37]    Processando 16/16 datas...
+[2025-11-27 11:19:38] 
+🔄 Verificando buracos no range e dias úteis faltantes...
+[2025-11-27 11:19:38]    Primeira data do arquivo: 2025-11-01
+[2025-11-27 11:19:38]    Última data do arquivo: 2025-11-21
+[2025-11-27 11:19:38]    Data D-1 (ontem): 2025-11-26
+[2025-11-27 11:19:38]    ⚠️  Encontrados 4 dias úteis faltantes (buracos no range)
+[2025-11-27 11:19:38]    ✓ Preenchimento de 4 dias concluído!
+[2025-11-27 11:19:38] 
+📅 Merge com dw_calendario...
+[2025-11-27 11:19:38]    ✓ Registros finais: 150
+[2025-11-27 11:19:38] 
+📈 Totais acumulados ÚNICOS por CPF+FAIXA (última data):
+[2025-11-27 11:19:38]    ✓ TRABALHADO: 111,201.0
+[2025-11-27 11:19:38]    ✓ ACIONAMENTOS: 19,879.0
+[2025-11-27 11:19:38]    ✓ CPC: 5,027.0
+[2025-11-27 11:19:38]    ✓ CPCA: 4,832.0
+[2025-11-27 11:19:38]    ✓ PROMESSA: 1,199.0
+[2025-11-27 11:19:38] ================================================================================
+[2025-11-27 11:19:38] ✅ Concluído: Funil por fxAtraso e origem trestto - Tempo: 10.26s
+[2025-11-27 11:20:59] ▶️  Iniciando: Dados de pagamentos
+[2025-11-27 11:21:04] ============================================================
+[2025-11-27 11:21:04] INÍCIO DO PROCESSAMENTO DE PAGAMENTOS
+[2025-11-27 11:21:04] ============================================================
+[2025-11-27 11:21:04] Total de registros em df_pagamentos: 19954
+[2025-11-27 11:21:04] Total de registros em df_acordos: 2723
+[2025-11-27 11:21:04] Total de registros únicos em df_maling_hist: 6500569
+[2025-11-27 11:21:04] Total de acordos válidos (não cancelados): 968
+[2025-11-27 11:21:04] Total de registros após cruzamento com acordos: 614
+[2025-11-27 11:21:04] Total de registros após cruzamento com calendário: 614
+[2025-11-27 11:21:07] Total de registros após cruzamento com histórico: 614
+[2025-11-27 11:21:07] ============================================================
+[2025-11-27 11:21:07] SEPARAÇÃO DE DADOS POR FX_ATRASO
+[2025-11-27 11:21:07] ============================================================
+[2025-11-27 11:21:07] Pagamentos COM FX_ATRASO: 567
+[2025-11-27 11:21:07] Pagamentos SEM FX_ATRASO: 47
+[2025-11-27 11:21:07] Percentual COM FX_ATRASO: 92.35%
+[2025-11-27 11:21:07] Percentual SEM FX_ATRASO: 7.65%
+[2025-11-27 11:21:07] Total de linhas agrupadas (antes de remover qte=0): 5120
+[2025-11-27 11:21:07] Linhas removidas com qte=0: 4989
+[2025-11-27 11:21:07] Total de linhas finais no DataFrame agrupado: 131
+[2025-11-27 11:21:07] ============================================================
+[2025-11-27 11:21:07] RESUMO FINAL
+[2025-11-27 11:21:07] ============================================================
+[2025-11-27 11:21:07] Valor total de parcelas: R$ 47,695.02
+[2025-11-27 11:21:07] Quantidade total de pagamentos: 567
+[2025-11-27 11:21:07] ============================================================
+[2025-11-27 11:21:07] ✅ Concluído: Dados de pagamentos - Tempo: 8.43s
+[2025-11-27 11:21:07] ▶️  Iniciando: Gerando acumulado de pagamentos
+[2025-11-27 11:21:07] ============================================================
+[2025-11-27 11:21:07] GERANDO ACUMULADO POR DIA ÚTIL
+[2025-11-27 11:21:07] ============================================================
+[2025-11-27 11:21:07] Total de datas únicas a processar: 16
+[2025-11-27 11:21:07]    Processando 10/16 datas...
+[2025-11-27 11:21:07]    Processando 16/16 datas...
+[2025-11-27 11:21:07] Total de registros acumulados gerados: 320
+[2025-11-27 11:21:07] Quantidade total final: 4847
+[2025-11-27 11:21:07] Valor total final: R$ 402,152.52
+[2025-11-27 11:21:07] ============================================================
+[2025-11-27 11:21:07] ✅ Concluído: Gerando acumulado de pagamentos - Tempo: 0.16s
+[2025-11-27 14:29:51] ▶️  Iniciando: Acumulado mailing hist por faixa de atraso
+[2025-11-27 14:29:51] ============================================================
+[2025-11-27 14:29:51] INÍCIO DO PROCESSAMENTO DE MALING_HIST
+[2025-11-27 14:29:51] ============================================================
+[2025-11-27 14:29:51] Total de registros em df_maling_hist: 6500569
+[2025-11-27 14:29:52] Memória reduzida - trabalhando com 5 colunas
+[2025-11-27 14:29:55] Registros após merge com calendário: 4217937
+[2025-11-27 14:29:55] Total de datas únicas a processar: 17
+[2025-11-27 14:30:26]    Processando 10/17 datas...
+[2025-11-27 14:31:19]    Processando 17/17 datas...
+[2025-11-27 14:31:28] ============================================================
+[2025-11-27 14:31:28] RESUMO FINAL MALING_HIST
+[2025-11-27 14:31:28] ============================================================
+[2025-11-27 14:31:28] Total de registros acumulados gerados: 340
+[2025-11-27 14:31:28] Registros de Contratos: 170
+[2025-11-27 14:31:28] Registros de CPFs: 0
+[2025-11-27 14:31:28] Valor total final: R$ 3,004,228,303.12
+[2025-11-27 14:31:28] ============================================================
+[2025-11-27 14:31:28] ✅ Concluído: Acumulado mailing hist por faixa de atraso - Tempo: 1.61min (96.82s)
+[2025-11-27 14:31:28] ▶️  Iniciando: Acumulado mailing hist unique
+[2025-11-27 14:31:28] ============================================================
+[2025-11-27 14:31:28] INÍCIO DO PROCESSAMENTO DE MALING_HIST
+[2025-11-27 14:31:28] ============================================================
+[2025-11-27 14:31:28] Total de registros em df_maling_hist: 6500569
+[2025-11-27 14:31:29] Memória reduzida - trabalhando com 4 colunas
+[2025-11-27 14:31:31] Registros após merge com calendário: 4217937
+[2025-11-27 14:31:32] Total de datas únicas a processar: 17
+[2025-11-27 14:31:59]    Processando 10/17 datas...
+[2025-11-27 14:32:46]    Processando 17/17 datas...
+[2025-11-27 14:32:54] ============================================================
+[2025-11-27 14:32:54] RESUMO FINAL MALING_HIST
+[2025-11-27 14:32:54] ============================================================
+[2025-11-27 14:32:54] Total de registros acumulados gerados: 34
+[2025-11-27 14:32:54] Registros de Contratos: 0
+[2025-11-27 14:32:54] Registros de CPFs: 0
+[2025-11-27 14:32:54] Valor total final: R$ 2,705,357,110.61
+[2025-11-27 14:32:54] ============================================================
+[2025-11-27 14:32:54] ✅ Concluído: Acumulado mailing hist unique - Tempo: 1.43min (85.81s)
+[2025-11-27 14:32:54] ▶️  Iniciando: Substituindo tabulações por 0 e 1
+[2025-11-27 14:32:54] Finalizado!
+[2025-11-27 14:32:54] ✅ Concluído: Substituindo tabulações por 0 e 1 - Tempo: 0.00s
+[2025-11-27 14:32:54] ▶️  Iniciando: Conferindo tabulações aos acionamentos
+[2025-11-27 14:32:54] ================================================================================
+[2025-11-27 14:32:54] 📊 Antes do merge - Acionamentos: 5,154 | Tabulações: 79
+[2025-11-27 14:32:54] 📊 Após merge: 5,154
+[2025-11-27 14:32:54] 📊 Acionamentos com DESC_ACIONA: 5,021
+[2025-11-27 14:32:54] ================================================================================
+[2025-11-27 14:32:54] ✅ Concluído: Conferindo tabulações aos acionamentos - Tempo: 0.02s
+[2025-11-27 14:32:54] ▶️  Iniciando: Enriquecendo acionamentos mailing hist e calendário
+[2025-11-27 14:32:54] ================================================================================
+[2025-11-27 14:32:54] 📊 Classificando origem do acionamento...
+[2025-11-27 14:32:54]    ✓ Robô: 0
+[2025-11-27 14:32:54]    ✓ Humano: 5,154
+[2025-11-27 14:32:57] 📊 Merge com mailing_hist...
+[2025-11-27 14:33:01]    ✓ Registros: 5,154
+[2025-11-27 14:33:01]    ✓ Registros finais: 5,154
+[2025-11-27 14:33:01]    ✓ Com FX_ATRASO: 5,001
+[2025-11-27 14:33:01]    ✓ Com DESC_ACIONA: 5,021
+[2025-11-27 14:33:01]    ✓ Com ORIGEM: 5,154
+[2025-11-27 14:33:01] ================================================================================
+[2025-11-27 14:33:01] ▶️  Iniciando: Separando inconsistências
+[2025-11-27 14:33:01] ================================================================================
+[2025-11-27 14:33:01] 
+📋 ANÁLISE DE INCONSISTÊNCIAS:
+[2025-11-27 14:33:01]    ✓ Registros limpos: 4,875
+[2025-11-27 14:33:01]    ⚠️  Sem FX_ATRASO (fora da mailing): 153
+[2025-11-27 14:33:01]    ⚠️  Sem DESC_ACIONA (erro de tabulação): 133
+[2025-11-27 14:33:01]    ⚠️  Sem ORIGEM (fora do discador): 0
+[2025-11-27 14:33:01]    📊 Total de registros: 5,154
+[2025-11-27 14:33:01] ================================================================================
+[2025-11-27 14:33:01] ✅ Concluído: Separando inconsistências - Tempo: 0.01s
+[2025-11-27 14:33:01] ✅ Concluído: Enriquecendo acionamentos mailing hist e calendário - Tempo: 7.34s
+[2025-11-27 14:33:01] ▶️  Iniciando: Funil de acionamentos fxAtraso e origem humano
+[2025-11-27 14:33:02] ✅ Concluído: Funil de acionamentos fxAtraso e origem humano - Tempo: 0.74s
+[2025-11-27 14:33:02] ▶️  Iniciando: Funil de acionamentos unique humano
+[2025-11-27 14:33:02] ================================================================================
+[2025-11-27 14:33:02] 📊 Processando acumulado mensal ÚNICO (melhor score por CPF) para 20 datas...
+[2025-11-27 14:33:02]    Processando 10/20 datas...
+[2025-11-27 14:33:03]    Processando 20/20 datas...
+[2025-11-27 14:33:03] 
+📅 Merge com dw_calendario...
+[2025-11-27 14:33:03]    ✓ Registros finais: 170
+[2025-11-27 14:33:03] 
+📈 Totais acumulados ÚNICOS (última data):
+[2025-11-27 14:33:03]    ✓ ACIONAMENTOS: 3,874.0
+[2025-11-27 14:33:03]    ✓ CPC: 1,388.0
+[2025-11-27 14:33:03]    ✓ CPCA: 1,036.0
+[2025-11-27 14:33:03]    ✓ PROMESSA: 553.0
+[2025-11-27 14:33:03] ================================================================================
+[2025-11-27 14:33:03] ✅ Concluído: Funil de acionamentos unique humano - Tempo: 0.69s
+[2025-11-27 14:33:03] ▶️  Iniciando: Funil de acionamentos esforço humano
+[2025-11-27 14:33:03] ================================================================================
+[2025-11-27 14:33:03] 📊 Processando acumulado mensal para 20 datas...
+[2025-11-27 14:33:03]    Processando 10/20 datas...
+[2025-11-27 14:33:03]    Processando 20/20 datas...
+[2025-11-27 14:33:03] 
+📅 Merge com dw_calendario...
+[2025-11-27 14:33:03]    ✓ Registros finais: 170
+[2025-11-27 14:33:03] 
+📈 Totais acumulados:
+[2025-11-27 14:33:03]    ✓ ACIONAMENTOS: 4,875.0
+[2025-11-27 14:33:03]    ✓ CPC: 1,514.0
+[2025-11-27 14:33:03]    ✓ CPCA: 1,099.0
+[2025-11-27 14:33:03]    ✓ PROMESSA: 576.0
+[2025-11-27 14:33:03] ================================================================================
+[2025-11-27 14:33:03] ✅ Concluído: Funil de acionamentos esforço humano - Tempo: 0.55s
+[2025-11-27 14:33:03] ▶️  Iniciando: DF com as tabulações do Robô
+[2025-11-27 14:33:03] ================================================================================
+[2025-11-27 14:33:03] ✅ DataFrame de classificação de tabulações criado!
+[2025-11-27 14:33:03]    📊 Total de códigos: 57
+[2025-11-27 14:33:03]    ✓ ACIONAMENTOS: 57 códigos
+[2025-11-27 14:33:03]    ✓ CPC: 36 códigos
+[2025-11-27 14:33:03]    ✓ CPCA: 29 códigos
+[2025-11-27 14:33:03]    ✓ PROMESSA: 14 códigos
+[2025-11-27 14:33:03] ================================================================================
+[2025-11-27 14:33:03] ✅ Concluído: DF com as tabulações do Robô - Tempo: 0.01s
+[2025-11-27 14:33:03] ▶️  Iniciando: Discagens Expert
+[2025-11-27 14:33:03] ================================================================================
+[2025-11-27 14:33:03] 📊 Merge com classificações de tabulação...
+[2025-11-27 14:33:03]    Registros antes: 911,678
+[2025-11-27 14:33:04]    ✓ Registros após merge: 911,678
+[2025-11-27 14:33:04]    ✓ Registros perdidos: 0
+[2025-11-27 14:33:04] 
+📈 Distribuição das classificações:
+[2025-11-27 14:33:04]    ✓ TRABALHADO: 911,678 registros
+[2025-11-27 14:33:04]    ✓ ACIONAMENTOS: 5,034 registros
+[2025-11-27 14:33:04]    ✓ CPC: 319 registros
+[2025-11-27 14:33:04]    ✓ CPCA: 209 registros
+[2025-11-27 14:33:04]    ✓ PROMESSA: 209 registros
+[2025-11-27 14:33:04] ================================================================================
+[2025-11-27 14:33:04] ✅ Concluído: Discagens Expert - Tempo: 0.53s
+[2025-11-27 14:33:04] ▶️  Iniciando: Enriquecimento base de discagens expert
+[2025-11-27 14:33:05] ✅ Enriquecido!
+[2025-11-27 14:33:05] ✅ Concluído: Enriquecimento base de discagens expert - Tempo: 1.27s
+[2025-11-27 14:33:05] ▶️  Iniciando: Enriquecimento maling hist e calendário
+[2025-11-27 14:33:12] ================================================================================
+[2025-11-27 14:33:12] 📊 Merge com mailing_hist...
+[2025-11-27 14:33:12]    Registros antes: 911,678
+[2025-11-27 14:33:18]    ✓ Registros após merge: 911,678
+[2025-11-27 14:33:18]    ⚠️  Registros sem FX_ATRASO: 30,791
+[2025-11-27 14:33:18] 
+📅 Merge com dw_calendario...
+[2025-11-27 14:33:18]    Registros antes: 911,678
+[2025-11-27 14:33:19]    ✓ Registros após merge: 911,678
+[2025-11-27 14:33:19]    ⚠️  Registros sem dados de calendário: 73,916
+[2025-11-27 14:33:20] 
+📦 Separação dos DataFrames:
+[2025-11-27 14:33:20]    ✓ Registros COM FX_ATRASO: 880,887
+[2025-11-27 14:33:20]    ✓ Registros SEM FX_ATRASO: 30,791
+[2025-11-27 14:33:20] ================================================================================
+[2025-11-27 14:33:21] ✅ Concluído: Enriquecimento maling hist e calendário - Tempo: 15.22s
+[2025-11-27 14:33:21] ▶️  Iniciando: Segmentando base de discagens enriquecida
+[2025-11-27 14:33:22] ============================================================
+[2025-11-27 14:33:22] RESUMO DA SEPARAÇÃO DE DADOS
+[2025-11-27 14:33:22] ============================================================
+[2025-11-27 14:33:22] Total de registros original: 880,887
+[2025-11-27 14:33:22] 
+1. Humano + Primeiro Acionamento: 0 registros (0.00%)
+[2025-11-27 14:33:22] 2. Operação 'Outros': 328,293 registros (37.27%)
+[2025-11-27 14:33:22] 3. Restante: 552,594 registros (62.73%)
+[2025-11-27 14:33:22] 
+Verificação: 880,887 registros
+[2025-11-27 14:33:22] ============================================================
+[2025-11-27 14:33:22] ✅ Concluído: Segmentando base de discagens enriquecida - Tempo: 1.23s
+[2025-11-27 14:33:22] ▶️  Iniciando: Funil esforço expert
+[2025-11-27 14:33:22] ================================================================================
+[2025-11-27 14:33:22] 📊 Processando acumulado mensal para 20 datas...
+[2025-11-27 14:33:24]    Processando 10/20 datas...
+[2025-11-27 14:33:29]    Processando 20/20 datas...
+[2025-11-27 14:33:30] 
+📅 Merge com dw_calendario...
+[2025-11-27 14:33:30]    ✓ Registros finais: 170
+[2025-11-27 14:33:30] 
+📈 Totais acumulados:
+[2025-11-27 14:33:30]    ✓ TRABALHADO: 552,594.0
+[2025-11-27 14:33:30]    ✓ ACIONAMENTOS: 119.0
+[2025-11-27 14:33:30]    ✓ CPC: 0.0
+[2025-11-27 14:33:30]    ✓ CPCA: 0.0
+[2025-11-27 14:33:30]    ✓ PROMESSA: 0.0
+[2025-11-27 14:33:30] ================================================================================
+[2025-11-27 14:33:30] ✅ Concluído: Funil esforço expert - Tempo: 7.95s
+[2025-11-27 14:33:30] ▶️  Iniciando: Funil unique expert
+[2025-11-27 14:33:30] ================================================================================
+[2025-11-27 14:33:30] 📊 Processando acumulado mensal ÚNICO (melhor score por CPF) para 20 datas...
+[2025-11-27 14:33:33]    Processando 10/20 datas...
+[2025-11-27 14:33:45]    Processando 20/20 datas...
+[2025-11-27 14:33:47] 
+📅 Merge com dw_calendario...
+[2025-11-27 14:33:47]    ✓ Registros finais: 170
+[2025-11-27 14:33:47] 
+📈 Totais acumulados ÚNICOS (última data):
+[2025-11-27 14:33:47]    ✓ TRABALHADO: 97,316.0
+[2025-11-27 14:33:47]    ✓ ACIONAMENTOS: 118.0
+[2025-11-27 14:33:47]    ✓ CPC: 0.0
+[2025-11-27 14:33:47]    ✓ CPCA: 0.0
+[2025-11-27 14:33:47]    ✓ PROMESSA: 0.0
+[2025-11-27 14:33:47] ================================================================================
+[2025-11-27 14:33:47] ✅ Concluído: Funil unique expert - Tempo: 17.68s
+[2025-11-27 14:33:47] ▶️  Iniciando: Funil fxAtraso e Origem expert
+[2025-11-27 14:33:48] ================================================================================
+[2025-11-27 14:33:48] 📊 Processando acumulado mensal ÚNICO por CPF + FX_ATRASO (melhor score) para 20 datas...
+[2025-11-27 14:33:51]    Processando 10/20 datas...
+[2025-11-27 14:34:06]    Processando 20/20 datas...
+[2025-11-27 14:34:08] 
+📅 Merge com dw_calendario...
+[2025-11-27 14:34:08]    ✓ Registros finais: 170
+[2025-11-27 14:34:08] 
+📈 Totais acumulados ÚNICOS por CPF+FAIXA (última data):
+[2025-11-27 14:34:08]    ✓ TRABALHADO: 108,938.0
+[2025-11-27 14:34:08]    ✓ ACIONAMENTOS: 119.0
+[2025-11-27 14:34:08]    ✓ CPC: 0.0
+[2025-11-27 14:34:08]    ✓ CPCA: 0.0
+[2025-11-27 14:34:08]    ✓ PROMESSA: 0.0
+[2025-11-27 14:34:08] ================================================================================
+[2025-11-27 14:34:08] ✅ Concluído: Funil fxAtraso e Origem expert - Tempo: 20.99s
+[2025-11-27 14:34:09] ▶️  Iniciando: Enriquecimento base de discagens trestto
+[2025-11-27 14:34:15] ================================================================================
+[2025-11-27 14:34:15] 📊 Antes da consolidação - Trestto: 2,770,872
+[2025-11-27 14:34:21] 📊 Após consolidação - Trestto: 2,684,558
+[2025-11-27 14:34:21] 📊 Mailing: 6,500,569
+[2025-11-27 14:34:27] 
+📊 Merge com mailing_hist...
+[2025-11-27 14:34:27]    Registros antes: 2,684,558
+[2025-11-27 14:34:35]    ✓ Registros após merge: 2,684,932
+[2025-11-27 14:34:35]    ⚠️  Registros sem FX_ATRASO: 1,951,117
+[2025-11-27 14:34:36] 
+📅 Merge com dw_calendario...
+[2025-11-27 14:34:36]    Registros antes: 2,684,932
+[2025-11-27 14:34:38]    ✓ Registros após merge: 2,684,932
+[2025-11-27 14:34:38]    ⚠️  Registros sem dados de calendário: 211,689
+[2025-11-27 14:34:39] 
+📦 Separação dos DataFrames:
+[2025-11-27 14:34:39]    ✓ Registros COM FX_ATRASO: 733,815
+[2025-11-27 14:34:39]    ✓ Registros SEM FX_ATRASO (fora da mailing): 1,951,117
+[2025-11-27 14:34:39]    ✓ CPFs únicos SEM FX_ATRASO: 375,111
+[2025-11-27 14:34:39] ================================================================================
+[2025-11-27 14:34:40] ✅ Concluído: Enriquecimento base de discagens trestto - Tempo: 31.73s
+[2025-11-27 14:34:40] ▶️  Iniciando: Funil esforço trestto
+[2025-11-27 14:34:47] ✅ Concluído: Funil esforço trestto - Tempo: 6.36s
+[2025-11-27 14:34:47] ▶️  Iniciando: Funil unique trestto
+[2025-11-27 14:34:47] ================================================================================
+[2025-11-27 14:34:47] 📊 Iniciando processamento de acumulado mensal ÚNICO (melhor score por CPF)...
+[2025-11-27 14:34:47] 
+📅 Range de processamento:
+[2025-11-27 14:34:47]    • Primeira data com dados: 2025-11-01
+[2025-11-27 14:34:47]    • Última data com dados: 2025-11-26
+[2025-11-27 14:34:47]    • Data D-1 (ontem): 2025-11-26
+[2025-11-27 14:34:47]    • Data final do processamento: 2025-11-26
+[2025-11-27 14:34:47] 
+📊 Análise de completude:
+[2025-11-27 14:34:47]    • Total de dias úteis no range: 17
+[2025-11-27 14:34:47]    • Dias com dados: 20
+[2025-11-27 14:34:47]    • Dias sem dados (a calcular): 1
+[2025-11-27 14:34:47] 
+⚠️  Dias úteis sem dados que serão processados:
+[2025-11-27 14:34:47]       1. 2025-11-18
+[2025-11-27 14:34:47] 
+🔄 Processando acumulados para 17 dias úteis...
+[2025-11-27 14:34:51]     Processando 10/17 datas...
+[2025-11-27 14:34:57]     Processando 17/17 datas...
+[2025-11-27 14:34:57] 
+✓ Processamento concluído!
+[2025-11-27 14:34:57]   • Total de registros gerados: 170
+[2025-11-27 14:34:57] 
+📅 Merge com dw_calendario...
+[2025-11-27 14:34:57]    Registros antes do merge: 170
+[2025-11-27 14:34:57]    Registros após o merge: 170
+[2025-11-27 14:34:57] 
+📈 Totais acumulados ÚNICOS (última data - 2025-11-26):
+[2025-11-27 14:34:57]    ✓ TRABALHADO: 93,720.0
+[2025-11-27 14:34:57]    ✓ ACIONAMENTOS: 8,877.0
+[2025-11-27 14:34:57]    ✓ CPC: 5,575.0
+[2025-11-27 14:34:57]    ✓ CPCA: 5,479.0
+[2025-11-27 14:34:57]    ✓ PROMESSA: 1,497.0
+[2025-11-27 14:34:57] ================================================================================
+[2025-11-27 14:34:58] ✅ Concluído: Funil unique trestto - Tempo: 10.73s
+[2025-11-27 14:34:58] ▶️  Iniciando: Funil por fxAtraso e origem trestto
+[2025-11-27 14:34:58] ================================================================================
+[2025-11-27 14:34:58] 📊 Processando acumulado mensal ÚNICO por CPF + FX_ATRASO (melhor score) para 20 datas...
+[2025-11-27 14:35:02]    Processando 10/20 datas...
+[2025-11-27 14:35:10]    Processando 20/20 datas...
+[2025-11-27 14:35:11] 
+🔄 Verificando buracos no range e dias úteis faltantes...
+[2025-11-27 14:35:11]    Primeira data do arquivo: 2025-11-01
+[2025-11-27 14:35:11]    Última data do arquivo: 2025-11-26
+[2025-11-27 14:35:11]    Data D-1 (ontem): 2025-11-26
+[2025-11-27 14:35:11]    ⚠️  Encontrados 1 dias úteis faltantes (buracos no range)
+[2025-11-27 14:35:11]    ✓ Preenchimento de 1 dias concluído!
+[2025-11-27 14:35:11] 
+📅 Merge com dw_calendario...
+[2025-11-27 14:35:11]    ✓ Registros finais: 170
+[2025-11-27 14:35:11] 
+📈 Totais acumulados ÚNICOS por CPF+FAIXA (última data):
+[2025-11-27 14:35:11]    ✓ TRABALHADO: 139,890.0
+[2025-11-27 14:35:11]    ✓ ACIONAMENTOS: 23,421.0
+[2025-11-27 14:35:11]    ✓ CPC: 6,123.0
+[2025-11-27 14:35:11]    ✓ CPCA: 5,895.0
+[2025-11-27 14:35:11]    ✓ PROMESSA: 1,508.0
+[2025-11-27 14:35:11] ================================================================================
+[2025-11-27 14:35:11] ✅ Concluído: Funil por fxAtraso e origem trestto - Tempo: 13.72s
+[2025-11-27 14:36:36] ▶️  Iniciando: Dados de pagamentos
+[2025-11-27 14:36:41] ============================================================
+[2025-11-27 14:36:41] INÍCIO DO PROCESSAMENTO DE PAGAMENTOS
+[2025-11-27 14:36:41] ============================================================
+[2025-11-27 14:36:41] Total de registros em df_pagamentos: 19954
+[2025-11-27 14:36:41] Total de registros em df_acordos: 2723
+[2025-11-27 14:36:41] Total de registros únicos em df_maling_hist: 6500569
+[2025-11-27 14:36:41] Total de acordos válidos (não cancelados): 968
+[2025-11-27 14:36:41] Total de registros após cruzamento com acordos: 614
+[2025-11-27 14:36:41] Total de registros após cruzamento com calendário: 614
+[2025-11-27 14:36:44] Total de registros após cruzamento com histórico: 614
+[2025-11-27 14:36:44] ============================================================
+[2025-11-27 14:36:44] SEPARAÇÃO DE DADOS POR FX_ATRASO
+[2025-11-27 14:36:44] ============================================================
+[2025-11-27 14:36:44] Pagamentos COM FX_ATRASO: 567
+[2025-11-27 14:36:44] Pagamentos SEM FX_ATRASO: 47
+[2025-11-27 14:36:44] Percentual COM FX_ATRASO: 92.35%
+[2025-11-27 14:36:44] Percentual SEM FX_ATRASO: 7.65%
+[2025-11-27 14:36:44] Total de linhas agrupadas (antes de remover qte=0): 5120
+[2025-11-27 14:36:44] Linhas removidas com qte=0: 4989
+[2025-11-27 14:36:44] Total de linhas finais no DataFrame agrupado: 131
+[2025-11-27 14:36:44] ============================================================
+[2025-11-27 14:36:44] RESUMO FINAL
+[2025-11-27 14:36:44] ============================================================
+[2025-11-27 14:36:44] Valor total de parcelas: R$ 47,695.02
+[2025-11-27 14:36:44] Quantidade total de pagamentos: 567
+[2025-11-27 14:36:44] ============================================================
+[2025-11-27 14:36:44] ✅ Concluído: Dados de pagamentos - Tempo: 8.33s
+[2025-11-27 14:36:44] ▶️  Iniciando: Gerando acumulado de pagamentos
+[2025-11-27 14:36:44] ============================================================
+[2025-11-27 14:36:44] GERANDO ACUMULADO POR DIA ÚTIL
+[2025-11-27 14:36:44] ============================================================
+[2025-11-27 14:36:44] Total de datas únicas a processar: 16
+[2025-11-27 14:36:44]    Processando 10/16 datas...
+[2025-11-27 14:36:44]    Processando 16/16 datas...
+[2025-11-27 14:36:44] Total de registros acumulados gerados: 320
+[2025-11-27 14:36:44] Quantidade total final: 4847
+[2025-11-27 14:36:44] Valor total final: R$ 402,152.52
+[2025-11-27 14:36:44] ============================================================
+[2025-11-27 14:36:44] ✅ Concluído: Gerando acumulado de pagamentos - Tempo: 0.16s
