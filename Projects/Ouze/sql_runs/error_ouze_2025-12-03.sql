@@ -1,0 +1,1867 @@
+DECLARE @DT_INI AS DATE = '2025-12-01' -- PRIMEIRO DIA DO MÊS
+DECLARE @DT_FIM AS DATE = '2025-12-31' -- ÚLTIMO DIA DO MÊS
+DECLARE @DT     AS DATE = '2025-12-03' -- PRIMEIRO DIA DESEJADO
+DECLARE @DT2    AS DATE = '2025-12-03' -- ÚLTIMO DIA DESEJADO
+-- Variáveis de data/hora concatenadas
+DECLARE @DATETIME_INI AS VARCHAR(19) = CONVERT(VARCHAR(10), @DT_INI, 120) + ' 00:00:00'
+DECLARE @DATETIME_FIM AS VARCHAR(19) = CONVERT(VARCHAR(10), @DT_FIM, 120) + ' 23:59:59'
+DECLARE @DU INT = 2
+
+-- ouze
+USE SRC
+/*
+IF OBJECT_ID ('TEMPDB..#DISCAGENS') IS NOT NULL			DROP TABLE #DISCAGENS            
+IF OBJECT_ID ('TEMPDB..#BASE') IS NOT NULL				DROP TABLE #BASE                 
+IF OBJECT_ID ('TEMPDB..#BASEACIONAMENTOS') IS NOT NULL  DROP TABLE #BASEACIONAMENTOS
+IF OBJECT_ID ('TEMPDB..#BASEACORDOS') IS NOT NULL		DROP TABLE #BASEACORDOS
+IF OBJECT_ID ('TEMPDB..#ACIONAMENTOS') IS NOT NULL		DROP TABLE #ACIONAMENTOS
+IF OBJECT_ID ('TEMPDB..#TELEFONE') IS NOT NULL			DROP TABLE #TELEFONE
+IF OBJECT_ID ('TEMPDB..#SEM_TELEFONE') IS NOT NULL		DROP TABLE #SEM_TELEFONE
+IF OBJECT_ID ('TEMPDB..#ACORDOS') IS NOT NULL			DROP TABLE #ACORDOS
+IF OBJECT_ID ('TEMPDB..#MAILING_HIST') IS NOT NULL		DROP TABLE #MAILING_HIST
+IF OBJECT_ID ('TEMPDB..#PROMESSSA') IS NOT NULL			DROP TABLE #PROMESSA
+IF OBJECT_ID ('TEMPDB..#CPCA') IS NOT NULL				DROP TABLE #CPCA
+IF OBJECT_ID ('TEMPDB..#CPC') IS NOT NULL				DROP TABLE #CPC
+IF OBJECT_ID ('TEMPDB..#ALO') IS NOT NULL				DROP TABLE #ALO 
+IF OBJECT_ID ('TEMPDB..#SMS') IS NOT NULL	            DROP TABLE #SMS
+IF OBJECT_ID ('TEMPDB..#WHATSAPP') IS NOT NULL	        DROP TABLE #WHATSAPP
+IF OBJECT_ID ('TEMPDB..#EMAIL')    IS NOT NULL	        DROP TABLE #EMAIL
+*/
+
+
+
+
+-- Variáveis de data/hora concatenadas
+
+
+
+DECLARE @SQL NVARCHAR(MAX);
+DECLARE @TableName AS VARCHAR(50) = 'totalinfo_' + FORMAT(@DT_INI, 'yyyy_MM');
+--SELECT TOP 200 * FROM #DISCAGENS
+-->> DISCAGENS <<============================================================  SELECT * FROM #DISCAGENS
+-- DROP TABLE #DISCAGENS / SELECT * FROM #DISCAGENS WHERE GrupoPrincipal = 4042
+IF OBJECT_ID ('TEMPDB..#DISCAGENS') IS NULL
+BEGIN
+	SET @SQL = N'
+    SELECT 
+        instante,
+        id,
+        CONTRATO,
+        CPF,
+        ddd,
+        fone,
+        GrupoPrincipal,
+        UltCodSigRecPublica,
+        ResultadoClassificacao,
+        MotivoEncerramentoBilhete,
+        CodMotivoEncerramentoBilhete,
+        Instante200OKPub,
+        Agente,
+        tempoconversacao_ms,
+        CASE
+            WHEN GrupoPrincipal = ''4717'' THEN ''MANUAL''
+            WHEN GrupoPrincipal = ''4715'' THEN ''AGV''
+            WHEN GrupoPrincipal IN (''4702'', ''4714'', ''4716'') THEN ''RECEPTIVO''
+            WHEN GrupoPrincipal IN (''4712'', ''4713'') THEN ''ATIVO''
+            ELSE ''Outros''
+        END AS OPERACAO	
+	INTO ##DISCAGENS 
+	FROM OPENQUERY (EXPERT,''
+	SELECT
+		A.instante,
+		A.id,
+		A.chave1 AS CONTRATO,
+		A.Chave3 AS CPF,
+		A.ddd,
+		A.fone,
+		A.GrupoPrincipal,
+		A.UltCodSigRecPublica,
+		A.ResultadoClassificacao,
+		A.MotivoEncerramentoBilhete,
+		A.CodMotivoEncerramentoBilhete,
+		A.Instante200OKPub,
+		A.Agente,
+		A.tempoconversacao_ms
+	FROM ' + @TableName + ' A
+	WHERE 
+		A.instante BETWEEN ''''' + @DATETIME_INI + ''''' 
+					   AND ''''' + @DATETIME_FIM + ''''' 
+			AND A.GrupoPrincipal IN (SELECT G.id_grupo FROM grupo G WHERE G.ID_CAMPANHA = 141)
+	'')
+    '
+
+    EXEC sp_executesql @SQL;
+END
+
+--> #MAILING_HIST <<=========================================================
+IF OBJECT_ID ('TEMPDB..#MAILING_HIST') IS NULL
+BEGIN
+SELECT DISTINCT 
+	DATA,
+	CONTRATO,
+	CPF,
+	ID_CAR,
+	ATRASO,
+	COD_CLI
+INTO #MAILING_HIST -- DROP TABLE #MAILING_HIST / SELECT * FROM #MAILING_HIST WHERE DATA = '2024-12-20'
+FROM [TRC-DC-BD2].PLANEJAMENTO.DBO.MAILING_HIST
+-- WHERE ID_CAR = 100
+WHERE COD_CLI = 253
+AND DATA BETWEEN @DT_INI AND @DT2;
+--AND DATA BETWEEN '2024-02-26' AND @DT2;
+----------------
+	--> PROVISÓRIO
+	--INSERT INTO #MAILING_HIST (DATA, CONTRATO, CPF, ID_CAR, ATRASO)
+	--SELECT 
+	--	@DT_INI,
+	--	M.CONTRATO,
+	--	M.CPF,
+	--	M.ID_CAR,
+	--	M.ATRASO
+	--FROM #MAILING_HIST M
+	--WHERE M.DATA = '2025-02-26';
+
+	DECLARE @DiaAtual DATE = @DT_INI
+	WHILE @DiaAtual <= @DT2
+	BEGIN
+	    IF NOT EXISTS (
+	        SELECT 1 
+	        FROM #MAILING_HIST MH 
+	        WHERE MH.DATA = @DiaAtual
+	    )
+	    BEGIN
+	        INSERT INTO #MAILING_HIST (DATA, CONTRATO, CPF, ID_CAR, ATRASO)
+	        SELECT 
+	            @DiaAtual,
+	            M.CONTRATO,
+	            M.CPF,
+	            M.ID_CAR,
+	            M.ATRASO
+	        FROM #MAILING_HIST M
+	        WHERE M.DATA = DATEADD(DAY, -1, @DiaAtual);
+	    END
+	    SET @DiaAtual = DATEADD(DAY, 1, @DiaAtual);
+	END
+END
+
+--> #BASE <<==================================================================
+IF OBJECT_ID ('TEMPDB..#BASE') IS NULL
+BEGIN
+	SELECT
+		M.DATA AS DATA,
+		D.CPF_DEV,
+		D.CONTRATO_FIN,
+		D.VALORPRIN_FIN,
+		D.VALOR_FIN,
+		D.DTDEVOL_FIN,
+		D.ATRASO_FIN,
+		D.COD_CLI,
+		D.COD_CAR,
+		D.STATCONT_FIN,
+		C.DESC_CAR,
+		M.ATRASO,
+		CASE
+			WHEN M.ATRASO BETWEEN 0 AND 30		THEN '000-030'	
+			WHEN M.ATRASO BETWEEN 31 AND 65		THEN '031-060'
+			WHEN M.ATRASO BETWEEN 66 AND 90		THEN '061-090'
+			WHEN M.ATRASO BETWEEN 91 AND 120	THEN '091-120'
+			WHEN M.ATRASO BETWEEN 121 AND 150	THEN '121-150'
+			WHEN M.ATRASO BETWEEN 151 AND 180	THEN '151-180'	
+			WHEN M.ATRASO BETWEEN 181 AND 210	THEN '181-210'
+			WHEN M.ATRASO BETWEEN 211 AND 240	THEN '211-240'
+			WHEN M.ATRASO BETWEEN 241 AND 270	THEN '241-270'
+			WHEN M.ATRASO BETWEEN 271 AND 300	THEN '271-300'
+			WHEN M.ATRASO BETWEEN 301 AND 330	THEN '301-330'
+			WHEN M.ATRASO BETWEEN 331 AND 360	THEN '331-360'
+			WHEN M.ATRASO BETWEEN 361 AND 390	THEN '361-390'	
+			WHEN M.ATRASO    >    390			THEN '390+'
+			ELSE '390+'
+		END FX_ATRASO,
+		CASE
+			WHEN M.ATRASO BETWEEN 61 AND 180		THEN 'FASE 2.1'	
+			WHEN M.ATRASO BETWEEN 180 AND 360		THEN 'FASE 2.2'
+			WHEN M.ATRASO > 361						THEN 'FASE 3'
+			ELSE 'OUTROS'
+		END FASE
+	INTO #BASE -- DROP TABLE #BASE / SELECT count(distinct cpf) FROM #BASE GROUP BY CPF_DEV WHERE COD_CLI = 253
+	FROM CAD_DEVF AS            D 
+	INNER JOIN #MAILING_HIST	M ON M.CPF = D.CPF_DEV
+	INNER JOIN CAD_CAR          C ON D.COD_CLI = C.COD_CLI AND D.COD_CAR = C.COD_CAR
+	WHERE D.COD_CLI = 253;
+END
+
+-->> #ACIONAMENTOS <<=========================================================
+IF OBJECT_ID ('TEMPDB..#BASEACIONAMENTOS') IS NULL
+BEGIN
+	SELECT DISTINCT 
+		FORMAT(A.DATA_ACIONA, 'dd-MM-yyyy HH:mm') DATA_ACIONA,
+		CAST(DATA_ACIONA2 AS DATE) AS DATA,
+		B.COD_ACIONAMENTO,
+		A.COD_RECUP,
+		C.CPF_DEV,
+		B.DESC_ACIONAMENTO,
+		Z.NOME_RECUP AS RECUPERADOR
+	INTO #BASEACIONAMENTOS -- DROP TABLE #BASEACIONAMENTOS / SELECT RECUPERADOR FROM #BASEACIONAMENTOS WHERE COD_CLI = 250
+	FROM ACIONA							A  
+		INNER JOIN CAD_ACIONAMENTO		B ON A.COD_ACIONAMENTO = B.COD_ACIONAMENTO
+		INNER JOIN CAD_DEVF				C ON A.CONTRATO_FIN = C.CONTRATO_FIN -- AND C.DATA = CAST(A.DATA_ACIONA2 AS DATE)  
+	    INNER JOIN CAD_RECUP		    Z ON A.COD_RECUP = Z.COD_RECUP 
+	WHERE C.COD_CLI = 253 AND C.COD_CAR = 1
+	AND A.COD_RECUP NOT IN (15721)  -- 15721 = EXPERT VOICE 
+	AND B.CLASSIFICACAO_ACIONAMENTO = 1 -- 1 = ACIONAMENTO HUMANO
+	AND CAST(DATA_ACIONA2 AS DATE) BETWEEN @DT_INI AND @DT2
+END
+
+IF OBJECT_ID ('TEMPDB..#ACIONAMENTOS') IS NULL
+BEGIN
+	SELECT 
+		A.DATA_ACIONA,
+		A.DATA,
+		A.COD_ACIONAMENTO,
+		A.COD_RECUP,
+		A.CPF_DEV,
+		A.DESC_ACIONAMENTO,
+		A.RECUPERADOR,
+		CASE
+			WHEN M.ATRASO BETWEEN 0 AND 30		THEN '000-030'	
+			WHEN M.ATRASO BETWEEN 31 AND 65		THEN '031-060'
+			WHEN M.ATRASO BETWEEN 66 AND 90		THEN '061-090'
+			WHEN M.ATRASO BETWEEN 91 AND 120	THEN '091-120'
+			WHEN M.ATRASO BETWEEN 121 AND 150	THEN '121-150'
+			WHEN M.ATRASO BETWEEN 151 AND 180	THEN '151-180'	
+			WHEN M.ATRASO BETWEEN 181 AND 210	THEN '181-210'
+			WHEN M.ATRASO BETWEEN 211 AND 240	THEN '211-240'
+			WHEN M.ATRASO BETWEEN 241 AND 270	THEN '241-270'
+			WHEN M.ATRASO BETWEEN 271 AND 300	THEN '271-300'
+			WHEN M.ATRASO BETWEEN 301 AND 330	THEN '301-330'
+			WHEN M.ATRASO BETWEEN 331 AND 360	THEN '331-360'
+			WHEN M.ATRASO BETWEEN 361 AND 390	THEN '361-390'	
+			WHEN M.ATRASO    >    390			THEN '390+'
+			ELSE 'OUTROS'
+		END FX_ATRASO,
+		CASE
+			WHEN M.ATRASO BETWEEN 61 AND 180		THEN 'FASE 2.1'	
+			WHEN M.ATRASO BETWEEN 180 AND 360		THEN 'FASE 2.2'
+			WHEN M.ATRASO > 360						THEN 'FASE 3'
+			ELSE 'OUTROS'
+		END FASE
+	INTO #ACIONAMENTOS
+	FROM #BASEACIONAMENTOS A -- DROP TABLE #ACIONAMENTOS
+	INNER JOIN #MAILING_HIST	M ON M.CPF = A.CPF_DEV
+	LEFT JOIN(
+		SELECT	
+			MAX(ATRASO_FIN) ATRASO_FIN,
+			CPF_DEV
+		FROM CAD_DEVF
+		WHERE COD_CLI = 253 AND COD_CAR = 1
+		GROUP BY CPF_DEV
+	)C ON A.CPF_DEV = C.CPF_DEV
+
+	ALTER TABLE #ACIONAMENTOS ADD 
+		ACIONAMENTOS INT,
+		ALO INT, 
+		CPC INT, 
+		CPCA INT, 
+		PROMESSA INT;
+
+	UPDATE #ACIONAMENTOS SET ACIONAMENTOS = 1;
+		
+	-->> ALO
+	UPDATE #ACIONAMENTOS SET ALO = 1
+	WHERE COD_ACIONAMENTO IN (
+	'10324', --ASS-ACORDO D0                                               
+	'10372', --ASS-ACORDO D1                                               
+	'10373', --ASS-ACORDO D2                                               
+	'10374', --ASS-ACORDO D3                                               
+	'10375', --ASS-ACORDO POR EXCEÇÃO                                      
+	'10376', --ASS-ACORDO WHATSAPP                                         
+	'10330', --ASS-PROMESSA DE PAGAMENTO D0                                
+	'10397', --ASS-PROMESSA DE PAGAMENTO D1                                
+	'10398', --ASS-PROMESSA DE PAGAMENTO D2                                
+	'10399', --ASS-PROMESSA DE PAGAMENTO D3                                
+	'10402', --ASS-RENEGOCIAÇÃO GLOBAL                                     
+	'10377', --ASS-ALEGA PAGAMENTO                                         
+	'10378', --ASS-CLI AFASTADO DO TRABALHO                                
+	'10379', --ASS-CLIENTE DESEMPREGADO                                    
+	'10381', --ASS-CLIENTE SEM PREVISÃO DE PAGAMENTO                       
+	'10382', --ASS-CLIENTE VAI VERIFICAR                                   
+	'10383', --ASS-CONTESTAÇÃO COMPRA                                      
+	'10384', --ASS-DESCONHECE COMPRA/CARTÃO                                
+	'10390', --ASS-LIBERAÇÃO DE EXCEÇÃO                                    
+	'10393', --ASS-NÃO TRABALHA MAIS                                       
+	'10394', --ASS-PREVENTIVA DE ACORDO                                    
+	'10395', --ASS-PREVENTIVO RENEG GLOBAL                                 
+	'10396', --ASS-PREVENTIVO RENEG GLOBAL EP                              
+	'10400', --ASS-REENVIO DE BOLETO ACORDO                                
+	'10401', --ASS-RELIGAR                                                 
+	'10404', --ASS-SOLICITOU EXCEÇÃO                                       
+	'10405', --ASS-SOLICITOU INFORMAÇÕES                                   
+	'10326', --ASS-CAIU LIGAÇÃO                                            
+	'10329', --ASS-CLIENTE DESCONHECIDO                                    
+	'10380', --ASS-CLIENTE DESLIGOU                                        
+	'10322', --ASS-INFORMOU FONE                                           
+	'10328', --ASS-INFORMOU OBITO                                          
+	'10391', --ASS-MUDOU-SE                                                
+	'10392', --ASS-NÃO ANOTA RECADO                                        
+	'10321', --ASS-RECADO                                                  
+	'10406' --ASS-TERCEIRO DESLIGOU                                       
+)
+	
+	-->> CPC
+	UPDATE #ACIONAMENTOS SET CPC = 1
+	WHERE COD_ACIONAMENTO IN (
+	'10324', --ASS-ACORDO D0                                               
+	'10372', --ASS-ACORDO D1                                               
+	'10373', --ASS-ACORDO D2                                               
+	'10374', --ASS-ACORDO D3                                               
+	'10375', --ASS-ACORDO POR EXCEÇÃO                                      
+	'10376', --ASS-ACORDO WHATSAPP                                         
+	'10330', --ASS-PROMESSA DE PAGAMENTO D0                                
+	'10397', --ASS-PROMESSA DE PAGAMENTO D1                                
+	'10398', --ASS-PROMESSA DE PAGAMENTO D2                                
+	'10399', --ASS-PROMESSA DE PAGAMENTO D3                                
+	'10402', --ASS-RENEGOCIAÇÃO GLOBAL                                     
+	'10377', --ASS-ALEGA PAGAMENTO                                         
+	'10378', --ASS-CLI AFASTADO DO TRABALHO                                
+	'10379', --ASS-CLIENTE DESEMPREGADO                                    
+	'10381', --ASS-CLIENTE SEM PREVISÃO DE PAGAMENTO                       
+	'10382', --ASS-CLIENTE VAI VERIFICAR                                   
+	'10383', --ASS-CONTESTAÇÃO COMPRA                                      
+	'10384', --ASS-DESCONHECE COMPRA/CARTÃO                                
+	'10390', --ASS-LIBERAÇÃO DE EXCEÇÃO                                    
+	'10393', --ASS-NÃO TRABALHA MAIS                                       
+	'10394', --ASS-PREVENTIVA DE ACORDO                                    
+	'10395', --ASS-PREVENTIVO RENEG GLOBAL                                 
+	'10396', --ASS-PREVENTIVO RENEG GLOBAL EP                              
+	'10400', --ASS-REENVIO DE BOLETO ACORDO                                
+	'10401', --ASS-RELIGAR                                                 
+	'10404', --ASS-SOLICITOU EXCEÇÃO                                       
+	'10405' --ASS-SOLICITOU INFORMAÇÕES                                   
+) 
+	
+	-->> CPCA
+	UPDATE #ACIONAMENTOS SET CPCA = 1
+	WHERE COD_ACIONAMENTO IN (
+	'10324', --ASS-ACORDO D0                                               
+	'10372', --ASS-ACORDO D1                                               
+	'10373', --ASS-ACORDO D2                                               
+	'10374', --ASS-ACORDO D3                                               
+	'10375', --ASS-ACORDO POR EXCEÇÃO                                      
+	'10376', --ASS-ACORDO WHATSAPP                                         
+	'10330', --ASS-PROMESSA DE PAGAMENTO D0                                
+	'10397', --ASS-PROMESSA DE PAGAMENTO D1                                
+	'10398', --ASS-PROMESSA DE PAGAMENTO D2                                
+	'10399', --ASS-PROMESSA DE PAGAMENTO D3                                
+	'10402', --ASS-RENEGOCIAÇÃO GLOBAL                                     
+	'10378', --ASS-CLI AFASTADO DO TRABALHO                                
+	'10379', --ASS-CLIENTE DESEMPREGADO                                    
+	'10381', --ASS-CLIENTE SEM PREVISÃO DE PAGAMENTO                       
+	'10382', --ASS-CLIENTE VAI VERIFICAR                                   
+	'10390', --ASS-LIBERAÇÃO DE EXCEÇÃO                                    
+	'10393', --ASS-NÃO TRABALHA MAIS                                       
+	'10401', --ASS-RELIGAR                                                 
+	'10404', --ASS-SOLICITOU EXCEÇÃO                                       
+	'10405'  --ASS-SOLICITOU INFORMAÇÕES                                   
+)
+	
+	-->> PROMESSA
+	UPDATE #ACIONAMENTOS SET PROMESSA = 1
+	WHERE COD_ACIONAMENTO IN (
+	'10324', --ASS-ACORDO D0                                               
+	'10372', --ASS-ACORDO D1                                               
+	'10373', --ASS-ACORDO D2                                               
+	'10374', --ASS-ACORDO D3                                               
+	'10375', --ASS-ACORDO POR EXCEÇÃO                                      
+	'10376', --ASS-ACORDO WHATSAPP                                         
+	'10330', --ASS-PROMESSA DE PAGAMENTO D0                                
+	'10397', --ASS-PROMESSA DE PAGAMENTO D1                                
+	'10398', --ASS-PROMESSA DE PAGAMENTO D2                                
+	'10399', --ASS-PROMESSA DE PAGAMENTO D3                                
+	'10402' --ASS-RENEGOCIAÇÃO GLOBAL                                     
+)
+
+END
+
+--DECLARE @DT_INI AS DATE = '2025-06-01' -- PRIMEIRO DIA DO MÊS
+--DECLARE @DT_FIM AS DATE = '2025-06-30' -- ÚLTIMO DIA DO MÊS
+--DECLARE @DT     AS DATE = '2025-06-01' -- PRIMEIRO DIA DESEJADO
+--DECLARE @DT2    AS DATE = '2025-06-30' -- ÚLTIMO DIA DESEJADO
+-->> MASSIFICADOS <<==========================================================
+IF OBJECT_ID ('TEMPDB..#TEMP_SMS') IS NULL
+BEGIN
+	SELECT DATA, CPF
+	INTO #TEMP_SMS -- DROP TABLE #TEMP_SMS / SELECT * FROM #TEMP_SMS
+	FROM [TRC-DC-BD2].PLANEJAMENTO.DBO.SMS
+	WHERE ID_CAR IN (100) AND DATA BETWEEN @DT_INI AND @DT2
+END
+
+IF OBJECT_ID ('TEMPDB..#TEMP_RCS') IS NULL
+BEGIN
+	SELECT DATA, CPF
+	INTO #TEMP_RCS -- DROP TABLE #TEMP_SMS / SELECT * FROM #TEMP_SMS
+	FROM [TRC-DC-BD2].PLANEJAMENTO.DBO.RCS
+	WHERE ID_CAR IN (100) AND DATA BETWEEN @DT_INI AND @DT2
+END
+
+-- IF OBJECT_ID ('TEMPDB..#TEMP_WHATSAPP') IS NULL
+-- BEGIN
+-- 	SELECT DATA, CPF, *
+-- 	--INTO #TEMP_WHATSAPP -- DROP TABLE #TEMP_WHATSAPP / SELECT * FROM #TEMP_WHATSAPP
+-- 	FROM [TRC-DC-BD2].PLANEJAMENTO.DBO.WHATS W
+-- 	WHERE ID_CAR IN (100) AND DATA BETWEEN '2025-06-01' AND '2025-06-28'
+-- END
+
+IF OBJECT_ID ('TEMPDB..#TEMP_EMAIL') IS NULL
+BEGIN
+	SELECT DATA, CPF
+	INTO #TEMP_EMAIL		-- DROP TABLE #TEMP_EMAIL / SELECT * FROM #TEMP_EMAIL
+	FROM [TRC-DC-BD2].PLANEJAMENTO.DBO.EMAIL E
+	WHERE ID_CAR IN (100) AND DATA BETWEEN @DT_INI AND @DT2
+END
+
+-->> #TELEFONE <<============================================================= SELECT * FROM #BASE_ACORDOS WHERE FX_ATRASO = '360-999'
+IF OBJECT_ID ('TEMPDB..#TELEFONE') IS NULL
+BEGIN
+	SELECT 
+		T.CPF_DEV,
+		T.DDD_TEL,
+		T.TEL_TEL,
+		T.PERC_TEL,
+		T.COD_TIPO
+	INTO #TELEFONE -- DROP TABLE #TELEFONE / SELECT TOP 1 * FROM #TELEFONE 
+	FROM CAD_DEVT			T WITH (NOLOCK)
+		INNER JOIN #BASE	B ON T.CPF_DEV = B.CPF_DEV
+END
+
+IF OBJECT_ID ('TEMPDB..#SEM_TELEFONE') IS NULL
+BEGIN
+	SELECT DISTINCT CPF_DEV
+	INTO #SEM_TELEFONE -- DROP TABLE #SEM_TELEFONE / SELECT * FROM #SEM_TELEFONE
+	FROM #TELEFONE
+	WHERE PERC_TEL = 0
+	AND CPF_DEV NOT IN (SELECT DISTINCT CPF_DEV FROM #TELEFONE WHERE PERC_TEL >=1)
+END
+
+-->> BLACKLIST ========================================================
+IF OBJECT_ID('tempdb..#BLACKLIST') IS NULL
+BEGIN   
+    
+    ;WITH CTEBlacklist AS (
+        SELECT 
+            T.CPF_DEV, 
+            T.DDD_TEL, 
+            T.TEL_TEL,
+            ROW_NUMBER() OVER (PARTITION BY T.CPF_DEV ORDER BY T.DDD_TEL, T.TEL_TEL) AS rn
+        FROM #TELEFONE T
+        JOIN OPENQUERY(EXPERT, '
+            SELECT 
+                A.DDD, 
+                A.TELEFONE
+            FROM blacklist A
+        ') AS B 
+        ON T.DDD_TEL COLLATE SQL_Latin1_General_CP1_CI_AS = B.DDD
+           AND T.TEL_TEL COLLATE SQL_Latin1_General_CP1_CI_AS = B.TELEFONE
+    )
+    
+    -- Selecionar apenas o primeiro telefone para cada CPF_DEV
+    SELECT 
+        CPF_DEV, 
+        DDD_TEL, 
+        TEL_TEL
+    INTO #BLACKLIST
+    FROM CTEBlacklist
+    WHERE rn = 1;
+END
+
+-->> BASEACORDOS <<==========================================================
+IF OBJECT_ID ('TEMPDB..#BASEACORDOS') IS NULL
+BEGIN
+	SELECT DISTINCT
+	    B.CONTRATO_FIN,
+	    B.CPF_DEV,
+	    CAST(A.DTACORDOHORA_ACO AS DATE) DATA_ACORDO,
+	    CAST(P.VENC_ACOP AS DATE) VENC_PARCELA,
+	    CAST(A.DTCANCELAMENTOACO_ACO AS DATE) CANC_ACORDO,
+	    A.NACORDO_ACO,
+	    A.VLRACORDO_ACO,
+		P.VALOR_ACOP,
+		A.RECUP_ACO,
+	    P.PARCELA_ACOP,
+	    A.COD_STAC,
+        Q.NOME_RECUP AS RECUPERADOR,
+	    B.COD_CLI,
+	    B.COD_CAR,
+		B.ATRASO_FIN
+	INTO #BASEACORDOS -- DROP TABLE #BASEACORDOS / 
+	FROM
+	    CAD_ACO					A 
+	    INNER JOIN CAD_DEVF		B ON B.CONTRATO_FIN = A.CONTRATO_FIN 
+	    INNER JOIN CAD_ACOP		P ON P.CONTRATO_FIN = A.CONTRATO_FIN AND A.NACORDO_ACO = P.NACORDO_ACO AND P.PARCELA_ACOP = 1
+		INNER JOIN CAD_RECUP    Q ON A.RECUP_ACO = Q.COD_RECUP
+	WHERE  B.COD_CLI = 253 AND B.COD_CAR = 1
+	AND (CAST(A.DTACORDOHORA_ACO AS DATE) BETWEEN @DT AND @DT2)
+	AND A.RECUP_ACO IS NOT NULL
+END
+
+-->> ACORDOS <<==============================================================
+IF OBJECT_ID ('TEMPDB..#ACORDOS') IS NULL
+BEGIN
+	SELECT 
+		A.CONTRATO_FIN,
+		A.CPF_DEV,
+		A.DATA_ACORDO,
+		A.VENC_PARCELA,
+		A.NACORDO_ACO,
+		A.VLRACORDO_ACO,
+		A.VALOR_ACOP,
+		A.RECUP_ACO,
+		A.PARCELA_ACOP,
+		A.CANC_ACORDO,
+		A.RECUPERADOR,
+		CASE
+			WHEN A.ATRASO_FIN BETWEEN 0 AND 30		THEN '000-030'	
+			WHEN A.ATRASO_FIN BETWEEN 31 AND 65		THEN '031-060'
+			WHEN A.ATRASO_FIN BETWEEN 66 AND 90		THEN '061-090'
+			WHEN A.ATRASO_FIN BETWEEN 91 AND 120	THEN '091-120'
+			WHEN A.ATRASO_FIN BETWEEN 121 AND 150	THEN '121-150'
+			WHEN A.ATRASO_FIN BETWEEN 151 AND 180	THEN '151-180'	
+			WHEN A.ATRASO_FIN BETWEEN 181 AND 210	THEN '181-210'
+			WHEN A.ATRASO_FIN BETWEEN 211 AND 240	THEN '211-240'
+			WHEN A.ATRASO_FIN BETWEEN 241 AND 270	THEN '241-270'
+			WHEN A.ATRASO_FIN BETWEEN 271 AND 300	THEN '271-300'
+			WHEN A.ATRASO_FIN BETWEEN 301 AND 330	THEN '301-330'
+			WHEN A.ATRASO_FIN BETWEEN 331 AND 360	THEN '331-360'
+			WHEN A.ATRASO_FIN BETWEEN 361 AND 390	THEN '361-390'	
+			WHEN A.ATRASO_FIN    >    390			THEN '390+'
+			ELSE '390+'
+		END FX_ATRASO,
+		CASE
+			WHEN A.ATRASO_FIN BETWEEN 61 AND 180		THEN 'FASE 2.1'	
+			WHEN A.ATRASO_FIN BETWEEN 180 AND 360		THEN 'FASE 2.2'
+			WHEN A.ATRASO_FIN > 360						THEN 'FASE 3'
+			ELSE 'OUTROS'
+		END FASE
+	INTO #ACORDOS -- DROP TABLE #ACORDOS / 
+	-- SELECT * FROM #ACORDOS WHERE DATA_ACORDO = '2025-01-31' AND FX_ATRASO > '360'
+	-- SELECT DISTINCT CPF_DEV FROM #BASEACORDOS WHERE DATA_ACORDO = '2025-01-31' AND ATRASO_FIN > 360
+	FROM #BASEACORDOS A
+	LEFT JOIN (
+		SELECT 
+			MAX(ATRASO_FIN) ATRASO_FIN,
+			CPF_DEV
+		FROM CAD_DEVF
+		WHERE COD_CLI = 253 AND COD_CAR = 1
+		GROUP BY CPF_DEV
+	)C ON A.CPF_DEV = C.CPF_DEV
+
+-----------------------------------------------------------------------------	SELECT * FROM #ACIONAMENTOS
+	ALTER TABLE #ACORDOS ADD 
+		PGTO INT,
+		PGTO_VLR FLOAT;
+	
+	-->> PAGAMENTOS <<--------------------------------
+	UPDATE #ACORDOS SET PGTO = 1, PGTO_VLR  = VALOR_PARC
+	FROM (
+			SELECT
+	        CONTRATO_FIN,
+	        VALOR_PARC,
+	        NACORDO_ACO
+	    FROM RECIBOCREDOR
+			)A
+	WHERE A.CONTRATO_FIN = #ACORDOS.CONTRATO_FIN COLLATE SQL_Latin1_General_CP1_CI_AS
+	    AND A.NACORDO_ACO = #ACORDOS.NACORDO_ACO
+	    AND #ACORDOS.RECUP_ACO NOT IN (8956);
+END
+
+-->> VISAO UNIQUE <<--------------------------------
+IF OBJECT_ID ('TEMPDB..#PROMESSA') IS NULL
+BEGIN
+	SELECT *
+	INTO #PROMESSA
+	FROM #ACIONAMENTOS
+	WHERE PROMESSA = 1;
+END
+
+IF OBJECT_ID ('TEMPDB..#CPCA') IS NULL
+BEGIN
+	SELECT *
+	INTO #CPCA
+	FROM #ACIONAMENTOS -- SELECT * FROM #ACIONAMENTOS
+	WHERE CPCA = 1;
+END
+
+IF OBJECT_ID ('TEMPDB..#CPC') IS NULL
+BEGIN
+	SELECT *
+	INTO #CPC
+	FROM #ACIONAMENTOS
+	WHERE CPC = 1;
+END
+
+IF OBJECT_ID ('TEMPDB..#ALO') IS NULL
+BEGIN
+	SELECT *
+	INTO #ALO
+	FROM #ACIONAMENTOS
+	WHERE ALO = 1
+END
+
+
+-->> DAILY <<================================================================ 
+
+--DECLARE @DT_INI AS DATE = '2025-12-01' -- PRIMEIRO DIA DO MÊS
+--DECLARE @DT_FIM AS DATE = '2025-12-31' -- ÚLTIMO DIA DO MÊS
+--DECLARE @DT     AS DATE = '2025-12-02' -- PRIMEIRO DIA DESEJADO
+--DECLARE @DT2    AS DATE = '2025-12-02' -- ÚLTIMO DIA DESEJADO
+---- Variáveis de data/hora concatenadas
+--DECLARE @DATETIME_INI AS VARCHAR(19) = CONVERT(VARCHAR(10), @DT_INI, 120) + ' 00:00:00'
+--DECLARE @DATETIME_FIM AS VARCHAR(19) = CONVERT(VARCHAR(10), @DT_FIM, 120) + ' 23:59:59'
+--DECLARE @DU INT = 1
+--DECLARE @SQL NVARCHAR(MAX);
+--DECLARE @TableName AS VARCHAR(50) = 'totalinfo_' + FORMAT(@DT_INI, 'yyyy_MM');
+
+;WITH BASEDIAROW AS (
+    SELECT 
+		DATA,
+		CPF_DEV,
+		CONTRATO_FIN,
+		VALORPRIN_FIN,
+		FX_ATRASO,
+        FASE,
+        ROW_NUMBER() OVER (PARTITION BY DATA, CPF_DEV ORDER BY FX_ATRASO, CONTRATO_FIN, VALORPRIN_FIN) AS N
+    FROM #BASE
+),
+BASEUNIQUEDIA AS (
+    SELECT 
+		DATA,
+		CPF_DEV,
+		CONTRATO_FIN,
+		VALORPRIN_FIN,
+		FX_ATRASO,
+        FASE
+    FROM BASEDIAROW
+	WHERE N = 1
+),
+Pagamentos AS (
+	select
+		CONVERT(VARCHAR, r.data_pagto, 23) AS data_pagto,
+		c.contrato_fin AS CONTRATO,
+		'($) Pagamentos' AS INDICADOR,
+		--count(distinct r.contrato_fin) AS QUANTIDADE,
+		sum(r.valor_parc) as VALOR,
+		CASE
+			WHEN c.ATRASO_FIN BETWEEN 0 AND 30	        THEN '000-030'	
+			WHEN c.ATRASO_FIN BETWEEN 31 AND 65	        THEN '031-060'
+			WHEN c.ATRASO_FIN BETWEEN 66 AND 90	        THEN '061-090'
+			WHEN c.ATRASO_FIN BETWEEN 91 AND 120	    THEN '091-120'
+			WHEN c.ATRASO_FIN BETWEEN 121 AND 150	    THEN '121-150'
+			WHEN c.ATRASO_FIN BETWEEN 151 AND 180	    THEN '151-180'	
+			WHEN c.ATRASO_FIN BETWEEN 181 AND 210	    THEN '181-210'
+			WHEN c.ATRASO_FIN BETWEEN 211 AND 240	    THEN '211-240'
+			WHEN c.ATRASO_FIN BETWEEN 241 AND 270	    THEN '241-270'
+			WHEN c.ATRASO_FIN BETWEEN 271 AND 300	    THEN '271-300'
+			WHEN c.ATRASO_FIN BETWEEN 301 AND 330	    THEN '301-330'
+			WHEN c.ATRASO_FIN BETWEEN 331 AND 360	    THEN '331-360'
+			WHEN c.ATRASO_FIN BETWEEN 361 AND 390	    THEN '361-390'	
+			WHEN c.ATRASO_FIN    >    390			    THEN '390+'
+			ELSE '390+'
+		END fx_atraso,
+		CASE
+			WHEN C.ATRASO_FIN BETWEEN 61 AND 180		THEN 'FASE 2.1'	
+			WHEN C.ATRASO_FIN BETWEEN 180 AND 360		THEN 'FASE 2.2'
+			WHEN C.ATRASO_FIN > 361						THEN 'FASE 3'
+			ELSE 'OUTROS'
+		END FASE
+	from recibocredor r
+	inner join cad_devf c on c.contrato_fin = r.contrato_fin collate SQL_Latin1_General_CP1_CI_AS 
+	inner join cad_aco aco on aco.contrato_fin = r.contrato_fin collate SQL_Latin1_General_CP1_CI_AS and aco.nacordo_aco = r.nacordo_aco
+	--inner join cad_acop cad on cad.contrato_fin = r.CONTRATO_FIN
+	where c.cod_cli = 253 
+	and r.data_pagto BETWEEN @DT_INI AND @DT2
+	and aco.recup_aco is not null
+	--and c.contrato_fin = '0002195381          '
+	--and c.cod_car = 1
+	group by 
+		CASE
+			WHEN c.ATRASO_FIN BETWEEN 0 AND 30	        THEN '000-030'	
+			WHEN c.ATRASO_FIN BETWEEN 31 AND 65	        THEN '031-060'
+			WHEN c.ATRASO_FIN BETWEEN 66 AND 90	        THEN '061-090'
+			WHEN c.ATRASO_FIN BETWEEN 91 AND 120	    THEN '091-120'
+			WHEN c.ATRASO_FIN BETWEEN 121 AND 150	    THEN '121-150'
+			WHEN c.ATRASO_FIN BETWEEN 151 AND 180	    THEN '151-180'	
+			WHEN c.ATRASO_FIN BETWEEN 181 AND 210	    THEN '181-210'
+			WHEN c.ATRASO_FIN BETWEEN 211 AND 240	    THEN '211-240'
+			WHEN c.ATRASO_FIN BETWEEN 241 AND 270	    THEN '241-270'
+			WHEN c.ATRASO_FIN BETWEEN 271 AND 300	    THEN '271-300'
+			WHEN c.ATRASO_FIN BETWEEN 301 AND 330	    THEN '301-330'
+			WHEN c.ATRASO_FIN BETWEEN 331 AND 360	    THEN '331-360'
+			WHEN c.ATRASO_FIN BETWEEN 361 AND 390	    THEN '361-390'	
+			WHEN c.ATRASO_FIN    >    390			    THEN '390+'
+			ELSE '390+'
+		END,
+		CASE
+			WHEN C.ATRASO_FIN BETWEEN 61 AND 180		THEN 'FASE 2.1'	
+			WHEN C.ATRASO_FIN BETWEEN 180 AND 360		THEN 'FASE 2.2'
+			WHEN C.ATRASO_FIN > 361						THEN 'FASE 3'
+			ELSE 'OUTROS'
+		END,
+		c.contrato_fin,
+		r.data_pagto
+	UNION ALL
+    select
+		CONVERT(VARCHAR, r.data_pagto, 23) AS data_pagto,
+		c.contrato_fin AS CONTRATO,
+		'(#) Pagamentos' AS INDICADOR,
+		count(distinct r.contrato_fin) AS valor,
+		--aco.dtacordohora_aco as hora,
+		--cad.parcela_acop,
+		--sum(r.valor_parc) as valor,
+		CASE
+			WHEN c.ATRASO_FIN BETWEEN 0 AND 30	        THEN '000-030'	
+			WHEN c.ATRASO_FIN BETWEEN 31 AND 65	        THEN '031-060'
+			WHEN c.ATRASO_FIN BETWEEN 66 AND 90	        THEN '061-090'
+			WHEN c.ATRASO_FIN BETWEEN 91 AND 120	    THEN '091-120'
+			WHEN c.ATRASO_FIN BETWEEN 121 AND 150	    THEN '121-150'
+			WHEN c.ATRASO_FIN BETWEEN 151 AND 180	    THEN '151-180'	
+			WHEN c.ATRASO_FIN BETWEEN 181 AND 210	    THEN '181-210'
+			WHEN c.ATRASO_FIN BETWEEN 211 AND 240	    THEN '211-240'
+			WHEN c.ATRASO_FIN BETWEEN 241 AND 270	    THEN '241-270'
+			WHEN c.ATRASO_FIN BETWEEN 271 AND 300	    THEN '271-300'
+			WHEN c.ATRASO_FIN BETWEEN 301 AND 330	    THEN '301-330'
+			WHEN c.ATRASO_FIN BETWEEN 331 AND 360	    THEN '331-360'
+			WHEN c.ATRASO_FIN BETWEEN 361 AND 390	    THEN '361-390'	
+			WHEN c.ATRASO_FIN    >    390			    THEN '390+'
+			ELSE '390+'
+		END fx_atraso,
+		CASE
+			WHEN C.ATRASO_FIN BETWEEN 61 AND 180		THEN 'FASE 2.1'	
+			WHEN C.ATRASO_FIN BETWEEN 180 AND 360		THEN 'FASE 2.2'
+			WHEN C.ATRASO_FIN > 361						THEN 'FASE 3'
+			ELSE 'OUTROS'
+		END FASE
+	from recibocredor r
+	inner join cad_devf c on c.contrato_fin = r.contrato_fin collate SQL_Latin1_General_CP1_CI_AS 
+	inner join cad_aco aco on aco.contrato_fin = r.contrato_fin collate SQL_Latin1_General_CP1_CI_AS and aco.nacordo_aco = r.nacordo_aco
+	--inner join cad_acop cad on cad.contrato_fin = r.CONTRATO_FIN
+	where c.cod_cli = 253 
+	and r.data_pagto BETWEEN @DT_INI AND @DT2 
+	and aco.recup_aco is not null
+	--and c.cod_car = 1
+	group by 
+		CASE
+			WHEN c.ATRASO_FIN BETWEEN 0 AND 30	        THEN '000-030'	
+			WHEN c.ATRASO_FIN BETWEEN 31 AND 65	        THEN '031-060'
+			WHEN c.ATRASO_FIN BETWEEN 66 AND 90	        THEN '061-090'
+			WHEN c.ATRASO_FIN BETWEEN 91 AND 120	    THEN '091-120'
+			WHEN c.ATRASO_FIN BETWEEN 121 AND 150	    THEN '121-150'
+			WHEN c.ATRASO_FIN BETWEEN 151 AND 180	    THEN '151-180'	
+			WHEN c.ATRASO_FIN BETWEEN 181 AND 210	    THEN '181-210'
+			WHEN c.ATRASO_FIN BETWEEN 211 AND 240	    THEN '211-240'
+			WHEN c.ATRASO_FIN BETWEEN 241 AND 270	    THEN '241-270'
+			WHEN c.ATRASO_FIN BETWEEN 271 AND 300	    THEN '271-300'
+			WHEN c.ATRASO_FIN BETWEEN 301 AND 330	    THEN '301-330'
+			WHEN c.ATRASO_FIN BETWEEN 331 AND 360	    THEN '331-360'
+			WHEN c.ATRASO_FIN BETWEEN 361 AND 390	    THEN '361-390'	
+			WHEN c.ATRASO_FIN    >    390			    THEN '390+'
+			ELSE '390+'
+		END,
+		CASE
+			WHEN C.ATRASO_FIN BETWEEN 61 AND 180		THEN 'FASE 2.1'	
+			WHEN C.ATRASO_FIN BETWEEN 180 AND 360		THEN 'FASE 2.2'
+			WHEN C.ATRASO_FIN > 361						THEN 'FASE 3'
+			ELSE 'OUTROS'
+		END,
+		c.contrato_fin,
+		r.data_pagto
+)
+-----------------
+
+    SELECT
+		--'Daily' as Indicador,
+        data AS DATA,
+        'CARTEIRA' AS INDICADOR,
+        COUNT(DISTINCT CPF_DEV) AS QTE,
+        fx_atraso AS FX_ATRASO,
+        FASE AS FASE,
+		FORMAT(CAST(DATA AS DATE), 'MMM', 'pt-BR') AS MesAbreviado,
+        CASE 
+            WHEN DAY(data) BETWEEN 1 AND 7 THEN 'Semana 1'
+            WHEN DAY(data) BETWEEN 8 AND 14 THEN 'Semana 2'
+            WHEN DAY(data) BETWEEN 15 AND 21 THEN 'Semana 3'
+            WHEN DAY(data) BETWEEN 22 AND 31 THEN 'Semana 4'
+        END AS SEMANA
+    FROM BASEUNIQUEDIA B
+    WHERE DATA BETWEEN @DT AND @DT2
+    GROUP BY 
+		DATA, 
+		FX_ATRASO,
+        FASE
+
+UNION ALL
+
+	SELECT 
+		----'Daily' as Indicador,,
+		sub.DATA AS DATA,
+		'Saldo devedor' AS INDICADOR,
+		SUM(sub.VALORPRIN_FIN) AS QTE,
+		sub.FX_ATRASO AS FX_ATRASO,
+        SUB.FASE AS FASE,
+		FORMAT(CAST(sub.DATA AS DATE), 'MMM', 'pt-BR') AS MesAbreviado,
+        CASE 
+            WHEN DAY(data) BETWEEN 1 AND 7 THEN 'Semana 1'
+            WHEN DAY(data) BETWEEN 8 AND 14 THEN 'Semana 2'
+            WHEN DAY(data) BETWEEN 15 AND 21 THEN 'Semana 3'
+            WHEN DAY(data) BETWEEN 22 AND 31 THEN 'Semana 4'
+        END AS SEMANA
+	FROM (
+	SELECT DISTINCT
+		DATA,
+		CPF_DEV,
+        B.VALORPRIN_FIN,
+        B.FX_ATRASO,
+        B.FASE
+    FROM BASEUNIQUEDIA B
+    WHERE B.DATA BETWEEN @DT AND @DT2 
+	) SUB
+	GROUP BY 
+		sub.DATA, 
+		sub.FX_ATRASO, 
+        SUB.FASE,
+		FORMAT(CAST(sub.DATA AS DATE), 'MMM', 'pt-BR')
+
+UNION ALL
+
+    SELECT
+		--'Daily' as Indicador,,
+        B.DATA AS DATA,
+        'VALOR CARTEIRA' AS INDICADOR,
+        SUM(B.VALORPRIN_FIN) AS QTE,
+        B.FX_ATRASO AS FX_ATRASO,
+        B.FASE AS FASE,
+		FORMAT(CAST(DATA AS DATE), 'MMM', 'pt-BR') AS MesAbreviado,
+        CASE 
+            WHEN DAY(data) BETWEEN 1 AND 7 THEN 'Semana 1'
+            WHEN DAY(data) BETWEEN 8 AND 14 THEN 'Semana 2'
+            WHEN DAY(data) BETWEEN 15 AND 21 THEN 'Semana 3'
+            WHEN DAY(data) BETWEEN 22 AND 31 THEN 'Semana 4'
+        END AS SEMANA
+    FROM BASEUNIQUEDIA B
+    WHERE B.DATA BETWEEN @DT AND @DT2 
+    GROUP BY 
+		B.DATA, 
+		B.FX_ATRASO,
+        B.FASE,
+		FORMAT(CAST(DATA AS DATE), 'MMM', 'pt-BR')
+
+UNION ALL
+
+    SELECT
+		--'Daily' as Indicador,,
+        DATA AS DATA,
+        'MAILING' AS INDICADOR,
+        COUNT(DISTINCT B.CPF_DEV) AS QTE,
+        B.FX_ATRASO AS FX_ATRASO,
+        B.FASE AS FASE,
+		FORMAT(CAST(DATA AS DATE), 'MMM', 'pt-BR') AS MesAbreviado,
+        CASE 
+            WHEN DAY(data) BETWEEN 1 AND 7 THEN 'Semana 1'
+            WHEN DAY(data) BETWEEN 8 AND 14 THEN 'Semana 2'
+            WHEN DAY(data) BETWEEN 15 AND 21 THEN 'Semana 3'
+            WHEN DAY(data) BETWEEN 22 AND 31 THEN 'Semana 4'
+        END AS SEMANA
+    FROM BASEUNIQUEDIA B
+    WHERE CPF_DEV NOT IN (SELECT DISTINCT CPF_DEV
+        FROM #SEM_TELEFONE)
+        AND DATA BETWEEN @DT AND @DT2 
+    GROUP BY 
+		DATA, 
+		B.FX_ATRASO,
+        B.FASE,
+		FORMAT(CAST(DATA AS DATE), 'MMM', 'pt-BR')
+
+UNION ALL
+
+    SELECT
+		--'Daily' as Indicador,,
+        DATA AS DATA,
+        'VALOR MAILING' AS INDICADOR,
+		SUM(B.VALORPRIN_FIN) AS QTE,
+        B.FX_ATRASO AS FX_ATRASO,
+        B.FASE AS FASE,
+		FORMAT(CAST(DATA AS DATE), 'MMM', 'pt-BR') AS MesAbreviado,
+        CASE 
+            WHEN DAY(data) BETWEEN 1 AND 7 THEN 'Semana 1'
+            WHEN DAY(data) BETWEEN 8 AND 14 THEN 'Semana 2'
+            WHEN DAY(data) BETWEEN 15 AND 21 THEN 'Semana 3'
+            WHEN DAY(data) BETWEEN 22 AND 31 THEN 'Semana 4'
+        END AS SEMANA
+    FROM BASEUNIQUEDIA B
+    WHERE B.CPF_DEV NOT IN (SELECT DISTINCT CPF_DEV
+    FROM #SEM_TELEFONE)
+    AND DATA BETWEEN @DT AND @DT2 
+    GROUP BY 
+		DATA, 
+		B.FX_ATRASO,
+        B.FASE,
+		FORMAT(CAST(DATA AS DATE), 'MMM', 'pt-BR')
+
+UNION ALL
+
+    SELECT
+		--'Daily' as Indicador,,
+        DATA AS DATA,
+        'SEM TELEFONE' AS INDICADOR,
+        COUNT(DISTINCT CPF_DEV) AS QTE,
+        B.FX_ATRASO AS FX_ATRASO,
+        B.FASE AS FASE,
+		FORMAT(CAST(B.DATA AS DATE), 'MMM', 'pt-BR') AS MesAbreviado,
+        CASE 
+            WHEN DAY(data) BETWEEN 1 AND 7 THEN 'Semana 1'
+            WHEN DAY(data) BETWEEN 8 AND 14 THEN 'Semana 2'
+            WHEN DAY(data) BETWEEN 15 AND 21 THEN 'Semana 3'
+            WHEN DAY(data) BETWEEN 22 AND 31 THEN 'Semana 4'
+        END AS SEMANA
+    FROM BASEUNIQUEDIA B
+    WHERE CPF_DEV NOT IN (SELECT DISTINCT CPF_DEV
+        FROM #TELEFONE)
+        AND DATA BETWEEN @DT AND @DT2 
+    GROUP BY 
+		DATA, 
+		B.FX_ATRASO,
+        B.FASE,
+		FORMAT(CAST(B.DATA AS DATE), 'MMM', 'pt-BR')
+
+UNION ALL
+	
+    SELECT
+		--'Daily' as Indicador,,
+        DATA AS DATA,
+        'VALOR SEM TELEFONE' AS INDICADOR,
+        SUM(B.VALORPRIN_FIN) AS QTE,
+        B.FX_ATRASO AS FX_ATRASO,
+        B.FASE AS FASE,
+		FORMAT(CAST(B.DATA AS DATE), 'MMM', 'pt-BR') AS MesAbreviado,
+        CASE 
+            WHEN DAY(data) BETWEEN 1 AND 7 THEN 'Semana 1'
+            WHEN DAY(data) BETWEEN 8 AND 14 THEN 'Semana 2'
+            WHEN DAY(data) BETWEEN 15 AND 21 THEN 'Semana 3'
+            WHEN DAY(data) BETWEEN 22 AND 31 THEN 'Semana 4'
+        END AS SEMANA
+    FROM BASEUNIQUEDIA B
+    WHERE CPF_DEV NOT IN (SELECT DISTINCT CPF_DEV
+        FROM #TELEFONE)
+        AND DATA BETWEEN @DT AND @DT2 
+    GROUP BY 
+		DATA, 
+		B.FX_ATRASO,
+        B.FASE,
+		FORMAT(CAST(B.DATA AS DATE), 'MMM', 'pt-BR')
+
+UNION ALL
+
+    SELECT
+		--'Daily' as Indicador,,
+        A.DATA AS DATA,
+        'BLACKLIST' AS INDICADOR,
+        COUNT(DISTINCT B.CPF_DEV) AS QTE,
+        A.FX_ATRASO AS FX_ATRASO,
+        A.FASE AS FASE,
+		FORMAT(CAST(A.DATA AS DATE), 'MMM', 'pt-BR') AS MesAbreviado,
+        CASE 
+            WHEN DAY(A.DATA) BETWEEN 1 AND 7 THEN 'Semana 1'
+            WHEN DAY(A.DATA) BETWEEN 8 AND 14 THEN 'Semana 2'
+            WHEN DAY(A.DATA) BETWEEN 15 AND 21 THEN 'Semana 3'
+            WHEN DAY(A.DATA) BETWEEN 22 AND 31 THEN 'Semana 4'
+        END AS SEMANA
+    FROM BASEUNIQUEDIA A
+	INNER JOIN #BLACKLIST B ON A.CPF_DEV = B.CPF_DEV 
+	WHERE A.DATA BETWEEN @DT AND @DT2
+    GROUP BY 
+		A.DATA, 
+		A.FX_ATRASO,
+        A.FASE,
+		FORMAT(CAST(A.DATA AS DATE), 'MMM', 'pt-BR')
+
+UNION ALL
+
+    SELECT
+		--'Daily' as Indicador,,
+        CAST(D.INSTANTE AS DATE) AS DATA,
+        'DISCAGEM UNIQUE' AS INDICADOR,
+        COUNT(DISTINCT B.CPF_DEV) AS QTE,
+        CASE
+			WHEN B.FX_ATRASO IS NULL THEN ''
+			ELSE B.FX_ATRASO
+		END FX_ATRASO,
+        B.FASE AS FASE,
+		FORMAT(CAST(B.DATA AS DATE), 'MMM', 'pt-BR') AS MesAbreviado,
+        CASE 
+            WHEN DAY(D.INSTANTE) BETWEEN 1 AND 7 THEN 'Semana 1'
+            WHEN DAY(D.INSTANTE) BETWEEN 8 AND 14 THEN 'Semana 2'
+            WHEN DAY(D.INSTANTE) BETWEEN 15 AND 21 THEN 'Semana 3'
+            WHEN DAY(D.INSTANTE) BETWEEN 22 AND 31 THEN 'Semana 4'
+        END AS SEMANA
+    FROM ##DISCAGENS D
+    INNER JOIN BASEUNIQUEDIA B ON B.CPF_DEV = D.CPF COLLATE SQL_Latin1_General_CP1_CI_AS AND B.DATA = CAST(D.INSTANTE AS DATE)
+    WHERE CAST(D.INSTANTE AS DATE) BETWEEN @DT AND @DT2 
+    GROUP BY 
+		CAST(D.INSTANTE AS DATE), 
+		B.FX_ATRASO,
+        B.FASE,
+		FORMAT(CAST(B.DATA AS DATE), 'MMM', 'pt-BR'),
+		DAY(D.INSTANTE)
+
+UNION ALL
+
+    SELECT
+		--'Daily' as Indicador,,
+        CAST(D.INSTANTE AS DATE) AS DATA,
+        'VALOR DISCAGEM UNIQUE' AS INDICADOR,
+        SUM(B.VALORPRIN_FIN) AS QTE,
+        '' AS FX_ATRASO,
+        '' AS FASE,
+		FORMAT(CAST(B.DATA AS DATE), 'MMM', 'pt-BR') AS MesAbreviado,
+        CASE 
+            WHEN DAY(D.INSTANTE) BETWEEN 1 AND 7 THEN 'Semana 1'
+            WHEN DAY(D.INSTANTE) BETWEEN 8 AND 14 THEN 'Semana 2'
+            WHEN DAY(D.INSTANTE) BETWEEN 15 AND 21 THEN 'Semana 3'
+            WHEN DAY(D.INSTANTE) BETWEEN 22 AND 31 THEN 'Semana 4'
+        END AS SEMANA
+    FROM ##DISCAGENS D
+    INNER JOIN BASEUNIQUEDIA B ON B.CPF_DEV = D.CPF COLLATE SQL_Latin1_General_CP1_CI_AS AND B.DATA = CAST(D.INSTANTE AS DATE)
+    WHERE CAST(D.INSTANTE AS DATE) BETWEEN @DT AND @DT2 
+    GROUP BY 
+		CAST(D.INSTANTE AS DATE),
+		FORMAT(CAST(B.DATA AS DATE), 'MMM', 'pt-BR'),
+		DAY(D.INSTANTE)
+		--B.CPF_DEV
+
+UNION ALL 
+
+	SELECT 
+		--'Daily' as Indicador,,
+		B.DATA AS DATA,
+		'NÃO DISCADOS' AS INDICADOR,
+		COUNT( DISTINCT CPF_DEV) AS QTE,
+		CASE
+			WHEN B.FX_ATRASO IS NULL THEN ''
+			ELSE B.FX_ATRASO
+		END FX_ATRASO,
+        B.FASE AS FASE,
+		FORMAT(CAST(B.DATA AS DATE), 'MMM', 'pt-BR') AS MesAbreviado,
+        CASE 
+            WHEN DAY(B.DATA) BETWEEN 1 AND 7 THEN 'Semana 1'
+            WHEN DAY(B.DATA) BETWEEN 8 AND 14 THEN 'Semana 2'
+            WHEN DAY(B.DATA) BETWEEN 15 AND 21 THEN 'Semana 3'
+            WHEN DAY(B.DATA) BETWEEN 22 AND 31 THEN 'Semana 4'
+        END AS SEMANA
+	FROM #BASE B
+	LEFT JOIN ##DISCAGENS D ON B.CPF_DEV COLLATE Latin1_General_CI_AS = D.CPF COLLATE Latin1_General_CI_AS AND B.DATA = CAST(D.INSTANTE AS DATE) 
+	WHERE D.CPF IS NULL
+	AND B.DATA BETWEEN @DT AND @DT2
+    GROUP BY 
+		B.DATA, 
+		B.FX_ATRASO,
+        B.FASE,
+		FORMAT(CAST(B.DATA AS DATE), 'MMM', 'pt-BR')
+
+UNION ALL
+
+	SELECT 
+		--'Daily' as Indicador,,
+		B.DATA AS DATA,
+		'VALOR NÃO DISCADOS' AS INDICADOR,
+		SUM(B.VALORPRIN_FIN) AS QTE,
+		CASE
+			WHEN B.FX_ATRASO IS NULL THEN ''
+			ELSE B.FX_ATRASO
+		END FX_ATRASO,
+        B.FASE AS FASE,
+		FORMAT(CAST(B.DATA AS DATE), 'MMM', 'pt-BR') AS MesAbreviado,
+        CASE 
+            WHEN DAY(B.DATA) BETWEEN 1 AND 7 THEN 'Semana 1'
+            WHEN DAY(B.DATA) BETWEEN 8 AND 14 THEN 'Semana 2'
+            WHEN DAY(B.DATA) BETWEEN 15 AND 21 THEN 'Semana 3'
+            WHEN DAY(B.DATA) BETWEEN 22 AND 31 THEN 'Semana 4'
+        END AS SEMANA
+	FROM (
+		SELECT DATA, CPF_DEV, FX_ATRASO, FASE, SUM(VALORPRIN_FIN) VALORPRIN_FIN
+		FROM #BASE
+		GROUP BY DATA, CPF_DEV, FX_ATRASO, FASE
+	)B
+	LEFT JOIN ##DISCAGENS D ON B.CPF_DEV COLLATE Latin1_General_CI_AS = D.CPF COLLATE Latin1_General_CI_AS AND B.DATA = CAST(D.INSTANTE AS DATE) 
+	WHERE D.CPF IS NULL
+	AND B.DATA BETWEEN @DT AND @DT2
+	   GROUP BY 
+			DATA, 
+			B.FX_ATRASO,
+            B.FASE,
+			FORMAT(CAST(B.DATA AS DATE), 'MMM', 'pt-BR')
+
+UNION ALL
+
+    SELECT
+		--'Daily' as Indicador,,
+        CAST(D.INSTANTE AS DATE) AS DATA,
+        'SHORTCALL' AS INDICADOR,
+        COUNT(DISTINCT D.ID) AS QTE,
+        '' AS FX_ATRASO,
+        '' AS FASE,
+		FORMAT(CAST(D.INSTANTE AS DATE), 'MMM', 'pt-BR') AS MesAbreviado,
+        CASE 
+            WHEN DAY(D.INSTANTE) BETWEEN 1 AND 7 THEN 'Semana 1'
+            WHEN DAY(D.INSTANTE) BETWEEN 8 AND 14 THEN 'Semana 2'
+            WHEN DAY(D.INSTANTE) BETWEEN 15 AND 21 THEN 'Semana 3'
+            WHEN DAY(D.INSTANTE) BETWEEN 22 AND 31 THEN 'Semana 4'
+        END AS SEMANA
+    FROM ##DISCAGENS D
+	WHERE D.tempoconversacao_ms <= 10000
+	AND CAST(D.INSTANTE AS DATE) BETWEEN @DT AND @DT2
+    GROUP BY 
+		CAST(D.INSTANTE AS DATE),
+		FORMAT(CAST(D.INSTANTE AS DATE), 'MMM', 'pt-BR'),
+		DAY(D.INSTANTE)
+
+UNION ALL
+
+    SELECT
+		--'Daily' as Indicador,,
+        CAST(D.INSTANTE AS DATE) AS DATA,
+        'TENTATIVAS' AS INDICADOR,
+        COUNT(*) AS QTE,
+        CASE
+			WHEN B.FX_ATRASO IS NULL THEN ''
+			ELSE B.FX_ATRASO
+		END FX_ATRASO,
+        B.FASE AS FASE,
+		FORMAT(CAST(D.INSTANTE AS DATE), 'MMM', 'pt-BR') AS MesAbreviado,
+        CASE 
+            WHEN DAY(D.INSTANTE) BETWEEN 1 AND 7 THEN 'Semana 1'
+            WHEN DAY(D.INSTANTE) BETWEEN 8 AND 14 THEN 'Semana 2'
+            WHEN DAY(D.INSTANTE) BETWEEN 15 AND 21 THEN 'Semana 3'
+            WHEN DAY(D.INSTANTE) BETWEEN 22 AND 31 THEN 'Semana 4'
+        END AS SEMANA
+    FROM ##DISCAGENS D
+    LEFT JOIN BASEUNIQUEDIA B ON B.CONTRATO_FIN = D.CONTRATO COLLATE SQL_Latin1_General_CP1_CI_AS AND B.DATA = CAST(D.INSTANTE AS DATE) --  SELECT COUNT(*) FROM #DISCAGENS WHERE CAST(INSTANTE AS DATE) = '2024-11-01'
+    WHERE CAST(D.INSTANTE AS DATE) BETWEEN @DT AND @DT2
+	AND D.OPERACAO IN ('ATIVO','AGV', 'MANUAL', 'RECEPTIVO')
+	and b.fx_atraso is not null
+    GROUP BY 
+		CAST(D.INSTANTE AS DATE), 
+		D.OPERACAO,
+		B.FX_ATRASO,
+        B.FASE,
+		FORMAT(CAST(D.INSTANTE AS DATE), 'MMM', 'pt-BR'),
+		DAY(D.INSTANTE)
+
+
+/*
+UNION ALL
+
+    SELECT
+        CAST(D.INSTANTE AS DATE) AS DATA,
+        'DISCAGEM UNIQUE',
+        COUNT(DISTINCT D.CPF),
+        B.FX_ATRASO
+    FROM #DISCAGENS D
+    LEFT JOIN BASEUNIQUEDIA B ON B.CONTRATO_FIN = D.CONTRATO COLLATE SQL_Latin1_General_CP1_CI_AS AND B.DATA = CAST(D.INSTANTE AS DATE)
+    WHERE CAST(D.INSTANTE AS DATE) BETWEEN @DT AND @DT2 
+	--AND D.OPERACAO IN ('ATIVO','AGV', 'MANUAL', 'RECEPTIVO')
+    GROUP BY 
+		CAST(D.INSTANTE AS DATE), 
+		D.OPERACAO,
+		B.FX_ATRASO
+*/
+
+UNION ALL
+
+	SELECT 
+		--'Daily' as Indicador,,
+		CAST(D.INSTANTE AS DATE) AS DATA,
+	    'Ringing' AS INDICADOR,
+	    COUNT(*) AS QTE,
+		CASE
+			WHEN B.FX_ATRASO IS NULL THEN ''
+			ELSE B.FX_ATRASO
+		END FX_ATRASO,
+        B.FASE AS FASE,
+		FORMAT(CAST(D.INSTANTE AS DATE), 'MMM', 'pt-BR') AS MesAbreviado,
+        CASE 
+            WHEN DAY(D.INSTANTE) BETWEEN 1 AND 7 THEN 'Semana 1'
+            WHEN DAY(D.INSTANTE) BETWEEN 8 AND 14 THEN 'Semana 2'
+            WHEN DAY(D.INSTANTE) BETWEEN 15 AND 21 THEN 'Semana 3'
+            WHEN DAY(D.INSTANTE) BETWEEN 22 AND 31 THEN 'Semana 4'
+        END AS SEMANA
+	FROM ##DISCAGENS D
+	LEFT JOIN BASEUNIQUEDIA B ON B.CPF_DEV = D.CPF COLLATE SQL_Latin1_General_CP1_CI_AS AND B.DATA = CAST(D.INSTANTE AS DATE)
+	WHERE CAST(D.INSTANTE AS DATE) BETWEEN @DT AND @DT2
+	AND D.UltCodSigRecPublica = 200
+	AND D.Instante200OKPub <> '1899-12-30 00:00:00'
+	GROUP BY 
+		CAST(D.INSTANTE AS DATE),
+		B.FX_ATRASO,
+        B.FASE,
+		FORMAT(CAST(D.INSTANTE AS DATE), 'MMM', 'pt-BR'),
+		DAY(D.INSTANTE)
+
+UNION ALL
+
+	SELECT 
+		--'Daily' as Indicador,,
+		CAST(D.INSTANTE AS DATE) AS DATA,
+	    'ATENDIDO' AS INDICADOR,
+	    COUNT(*) AS QTE,
+	    CASE
+			WHEN B.FX_ATRASO IS NULL THEN ''
+			ELSE B.FX_ATRASO
+		END FX_ATRASO,
+        B.FASE AS FASE,
+		FORMAT(CAST(D.INSTANTE AS DATE), 'MMM', 'pt-BR') AS MesAbreviado,
+        CASE 
+            WHEN DAY(D.INSTANTE) BETWEEN 1 AND 7 THEN 'Semana 1'
+            WHEN DAY(D.INSTANTE) BETWEEN 8 AND 14 THEN 'Semana 2'
+            WHEN DAY(D.INSTANTE) BETWEEN 15 AND 21 THEN 'Semana 3'
+            WHEN DAY(D.INSTANTE) BETWEEN 22 AND 31 THEN 'Semana 4'
+        END AS SEMANA
+	FROM ##DISCAGENS D
+	LEFT JOIN BASEUNIQUEDIA B ON B.CPF_DEV = D.CPF COLLATE SQL_Latin1_General_CP1_CI_AS AND B.DATA = CAST(D.INSTANTE AS DATE)
+	WHERE CAST(D.INSTANTE AS DATE) BETWEEN @DT AND @DT2
+	AND D.ResultadoClassificacao = 'vozhumana'
+	AND D.agente IS NOT NULL
+	GROUP BY 
+		CAST(D.INSTANTE AS DATE),
+		B.FX_ATRASO,
+        B.FASE,
+		FORMAT(CAST(D.INSTANTE AS DATE), 'MMM', 'pt-BR'),
+		DAY(D.INSTANTE)
+
+UNION ALL
+
+    SELECT
+		--'Daily' as Indicador,,
+        A.DATA AS DATA,
+        'Acionamentos' AS INDICADOR,
+        COUNT(*) AS QTE,
+		A.FX_ATRASO AS FX_ATRASO,
+        A.FASE AS FASE,
+		FORMAT(CAST(A.DATA AS DATE), 'MMM', 'pt-BR') AS MesAbreviado,
+        CASE 
+            WHEN DAY(A.DATA) BETWEEN 1 AND 7 THEN 'Semana 1'
+            WHEN DAY(A.DATA) BETWEEN 8 AND 14 THEN 'Semana 2'
+            WHEN DAY(A.DATA) BETWEEN 15 AND 21 THEN 'Semana 3'
+            WHEN DAY(A.DATA) BETWEEN 22 AND 31 THEN 'Semana 4'
+        END AS SEMANA
+    FROM #ACIONAMENTOS A
+    WHERE A.DATA BETWEEN @DT AND @DT2 AND A.ACIONAMENTOS = 1
+    GROUP BY	
+		A.DATA,
+		A.FX_ATRASO,
+        A.FASE,
+		FORMAT(CAST(A.DATA AS DATE), 'MMM', 'pt-BR')
+
+UNION ALL
+
+	SELECT
+		--'Daily' as Indicador,,
+	    A.DATA AS DATA,
+	    'FOLLOW' AS INDICADOR,
+	    COUNT(CASE
+	        WHEN A.COD_ACIONAMENTO = 10328 AND A.DATA >= DATEADD(DAY, -30, GETDATE()) THEN 1
+			WHEN A.COD_ACIONAMENTO = 10404 AND A.DATA >= DATEADD(DAY, -2, GETDATE()) THEN 1
+			WHEN A.COD_ACIONAMENTO = 10401 AND A.DATA >= DATEADD(DAY, -1, GETDATE()) THEN 1
+	        WHEN A.COD_ACIONAMENTO IN (10383, 10384) AND A.DATA >= DATEADD(DAY, -10, GETDATE()) THEN 1
+			WHEN A.COD_ACIONAMENTO IN (10374, 10381) AND A.DATA >= DATEADD(DAY, -6, GETDATE()) THEN 1
+			WHEN A.COD_ACIONAMENTO IN (10373, 10375, 10376, 10393, 10399) AND A.DATA >= DATEADD(DAY, -5, GETDATE()) THEN 1
+			WHEN A.COD_ACIONAMENTO IN (10372, 10377, 10398) AND A.DATA >= DATEADD(DAY, -4, GETDATE()) THEN 1
+			WHEN A.COD_ACIONAMENTO IN (10324, 10329, 10330, 10378, 10379, 10382, 10397, 10400 ) AND A.DATA >= DATEADD(DAY, -3, GETDATE()) THEN 1
+	    END) AS QTE,
+	    A.FX_ATRASO AS FX_ATRASO,
+        A.FASE AS FASE,
+		FORMAT(CAST(A.DATA AS DATE), 'MMM', 'pt-BR') AS MesAbreviado,
+        CASE 
+            WHEN DAY(A.DATA) BETWEEN 1 AND 7 THEN 'Semana 1'
+            WHEN DAY(A.DATA) BETWEEN 8 AND 14 THEN 'Semana 2'
+            WHEN DAY(A.DATA) BETWEEN 15 AND 21 THEN 'Semana 3'
+            WHEN DAY(A.DATA) BETWEEN 22 AND 31 THEN 'Semana 4'
+        END AS SEMANA
+	FROM #ACIONAMENTOS A
+	WHERE A.DATA BETWEEN @DT AND @DT2
+	GROUP BY
+	    A.DATA,
+	    A.FX_ATRASO,
+        A.FASE,
+		FORMAT(CAST(A.DATA AS DATE), 'MMM', 'pt-BR')
+
+UNION ALL
+
+    SELECT
+		--'Daily' as Indicador,,
+        A.DATA AS DATA,
+        'CPC' AS INDICADOR,
+        COUNT(distinct A.CPF_DEV) AS QTE,
+        A.FX_ATRASO AS FX_ATRASO,
+        A.FASE AS FASE,
+		FORMAT(CAST(A.DATA AS DATE), 'MMM', 'pt-BR') AS MesAbreviado,
+        CASE 
+            WHEN DAY(A.DATA) BETWEEN 1 AND 7 THEN 'Semana 1'
+            WHEN DAY(A.DATA) BETWEEN 8 AND 14 THEN 'Semana 2'
+            WHEN DAY(A.DATA) BETWEEN 15 AND 21 THEN 'Semana 3'
+            WHEN DAY(A.DATA) BETWEEN 22 AND 31 THEN 'Semana 4'
+        END AS SEMANA
+    FROM #ACIONAMENTOS A
+    WHERE A.DATA BETWEEN @DT AND @DT2 
+	AND A.CPC = 1
+    GROUP BY 
+		A.DATA, 
+		A.FX_ATRASO,
+        A.FASE,
+		FORMAT(CAST(A.DATA AS DATE), 'MMM', 'pt-BR')
+
+UNION ALL
+
+    SELECT
+		--'Daily' as Indicador,,
+        A.DATA AS DATA,
+        'CPCA' AS INDICADOR,
+        COUNT(distinct A.CPF_DEV) AS QTE,
+        A.FX_ATRASO AS FX_ATRASO,
+        A.FASE AS FASE,
+		FORMAT(CAST(A.DATA AS DATE), 'MMM', 'pt-BR') AS MesAbreviado,
+        CASE 
+            WHEN DAY(A.DATA) BETWEEN 1 AND 7 THEN 'Semana 1'
+            WHEN DAY(A.DATA) BETWEEN 8 AND 14 THEN 'Semana 2'
+            WHEN DAY(A.DATA) BETWEEN 15 AND 21 THEN 'Semana 3'
+            WHEN DAY(A.DATA) BETWEEN 22 AND 31 THEN 'Semana 4'
+        END AS SEMANA
+    FROM #ACIONAMENTOS A
+    WHERE A.DATA BETWEEN @DT AND @DT2 
+	AND A.CPCA = 1
+    GROUP BY 
+		A.DATA, 
+		A.FX_ATRASO,
+        A.FASE,
+		FORMAT(CAST(A.DATA AS DATE), 'MMM', 'pt-BR')
+
+UNION ALL
+
+	SELECT
+		--'Daily' as Indicador,,
+        A.DATA_ACORDO AS DATA,
+        'PROMESSA /ACORDO' AS INDICADOR,
+        COUNT(distinct a.CPF_DEV) AS QTE,
+        A.FX_ATRASO AS FX_ATRASO,
+        A.FASE AS FASE,
+		FORMAT(CAST(A.DATA_ACORDO AS DATE), 'MMM', 'pt-BR') AS MesAbreviado,
+        CASE 
+            WHEN DAY(A.DATA_ACORDO) BETWEEN 1 AND 7 THEN 'Semana 1'
+            WHEN DAY(A.DATA_ACORDO) BETWEEN 8 AND 14 THEN 'Semana 2'
+            WHEN DAY(A.DATA_ACORDO) BETWEEN 15 AND 21 THEN 'Semana 3'
+            WHEN DAY(A.DATA_ACORDO) BETWEEN 22 AND 31 THEN 'Semana 4'
+        END AS SEMANA
+    FROM #ACORDOS A
+    WHERE A.DATA_ACORDO BETWEEN @DT AND @DT2 
+    GROUP BY 
+		A.DATA_ACORDO, 
+		A.FX_ATRASO,
+        A.FASE,
+		FORMAT(CAST(A.DATA_ACORDO AS DATE), 'MMM', 'pt-BR')
+
+UNION ALL
+
+    SELECT
+		--'Daily' as Indicador,,
+        A.DATA_ACORDO AS DATA,
+        '($) PROMESSA' AS INDICADOR,
+        SUM(A.VALOR_ACOP) AS QTE,
+        A.FX_ATRASO AS FX_ATRASO,
+        A.FASE AS FASE,
+		FORMAT(CAST(A.DATA_ACORDO AS DATE), 'MMM', 'pt-BR') AS MesAbreviado,
+        CASE 
+            WHEN DAY(A.DATA_ACORDO) BETWEEN 1 AND 7 THEN 'Semana 1'
+            WHEN DAY(A.DATA_ACORDO) BETWEEN 8 AND 14 THEN 'Semana 2'
+            WHEN DAY(A.DATA_ACORDO) BETWEEN 15 AND 21 THEN 'Semana 3'
+            WHEN DAY(A.DATA_ACORDO) BETWEEN 22 AND 31 THEN 'Semana 4'
+        END AS SEMANA
+    FROM #ACORDOS A
+    WHERE A.DATA_ACORDO BETWEEN @DT AND @DT2 
+    GROUP BY 
+		A.DATA_ACORDO, 
+		A.FX_ATRASO,
+        A.FASE,
+		FORMAT(CAST(A.DATA_ACORDO AS DATE), 'MMM', 'pt-BR')
+
+UNION ALL
+
+   SELECT
+		--'Daily',
+		data_pagto AS DATA,
+	    '($) Pagamentos' AS INDICADOR,
+	    SUM(VALOR) AS QTE,
+	    FX_ATRASO AS FX_ATRASO,
+        FASE AS FASE,
+		FORMAT(CAST(data_pagto AS DATE), 'MMM', 'pt-BR') AS MesAbreviado,
+        CASE 
+            WHEN DAY(data_pagto) BETWEEN 1 AND 7 THEN 'Semana 1'
+            WHEN DAY(data_pagto) BETWEEN 8 AND 14 THEN 'Semana 2'
+            WHEN DAY(data_pagto) BETWEEN 15 AND 21 THEN 'Semana 3'
+            WHEN DAY(data_pagto) BETWEEN 22 AND 31 THEN 'Semana 4'
+        END AS SEMANA
+	FROM Pagamentos 
+	WHERE INDICADOR = '($) Pagamentos' AND DATA_PAGTO BETWEEN DATEADD(DAY, -1, @DT)  AND @DT2 
+	GROUP BY 
+		FX_ATRASO,
+        FASE,
+		data_pagto,
+		FORMAT(CAST(data_pagto AS DATE), 'MMM', 'pt-BR')
+	
+UNION ALL
+	
+	SELECT
+	    --'Daily',
+		data_pagto AS DATA,
+		'(#) Pagamentos' AS INDICADOR,
+	    SUM(valor) AS QTE,
+	    FX_ATRASO AS FX_ATRASO,
+        FASE AS FASE,
+		FORMAT(CAST(data_pagto AS DATE), 'MMM', 'pt-BR') AS MesAbreviado,
+        CASE 
+            WHEN DAY(data_pagto) BETWEEN 1 AND 7 THEN 'Semana 1'
+            WHEN DAY(data_pagto) BETWEEN 8 AND 14 THEN 'Semana 2'
+            WHEN DAY(data_pagto) BETWEEN 15 AND 21 THEN 'Semana 3'
+            WHEN DAY(data_pagto) BETWEEN 22 AND 31 THEN 'Semana 4'
+        END AS SEMANA
+	FROM Pagamentos 
+	WHERE INDICADOR = '(#) Pagamentos' AND DATA_PAGTO BETWEEN DATEADD(DAY, -1, @DT) AND @DT2 
+	GROUP BY 
+		FX_ATRASO,
+        FASE,
+		data_pagto,
+		FORMAT(CAST(data_pagto AS DATE), 'MMM', 'pt-BR')
+
+UNION ALL
+
+	SELECT 
+		--'Daily' as Indicador,,
+        B.DATA AS DATA,
+        '(#) SMS' AS INDICADOR,
+        COUNT(DISTINCT B.CPF_DEV) AS QTE,
+        B.FX_ATRASO AS FX_ATRASO,
+        B.FASE AS FASE,
+		FORMAT(CAST(B.DATA AS DATE), 'MMM', 'pt-BR') AS MesAbreviado,
+        CASE 
+            WHEN DAY(B.DATA) BETWEEN 1 AND 7 THEN 'Semana 1'
+            WHEN DAY(B.DATA) BETWEEN 8 AND 14 THEN 'Semana 2'
+            WHEN DAY(B.DATA) BETWEEN 15 AND 21 THEN 'Semana 3'
+            WHEN DAY(B.DATA) BETWEEN 22 AND 31 THEN 'Semana 4'
+        END AS SEMANA
+    FROM #TEMP_SMS S
+    INNER JOIN BASEUNIQUEDIA B ON B.CPF_DEV = S.CPF AND B.DATA = CAST(S.DATA AS DATE)
+    WHERE CAST(B.DATA AS DATE) BETWEEN @DT AND @DT2 
+    GROUP BY
+        B.DATA,
+        B.FX_ATRASO,
+        B.FASE,
+		FORMAT(CAST(B.DATA AS DATE), 'MMM', 'pt-BR')
+
+UNION ALL
+	
+	SELECT 
+		--'Daily' as Indicador,,
+		B.DATA AS DATA,
+	    '(#) EMAIL' AS INDICADOR,
+	    COUNT(DISTINCT B.CPF_DEV) AS QTE,
+		B.FX_ATRASO AS FX_ATRASO, 
+        B.FASE AS FASE,
+		FORMAT(CAST(B.DATA AS DATE), 'MMM', 'pt-BR') AS MesAbreviado,
+        CASE 
+            WHEN DAY(B.DATA) BETWEEN 1 AND 7 THEN 'Semana 1'
+            WHEN DAY(B.DATA) BETWEEN 8 AND 14 THEN 'Semana 2'
+            WHEN DAY(B.DATA) BETWEEN 15 AND 21 THEN 'Semana 3'
+            WHEN DAY(B.DATA) BETWEEN 22 AND 31 THEN 'Semana 4'
+        END AS SEMANA
+	FROM #TEMP_EMAIL E
+	INNER JOIN BASEUNIQUEDIA B ON B.CPF_DEV = E.CPF AND B.DATA = CAST(E.DATA AS DATE)
+	WHERE CAST(E.DATA AS DATE) BETWEEN @DT AND @DT2 
+	GROUP BY 
+		B.DATA,   
+		B.FX_ATRASO,
+        B.FASE,
+		FORMAT(CAST(B.DATA AS DATE), 'MMM', 'pt-BR')
+
+UNION ALL
+
+    SELECT 
+		--'Daily' as Indicador,,
+		B.DATA AS DATA,
+	    '(#) RCS' AS INDICADOR,
+	    COUNT(DISTINCT B.CPF_DEV) AS QTE,
+		B.FX_ATRASO AS FX_ATRASO, 
+        B.FASE AS FASE,
+		FORMAT(CAST(B.DATA AS DATE), 'MMM', 'pt-BR') AS MesAbreviado,
+        CASE 
+            WHEN DAY(B.DATA) BETWEEN 1 AND 7 THEN 'Semana 1'
+            WHEN DAY(B.DATA) BETWEEN 8 AND 14 THEN 'Semana 2'
+            WHEN DAY(B.DATA) BETWEEN 15 AND 21 THEN 'Semana 3'
+            WHEN DAY(B.DATA) BETWEEN 22 AND 31 THEN 'Semana 4'
+        END AS SEMANA
+	FROM #TEMP_RCS R
+	INNER JOIN BASEUNIQUEDIA B ON B.CPF_DEV = R.CPF AND B.DATA = CAST(R.DATA AS DATE)
+	WHERE CAST(R.DATA AS DATE) BETWEEN @DT AND @DT2 
+	GROUP BY 
+		B.DATA,   
+		B.FX_ATRASO,
+        B.FASE,
+		FORMAT(CAST(B.DATA AS DATE), 'MMM', 'pt-BR')
+
+-->> FUNIL <<===============================================
+--DECLARE @DT_INI AS DATE = '2025-12-01' -- PRIMEIRO DIA DO MÊS
+--DECLARE @DT_FIM AS DATE = '2025-12-31' -- ÚLTIMO DIA DO MÊS
+--DECLARE @DT     AS DATE = '2025-12-02' -- PRIMEIRO DIA DESEJADO
+--DECLARE @DT2    AS DATE = '2025-12-02' -- ÚLTIMO DIA DESEJADO
+---- Variáveis de data/hora concatenadas
+--DECLARE @DATETIME_INI AS VARCHAR(19) = CONVERT(VARCHAR(10), @DT_INI, 120) + ' 00:00:00'
+--DECLARE @DATETIME_FIM AS VARCHAR(19) = CONVERT(VARCHAR(10), @DT_FIM, 120) + ' 23:59:59'
+--DECLARE @DU INT = 1
+--DECLARE @SQL NVARCHAR(MAX);
+--DECLARE @TableName AS VARCHAR(50) = 'totalinfo_' + FORMAT(@DT_INI, 'yyyy_MM');
+
+;WITH BASEROW AS (
+    SELECT
+		--MAX(DATA) AS DATA,
+		CPF_DEV,
+		CONTRATO_FIN,
+		VALORPRIN_FIN,
+		FX_ATRASO,
+		ROW_NUMBER() OVER (PARTITION BY CPF_DEV ORDER BY FX_ATRASO DESC) AS N
+	FROM #BASE 
+	GROUP BY
+		CPF_DEV,
+		CONTRATO_FIN,
+		VALORPRIN_FIN,
+		FX_ATRASO
+),
+BASEUNIQUEMES AS (
+    SELECT
+		CPF_DEV,
+		CONTRATO_FIN,
+		VALORPRIN_FIN,
+		FX_ATRASO
+    FROM BASEROW
+	WHERE N = 1
+),
+Pagamentos AS (
+	select
+		CONVERT(VARCHAR, r.data_pagto, 23) AS data_pagto,
+		c.contrato_fin AS CONTRATO,
+		'($) Pagamentos' AS INDICADOR,
+		--count(distinct r.contrato_fin) AS QUANTIDADE,
+		sum(r.valor_parc) as VALOR,
+		CASE
+			WHEN c.ATRASO_FIN BETWEEN 0 AND 30	        THEN '000-030'	
+			WHEN c.ATRASO_FIN BETWEEN 31 AND 65	        THEN '031-060'
+			WHEN c.ATRASO_FIN BETWEEN 66 AND 90	        THEN '061-090'
+			WHEN c.ATRASO_FIN BETWEEN 91 AND 120	    THEN '091-120'
+			WHEN c.ATRASO_FIN BETWEEN 121 AND 150	    THEN '121-150'
+			WHEN c.ATRASO_FIN BETWEEN 151 AND 180	    THEN '151-180'	
+			WHEN c.ATRASO_FIN BETWEEN 181 AND 210	    THEN '181-210'
+			WHEN c.ATRASO_FIN BETWEEN 211 AND 240	    THEN '211-240'
+			WHEN c.ATRASO_FIN BETWEEN 241 AND 270	    THEN '241-270'
+			WHEN c.ATRASO_FIN BETWEEN 271 AND 300	    THEN '271-300'
+			WHEN c.ATRASO_FIN BETWEEN 301 AND 330	    THEN '301-330'
+			WHEN c.ATRASO_FIN BETWEEN 331 AND 360	    THEN '331-360'
+			WHEN c.ATRASO_FIN BETWEEN 361 AND 390	    THEN '361-390'	
+			WHEN c.ATRASO_FIN    >    390			    THEN '390+'
+			ELSE '390+'
+		END fx_atraso
+	from recibocredor r
+	inner join cad_devf c on c.contrato_fin = r.contrato_fin collate SQL_Latin1_General_CP1_CI_AS 
+	inner join cad_aco aco on aco.contrato_fin = r.contrato_fin collate SQL_Latin1_General_CP1_CI_AS and aco.nacordo_aco = r.nacordo_aco
+	--inner join cad_acop cad on cad.contrato_fin = r.CONTRATO_FIN
+	where c.cod_cli = 253 
+	and r.data_pagto BETWEEN @DT_INI AND @DT2
+	and aco.recup_aco is not null
+	--and c.contrato_fin = '0002195381          '
+	--and c.cod_car = 1
+	group by 
+		CASE
+			WHEN c.ATRASO_FIN BETWEEN 0 AND 30	        THEN '000-030'	
+			WHEN c.ATRASO_FIN BETWEEN 31 AND 65	        THEN '031-060'
+			WHEN c.ATRASO_FIN BETWEEN 66 AND 90	        THEN '061-090'
+			WHEN c.ATRASO_FIN BETWEEN 91 AND 120	    THEN '091-120'
+			WHEN c.ATRASO_FIN BETWEEN 121 AND 150	    THEN '121-150'
+			WHEN c.ATRASO_FIN BETWEEN 151 AND 180	    THEN '151-180'	
+			WHEN c.ATRASO_FIN BETWEEN 181 AND 210	    THEN '181-210'
+			WHEN c.ATRASO_FIN BETWEEN 211 AND 240	    THEN '211-240'
+			WHEN c.ATRASO_FIN BETWEEN 241 AND 270	    THEN '241-270'
+			WHEN c.ATRASO_FIN BETWEEN 271 AND 300	    THEN '271-300'
+			WHEN c.ATRASO_FIN BETWEEN 301 AND 330	    THEN '301-330'
+			WHEN c.ATRASO_FIN BETWEEN 331 AND 360	    THEN '331-360'
+			WHEN c.ATRASO_FIN BETWEEN 361 AND 390	    THEN '361-390'	
+			WHEN c.ATRASO_FIN    >    390			    THEN '390+'
+			ELSE '390+'
+		END,
+		c.contrato_fin,
+		r.data_pagto
+	UNION ALL
+    select
+		CONVERT(VARCHAR, r.data_pagto, 23) AS data_pagto,
+		c.contrato_fin AS CONTRATO,
+		'(#) Pagamentos' AS INDICADOR,
+		count(distinct r.contrato_fin) AS valor,
+		--aco.dtacordohora_aco as hora,
+		--cad.parcela_acop,
+		--sum(r.valor_parc) as valor,
+		CASE
+			WHEN c.ATRASO_FIN BETWEEN 0 AND 30	        THEN '000-030'	
+			WHEN c.ATRASO_FIN BETWEEN 31 AND 65	        THEN '031-060'
+			WHEN c.ATRASO_FIN BETWEEN 66 AND 90	        THEN '061-090'
+			WHEN c.ATRASO_FIN BETWEEN 91 AND 120	    THEN '091-120'
+			WHEN c.ATRASO_FIN BETWEEN 121 AND 150	    THEN '121-150'
+			WHEN c.ATRASO_FIN BETWEEN 151 AND 180	    THEN '151-180'	
+			WHEN c.ATRASO_FIN BETWEEN 181 AND 210	    THEN '181-210'
+			WHEN c.ATRASO_FIN BETWEEN 211 AND 240	    THEN '211-240'
+			WHEN c.ATRASO_FIN BETWEEN 241 AND 270	    THEN '241-270'
+			WHEN c.ATRASO_FIN BETWEEN 271 AND 300	    THEN '271-300'
+			WHEN c.ATRASO_FIN BETWEEN 301 AND 330	    THEN '301-330'
+			WHEN c.ATRASO_FIN BETWEEN 331 AND 360	    THEN '331-360'
+			WHEN c.ATRASO_FIN BETWEEN 361 AND 390	    THEN '361-390'	
+			WHEN c.ATRASO_FIN    >    390			    THEN '390+'
+			ELSE '390+'
+		END fx_atraso
+	from recibocredor r
+	inner join cad_devf c on c.contrato_fin = r.contrato_fin collate SQL_Latin1_General_CP1_CI_AS 
+	inner join cad_aco aco on aco.contrato_fin = r.contrato_fin collate SQL_Latin1_General_CP1_CI_AS and aco.nacordo_aco = r.nacordo_aco
+	--inner join cad_acop cad on cad.contrato_fin = r.CONTRATO_FIN
+	where c.cod_cli = 253 
+	and r.data_pagto BETWEEN @DT_INI AND @DT2 
+	and aco.recup_aco is not null
+	--and c.cod_car = 1
+	group by 
+		CASE
+			WHEN c.ATRASO_FIN BETWEEN 0 AND 30	        THEN '000-030'	
+			WHEN c.ATRASO_FIN BETWEEN 31 AND 65	        THEN '031-060'
+			WHEN c.ATRASO_FIN BETWEEN 66 AND 90	        THEN '061-090'
+			WHEN c.ATRASO_FIN BETWEEN 91 AND 120	    THEN '091-120'
+			WHEN c.ATRASO_FIN BETWEEN 121 AND 150	    THEN '121-150'
+			WHEN c.ATRASO_FIN BETWEEN 151 AND 180	    THEN '151-180'	
+			WHEN c.ATRASO_FIN BETWEEN 181 AND 210	    THEN '181-210'
+			WHEN c.ATRASO_FIN BETWEEN 211 AND 240	    THEN '211-240'
+			WHEN c.ATRASO_FIN BETWEEN 241 AND 270	    THEN '241-270'
+			WHEN c.ATRASO_FIN BETWEEN 271 AND 300	    THEN '271-300'
+			WHEN c.ATRASO_FIN BETWEEN 301 AND 330	    THEN '301-330'
+			WHEN c.ATRASO_FIN BETWEEN 331 AND 360	    THEN '331-360'
+			WHEN c.ATRASO_FIN BETWEEN 361 AND 390	    THEN '361-390'	
+			WHEN c.ATRASO_FIN    >    390			    THEN '390+'
+			ELSE '390+'
+		END,
+		c.contrato_fin,
+		r.data_pagto
+)
+
+    SELECT
+		----'FUNIL',,
+		CAST(GETDATE() - @DU AS DATE) AS DATA,
+        'Carteira (CPFs)' AS INDICADOR,
+        COUNT(DISTINCT B.CPF_DEV) AS QTE,
+        B.FX_ATRASO AS FX_ATRASO,
+		FORMAT(CAST(@DT2 AS DATE), 'MMM', 'pt-BR') AS MesAbreviado,
+		DW.nr_dia_util AS DU
+    FROM BASEUNIQUEMES B
+	INNER JOIN [TRC-DC-BD2].PLANEJAMENTO.DBO.DW_CALENDARIO DW ON DW.DT_DATA = CAST(GETDATE() - @DU AS DATE)
+    GROUP BY 
+		B.FX_ATRASO,
+		DW.nr_dia_util
+
+UNION ALL
+	
+	SELECT
+		--'FUNIL',,
+		CAST(GETDATE() - @DU AS DATE) AS DATA,
+		'Saldo devedor' AS INDICADOR,
+		SUM(VALORPRIN_FIN) AS QTE,
+		FX_ATRASO AS FX_ATRASO,
+		FORMAT(CAST(@DT2 AS DATE), 'MMM', 'pt-BR') AS MesAbreviado,
+		DW.nr_dia_util AS DU
+	FROM BASEUNIQUEMES
+	INNER JOIN [TRC-DC-BD2].PLANEJAMENTO.DBO.DW_CALENDARIO DW ON DW.DT_DATA = CAST(GETDATE() - @DU AS DATE)
+	GROUP BY FX_ATRASO, DW.nr_dia_util
+
+UNION ALL
+	
+	SELECT
+		--'FUNIL',,
+		CAST(GETDATE() - @DU AS DATE) AS DATA,
+	    'DISCAGENS' AS INDICADOR,
+	    COUNT(DISTINCT B.CPF_DEV) AS QTE,
+	    B.FX_ATRASO AS FX_ATRASO,
+		FORMAT(CAST(@DT2 AS DATE), 'MMM', 'pt-BR') AS MesAbreviado,
+		DW.nr_dia_util AS DU
+	FROM BASEUNIQUEMES B
+	INNER JOIN ##DISCAGENS	D ON B.CPF_DEV = D.CPF COLLATE SQL_Latin1_General_CP1_CI_AS
+	INNER JOIN [TRC-DC-BD2].PLANEJAMENTO.DBO.DW_CALENDARIO DW ON DW.DT_DATA = CAST(GETDATE() - @DU AS DATE)
+	GROUP BY 
+		B.FX_ATRASO, DW.nr_dia_util
+
+UNION ALL
+	
+	SELECT
+		--'FUNIL',,
+		CAST(GETDATE() - @DU AS DATE) AS DATA,
+	    'ALO' AS INDICADOR,
+	    COUNT(DISTINCT A.CPF_DEV) AS QTE,
+	    B.FX_ATRASO AS FX_ATRASO,
+		FORMAT(CAST(@DT2 AS DATE), 'MMM', 'pt-BR') AS MesAbreviado,
+		DW.nr_dia_util AS DU
+	FROM BASEUNIQUEMES B
+	INNER JOIN #ALO A ON A.CPF_DEV = B.CPF_DEV
+	INNER JOIN [TRC-DC-BD2].PLANEJAMENTO.DBO.DW_CALENDARIO DW ON DW.DT_DATA = CAST(GETDATE() - @DU AS DATE)
+	GROUP BY 
+		B.FX_ATRASO, DW.nr_dia_util
+	
+UNION ALL
+	
+	SELECT
+		--'FUNIL',,
+		CAST(GETDATE() - @DU AS DATE) AS DATA,
+	    'CPC' AS INDICADOR,
+	    COUNT(DISTINCT A.CPF_DEV) AS QTE,
+	    B.FX_ATRASO AS FX_ATRASO,
+		FORMAT(CAST(@DT2 AS DATE), 'MMM', 'pt-BR') AS MesAbreviado,
+		DW.nr_dia_util AS DU
+	FROM BASEUNIQUEMES B
+	INNER JOIN #CPC A ON A.CPF_DEV = B.CPF_DEV
+	INNER JOIN [TRC-DC-BD2].PLANEJAMENTO.DBO.DW_CALENDARIO DW ON DW.DT_DATA = CAST(GETDATE() - @DU AS DATE)
+	GROUP BY 
+		B.FX_ATRASO, DW.nr_dia_util
+	
+UNION ALL
+	
+	SELECT
+		--'FUNIL',,
+		CAST(GETDATE() - @DU AS DATE) AS DATA,
+	    'CPCA' AS INDICADOR,
+	    COUNT(DISTINCT A.CPF_DEV) AS QTE,
+	    B.FX_ATRASO AS FX_ATRASO,
+		FORMAT(CAST(@DT2 AS DATE), 'MMM', 'pt-BR') AS MesAbreviado,
+		DW.nr_dia_util AS DU
+	FROM BASEUNIQUEMES B
+	INNER JOIN #CPCA A ON A.CPF_DEV = B.CPF_DEV
+	INNER JOIN [TRC-DC-BD2].PLANEJAMENTO.DBO.DW_CALENDARIO DW ON DW.DT_DATA = CAST(GETDATE() - @DU AS DATE)
+	GROUP BY 
+		B.FX_ATRASO, DW.nr_dia_util
+	
+UNION ALL
+	
+	SELECT
+		--'FUNIL',,
+		CAST(GETDATE() - @DU AS DATE) AS DATA,
+	    'PROMESSAS' AS INDICADOR,
+	    COUNT(DISTINCT A.CPF_DEV) AS QTE,
+	    B.FX_ATRASO AS FX_ATRASO,
+		FORMAT(CAST(@DT2 AS DATE), 'MMM', 'pt-BR') AS MesAbreviado,
+		DW.nr_dia_util AS DU
+	FROM BASEUNIQUEMES B
+	INNER JOIN #ACIONAMENTOS A ON A.CPF_DEV = B.CPF_DEV -- SELECT * FROM #ACINAMENTOS
+	INNER JOIN [TRC-DC-BD2].PLANEJAMENTO.DBO.DW_CALENDARIO DW ON DW.DT_DATA = CAST(GETDATE() - @DU AS DATE)
+	AND A.PROMESSA = 1
+	GROUP BY 
+		B.FX_ATRASO, DW.nr_dia_util
+	
+UNION ALL
+	
+	SELECT
+		--'FUNIL',,
+		CAST(GETDATE() - @DU AS DATE) AS DATA,
+	    '($) PROMESSAS' AS INDICADOR,
+	    SUM(A.VALOR_ACOP) AS QTE,
+	    A.FX_ATRASO AS FX_ATRASO,
+		FORMAT(CAST(@DT2 AS DATE), 'MMM', 'pt-BR') AS MesAbreviado,
+		DW.nr_dia_util AS DU
+	FROM #ACORDOS A
+	INNER JOIN [TRC-DC-BD2].PLANEJAMENTO.DBO.DW_CALENDARIO DW ON DW.DT_DATA = CAST(GETDATE() - @DU AS DATE)
+	WHERE A.PARCELA_ACOP = 1 
+	AND A.DATA_ACORDO BETWEEN @DT_INI AND @DT2
+	GROUP BY 
+		A.FX_ATRASO, DW.nr_dia_util
+
+UNION ALL
+	
+	SELECT
+		--'FUNIL',,
+		CAST(GETDATE() - @DU AS DATE) AS DATA,
+	    '($) Pagamentos' AS INDICADOR,
+	    SUM(VALOR) AS QTE,
+	    FX_ATRASO AS FX_ATRASO,
+		FORMAT(CAST(@DT2 AS DATE), 'MMM', 'pt-BR') AS MesAbreviado,
+		DW.nr_dia_util AS DU
+	FROM Pagamentos 
+	INNER JOIN [TRC-DC-BD2].PLANEJAMENTO.DBO.DW_CALENDARIO DW ON DW.DT_DATA = CAST(GETDATE() - @DU AS DATE)
+	WHERE INDICADOR = '($) Pagamentos' AND DATA_PAGTO BETWEEN @DT_INI  AND @DT2 
+	GROUP BY 
+		FX_ATRASO, DW.nr_dia_util
+	
+UNION ALL
+	
+	SELECT
+	    --'FUNIL',,
+		CAST(GETDATE() - @DU AS DATE) AS DATA,
+		'(#) Pagamentos' AS INDICADOR,
+	    SUM(valor) AS QTE,
+	    FX_ATRASO AS FX_ATRASO,
+		FORMAT(CAST(@DT2 AS DATE), 'MMM', 'pt-BR') AS MesAbreviado,
+		DW.nr_dia_util AS DU
+	FROM Pagamentos 
+	INNER JOIN [TRC-DC-BD2].PLANEJAMENTO.DBO.DW_CALENDARIO DW ON DW.DT_DATA = CAST(GETDATE() - @DU AS DATE)
+	WHERE INDICADOR = '(#) Pagamentos' AND DATA_PAGTO BETWEEN @DT_INI  AND @DT2 
+	GROUP BY 
+		FX_ATRASO, DW.nr_dia_util
+
+UNION ALL
+
+	SELECT 
+		--'FUNIL',,
+		CAST(GETDATE() - @DU AS DATE) AS DATA,
+		'(#) SMS' AS INDICADOR,
+		COUNT(DISTINCT B.CPF_DEV) AS QTE,
+		B.FX_ATRASO AS FX_ATRASO,
+		FORMAT(CAST(@DT2 AS DATE), 'MMM', 'pt-BR') AS MesAbreviado,
+		DW.nr_dia_util AS DU
+	FROM #TEMP_SMS S
+	INNER JOIN BASEUNIQUEMES B ON B.CPF_DEV = S.CPF
+	INNER JOIN [TRC-DC-BD2].PLANEJAMENTO.DBO.DW_CALENDARIO DW ON DW.DT_DATA = CAST(GETDATE() - @DU AS DATE)
+	GROUP BY 
+		B.FX_ATRASO, DW.nr_dia_util
+	
+UNION ALL
+	
+	SELECT 
+		--'FUNIL',,
+		CAST(GETDATE() - @DU AS DATE) AS DATA,
+		'(#) RCS' AS INDICADOR,
+	    COUNT(DISTINCT B.CPF_DEV) AS QTE,
+		B.FX_ATRASO AS FX_ATRASO,
+		FORMAT(CAST(@DT2 AS DATE), 'MMM', 'pt-BR') AS MesAbreviado,
+		DW.nr_dia_util AS DU
+	FROM #TEMP_RCS R
+	INNER JOIN BASEUNIQUEMES B ON B.CPF_DEV = R.CPF
+	INNER JOIN [TRC-DC-BD2].PLANEJAMENTO.DBO.DW_CALENDARIO DW ON DW.DT_DATA = CAST(GETDATE() - @DU AS DATE)
+	GROUP BY 
+		B.FX_ATRASO, DW.nr_dia_util
+	
+UNION ALL
+	
+	SELECT 
+		--'FUNIL',,
+		CAST(GETDATE() - @DU AS DATE) AS DATA,
+		'(#) EMAIL' AS INDICADOR,
+	    COUNT(DISTINCT B.CPF_DEV) AS QTE,
+		B.FX_ATRASO AS FX_ATRASO,
+		FORMAT(CAST(@DT2 AS DATE), 'MMM', 'pt-BR') AS MesAbreviado,
+		DW.nr_dia_util AS DU
+	FROM #TEMP_EMAIL E
+	INNER JOIN BASEUNIQUEMES B ON B.CPF_DEV = E.CPF
+	INNER JOIN [TRC-DC-BD2].PLANEJAMENTO.DBO.DW_CALENDARIO DW ON DW.DT_DATA = CAST(GETDATE() - @DU AS DATE)
+	GROUP BY 
+		B.FX_ATRASO, DW.nr_dia_util
+
+DROP TABLE ##DISCAGENS
