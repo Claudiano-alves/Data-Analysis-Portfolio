@@ -112,7 +112,6 @@ def atualizar_arquivo_funil(caminho_destino=None):
         print(f"❌ {resultado['mensagem']}")
         raise
 
-
 # Exemplo de uso:
 if __name__ == "__main__":
     resultado = atualizar_arquivo_funil()

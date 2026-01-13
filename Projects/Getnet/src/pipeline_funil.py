@@ -6,7 +6,7 @@ from data_wrangling_mailingHist import (
 )
 from data_wrangling_pagamentos import data_pagamentos, tratar_pagamentos
 from data_wrangling_discagens_expert import acionamentos_expert
-from data_loader import load_all_data
+from Projects.utils.data_loader import load_all_data
 from utils import acionamentos_funil, consolidar_dataframes, salvar_analiticos_acionamentos
 
 

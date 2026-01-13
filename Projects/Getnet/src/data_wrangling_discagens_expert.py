@@ -342,6 +342,43 @@ def segmentacao_discagens(df):
     # 3. Restante dos dados
     df_restante = df_trabalho[~condicao_outros].copy()
     
+    # salvar_log("=" * 60)
+    # salvar_log("RESUMO DA SEPARAÇÃO DE DADOS")
+    # salvar_log("=" * 60)
+
+    # total = len(df)
+
+    # salvar_log(f"Total de registros original: {total:,}")
+
+    # if total == 0:
+    #     salvar_log("\n1. Humano + Primeiro Acionamento: 0 registros (0.00%)")
+    #     salvar_log("2. Operação 'Outros': 0 registros (0.00%)")
+    #     salvar_log("3. Restante: 0 registros (0.00%)")
+    # else:
+    #     salvar_log(
+    #         f"\n1. Humano + Primeiro Acionamento: "
+    #         f"{len(df_humano_primeiro):,} registros "
+    #         f"({len(df_humano_primeiro) / total * 100:.2f}%)"
+    #     )
+    #     salvar_log(
+    #         f"2. Operação 'Outros': "
+    #         f"{len(df_operacao_outros):,} registros "
+    #         f"({len(df_operacao_outros) / total * 100:.2f}%)"
+    #     )
+    #     salvar_log(
+    #         f"3. Restante: "
+    #         f"{len(df_restante):,} registros "
+    #         f"({len(df_restante) / total * 100:.2f}%)"
+    #     )
+
+    # salvar_log(
+    #     f"\nVerificação: "
+    #     f"{len(df_humano_primeiro) + len(df_operacao_outros) + len(df_restante):,} registros"
+    # )
+
+    # salvar_log("=" * 60)
+
+
     # Exibir resumo da separação
     salvar_log("="*60)
     salvar_log("RESUMO DA SEPARAÇÃO DE DADOS")
@@ -354,7 +391,7 @@ def segmentacao_discagens(df):
     salvar_log("="*60)
     
     # Retornar os três DataFrames separados
-    return df_restante, df_humano_primeiro, df_operacao_outros, 
+    return df_restante, df_humano_primeiro, df_operacao_outros
 
 
 # FUNIL

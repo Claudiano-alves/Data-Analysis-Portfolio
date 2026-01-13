@@ -1,5 +1,7 @@
 import pandas as pd
 from utils import unir_dataframes, salvar_log, registrar_tempo
+from datetime import datetime, timedelta
+from Projects.utils.db_connection import get_connection
 
 @registrar_tempo("Enriquecimento base de discagens trestto")
 def enriquecer_discagens_trestto(df_discagens_trestto, df_mailing_hist, df_dw_calendario):
@@ -210,8 +212,8 @@ def acionamentos_esforco_trestto(df_discagens, df_dw_calendario):
     df_dw_calendario_temp['dt_data'] = pd.to_datetime(df_dw_calendario_temp['dt_data'])
     
     # ===== IDENTIFICAR RANGE COMPLETO E DIAS FALTANTES =====
-    print("="*80)
-    print(f"📊 Iniciando processamento de acumulado mensal ESFORÇO (todas as discagens)...")
+    salvar_log("="*80)
+    salvar_log(f"📊 Iniciando processamento de acumulado mensal ESFORÇO (todas as discagens)...")
     
     # Obter primeira e última data do arquivo origem
     primeira_data_origem = df['DATA'].min()
@@ -223,11 +225,11 @@ def acionamentos_esforco_trestto(df_discagens, df_dw_calendario):
     # Definir range completo: da primeira data do arquivo até D-1
     data_final_desejada = max(ultima_data_origem, data_d_menos_1)
     
-    print(f"\n📅 Range de processamento:")
-    print(f"   • Primeira data com dados: {primeira_data_origem.strftime('%Y-%m-%d')}")
-    print(f"   • Última data com dados: {ultima_data_origem.strftime('%Y-%m-%d')}")
-    print(f"   • Data D-1 (ontem): {data_d_menos_1.strftime('%Y-%m-%d')}")
-    print(f"   • Data final do processamento: {data_final_desejada.strftime('%Y-%m-%d')}")
+    salvar_log(f"\n📅 Range de processamento:")
+    salvar_log(f"   • Primeira data com dados: {primeira_data_origem}")
+    salvar_log(f"   • Última data com dados: {ultima_data_origem.strftime('%Y-%m-%d')}")
+    salvar_log(f"   • Data D-1 (ontem): {data_d_menos_1.strftime('%Y-%m-%d')}")
+    salvar_log(f"   • Data final do processamento: {data_final_desejada.strftime('%Y-%m-%d')}")
     
     # Obter TODOS os dias úteis do calendário nesse range
     todos_dias_uteis = df_dw_calendario_temp[
@@ -241,17 +243,17 @@ def acionamentos_esforco_trestto(df_discagens, df_dw_calendario):
     # Identificar dias faltantes (sem dados)
     datas_faltantes = sorted([d for d in todos_dias_uteis if d not in datas_com_dados])
     
-    print(f"\n📊 Análise de completude:")
-    print(f"   • Total de dias úteis no range: {len(todos_dias_uteis)}")
-    print(f"   • Dias com dados: {len(datas_com_dados)}")
-    print(f"   • Dias sem dados (a calcular): {len(datas_faltantes)}")
+    salvar_log(f"\n📊 Análise de completude:")
+    salvar_log(f"   • Total de dias úteis no range: {len(todos_dias_uteis)}")
+    salvar_log(f"   • Dias com dados: {len(datas_com_dados)}")
+    salvar_log(f"   • Dias sem dados (a calcular): {len(datas_faltantes)}")
     
     if len(datas_faltantes) > 0:
-        print(f"\n⚠️  Dias úteis sem dados que serão processados:")
+        salvar_log(f"\n⚠️  Dias úteis sem dados que serão processados:")
         for i, data_faltante in enumerate(datas_faltantes[:10], 1):  # Mostrar primeiros 10
-            print(f"      {i}. {data_faltante.strftime('%Y-%m-%d')}")
+            salvar_log(f"      {i}. {data_faltante.strftime('%Y-%m-%d')}")
         if len(datas_faltantes) > 10:
-            print(f"      ... e mais {len(datas_faltantes) - 10} dias")
+            salvar_log(f"      ... e mais {len(datas_faltantes) - 10} dias")
     
     # ===== PROCESSAR TODAS AS DATAS (COM E SEM DADOS) =====
     # Usar todos os dias úteis como base para processamento
@@ -259,11 +261,11 @@ def acionamentos_esforco_trestto(df_discagens, df_dw_calendario):
     
     resultados = []
     
-    print(f"\n🔄 Processando acumulados para {len(datas_para_processar)} dias úteis...")
+    salvar_log(f"\n🔄 Processando acumulados para {len(datas_para_processar)} dias úteis...")
 
     for i, data in enumerate(datas_para_processar, 1):
         if i % 10 == 0 or i == len(datas_para_processar):
-            print(f"    Processando {i}/{len(datas_para_processar)} datas...")
+            salvar_log(f"    Processando {i}/{len(datas_para_processar)} datas...")
         
         inicio_mes = pd.Timestamp(data.year, data.month, 1)
         
@@ -311,12 +313,12 @@ def acionamentos_esforco_trestto(df_discagens, df_dw_calendario):
     # Concatenar tudo
     df_final = pd.concat(resultados, ignore_index=True)
     
-    print(f"\n✓ Processamento concluído!")
-    print(f"  • Total de registros gerados: {len(df_final):,}")
+    salvar_log(f"\n✓ Processamento concluído!")
+    salvar_log(f"  • Total de registros gerados: {len(df_final):,}")
 
     # Cruzar com calendário
-    print(f"\n📅 Merge com dw_calendario...")
-    print(f"   Registros antes do merge: {len(df_final):,}")
+    salvar_log(f"\n📅 Merge com dw_calendario...")
+    salvar_log(f"   Registros antes do merge: {len(df_final):,}")
     
     df_final = df_final.merge(
         df_dw_calendario_temp[['dt_data', 'nr_dia_util', 'quartil', 'dt_mes', 'mes_abreviado']],
@@ -325,7 +327,7 @@ def acionamentos_esforco_trestto(df_discagens, df_dw_calendario):
         how='left'
     ).drop(columns=['dt_data'])
     
-    print(f"   Registros após o merge: {len(df_final):,}")
+    salvar_log(f"   Registros após o merge: {len(df_final):,}")
 
     # Identificar colunas numéricas
     colunas_numericas = df_final.select_dtypes(include=['number']).columns
@@ -348,13 +350,13 @@ def acionamentos_esforco_trestto(df_discagens, df_dw_calendario):
     # Ordenar por data
     df_final = df_final.sort_values('DATA').reset_index(drop=True)
 
-    print(f"\n📈 Totais acumulados ESFORÇO (última data - {df_final['DATA'].max().strftime('%Y-%m-%d')}):")
-    print(f"   ✓ TRABALHADO: {df_final[df_final['DATA'] == df_final['DATA'].max()]['TRABALHADO'].sum():,}")
-    print(f"   ✓ ACIONAMENTOS: {df_final[df_final['DATA'] == df_final['DATA'].max()]['ACIONAMENTOS'].sum():,}")
-    print(f"   ✓ CPC: {df_final[df_final['DATA'] == df_final['DATA'].max()]['CPC'].sum():,}")
-    print(f"   ✓ CPCA: {df_final[df_final['DATA'] == df_final['DATA'].max()]['CPCA'].sum():,}")
-    print(f"   ✓ PROMESSA: {df_final[df_final['DATA'] == df_final['DATA'].max()]['PROMESSA'].sum():,}")
-    print("="*80)
+    salvar_log(f"\n📈 Totais acumulados ESFORÇO (última data - {df_final['DATA'].max().strftime('%Y-%m-%d')}):")
+    salvar_log(f"   ✓ TRABALHADO: {df_final[df_final['DATA'] == df_final['DATA'].max()]['TRABALHADO'].sum():,}")
+    salvar_log(f"   ✓ ACIONAMENTOS: {df_final[df_final['DATA'] == df_final['DATA'].max()]['ACIONAMENTOS'].sum():,}")
+    salvar_log(f"   ✓ CPC: {df_final[df_final['DATA'] == df_final['DATA'].max()]['CPC'].sum():,}")
+    salvar_log(f"   ✓ CPCA: {df_final[df_final['DATA'] == df_final['DATA'].max()]['CPCA'].sum():,}")
+    salvar_log(f"   ✓ PROMESSA: {df_final[df_final['DATA'] == df_final['DATA'].max()]['PROMESSA'].sum():,}")
+    salvar_log("="*80)
 
     # Setar FX_ATRASO como 'Esforço'
     df_final['FX_ATRASO'] = 'Esforço'

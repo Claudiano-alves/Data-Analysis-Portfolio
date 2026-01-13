@@ -1,0 +1,43 @@
+
+# Tratamento especial para mailing_hist (se necessário)
+if 'cad_devf' in dataframes and 'mailing_hist' in dataframes:
+    try:
+        print("\n⚙️ Processando mailing_hist...")
+        salvar_log("⚙️ TRATAMENTO DE DADOS - Mailing Histórico")
+        
+        tempo_inicio = time.time()
+        registros_antes = len(dataframes['mailing_hist'])
+        
+        dataframes['mailing_hist'] = tratar_base_mailing_hist(
+            dataframes['mailing_hist'], 
+            dataframes['cad_devf']
+        )
+        
+        registros_depois = len(dataframes['mailing_hist'])
+        tempo_fim = time.time()
+        tempo_decorrido = tempo_fim - tempo_inicio
+        
+        minutos = int(tempo_decorrido // 60)
+        segundos = int(tempo_decorrido % 60)
+        tempo_str = f"{minutos}m {segundos}s" if minutos > 0 else f"{segundos}s"
+        
+        print(f"   Antes: {registros_antes:,} → Depois: {registros_depois:,}".replace(",", "."))
+        
+        salvar_log(f"   📊 Registros antes: {registros_antes:,}".replace(",", "."))
+        salvar_log(f"   📊 Registros depois: {registros_depois:,}".replace(",", "."))
+        salvar_log(f"   ⏱️  Tempo: {tempo_str}")
+        salvar_log("-"*80)
+        
+    except Exception as e:
+        erro_msg = "❌ ERRO ao processar mailing_hist"
+        print(erro_msg)
+        salvar_log(erro_msg)
+        salvar_log(f"   ⚠️  Detalhes: {str(e)}")
+        salvar_log("="*80)
+        raise Exception(f"Falha ao processar mailing_hist: {str(e)}")
+
+print("\n✅ Carregamento concluído!\n")
+salvar_log("="*80)
+salvar_log("✅ CARREGAMENTO DE DADOS CONCLUÍDO COM SUCESSO")
+salvar_log(f"   Total de datasets carregados: {len(dataframes)}")
+salvar_log("="*80)

@@ -1,6 +1,6 @@
 import pandas as pd
 from datetime import datetime, timedelta
-from src.db_connection import get_connection
+from Projects.utils.db_connection import get_connection
 conn_trc = get_connection("SERVER_BD2", "DATABASE_TRC")
 
 def get_max_date(conn_trc):
