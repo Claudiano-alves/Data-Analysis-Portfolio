@@ -28,7 +28,6 @@ def load_data_ouze(
         where_campanhas = "A.GrupoPrincipal IN (SELECT G.id_grupo FROM grupo G WHERE G.ID_CAMPANHA = 141)"
         # MAILING_HIST
         where_clientes_mailing = "COD_CLI = 253"
-
         # ACIONAMENTOS
         where_acionamentos = """
             WHERE C.COD_CLI = 253
@@ -36,21 +35,15 @@ def load_data_ouze(
               AND A.COD_RECUP NOT IN (15721)
               AND B.CLASSIFICACAO_ACIONAMENTO = 1
         """
-
         where_tabulacao_aciona = "WHERE COD_CLI = 253"
-
         # PAGAMENTOS
         where_clientes_pagamentos = "WHERE B.COD_CLI = 253"
-
         # ACORDOS
         where_clientes_acordos = "WHERE B.COD_CLI = 253 AND B.COD_CAR = 1"
-
         # MASSIVOS SMS, RCS E EMAIL
         where_massivos = "WHERE ID_CAR = 100"
-
         # TELEFONES
         where_telefones = "WHERE COD_CLI = 253"
-
         # Datasets necessários para Ouze
         datasets_ouze = [
             nome for nome, ativo in OUZE_DATASETS.items() if ativo
