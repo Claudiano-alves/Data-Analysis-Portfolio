@@ -3,12 +3,37 @@ import pandas as pd
 from pathlib import Path
 from datetime import datetime
 import logging
+import os
+from dotenv import load_dotenv
+
+# Se o .env está na raiz do projeto
+#load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), "..", ".env"))
+load_dotenv(r"C:\Users\claudiano.alves\Documents\Claudiano\repository\Data-Analysis-Portfolio\Projects\.env")
 
 # Configuração de logging
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s'
 )
+
+# Configuração de logs em arquivo - caminho absoluto relativo ao script
+LOG_FILE = Path(__file__).parent / 'logs.txt'
+
+def salvar_log(mensagem, arquivo=LOG_FILE):
+    """Salva mensagem no arquivo de log com timestamp"""
+    os.makedirs(os.path.dirname(arquivo) or '.', exist_ok=True)
+    timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    with open(arquivo, 'a', encoding='utf-8') as f:
+        f.write(f"[{timestamp}] {mensagem}\n")
+
+def limpar_logs(arquivo=LOG_FILE):
+    """Limpa o arquivo de log, mantendo apenas o log atual"""
+    try:
+        if Path(arquivo).exists():
+            with open(arquivo, 'w', encoding='utf-8') as f:
+                f.write("")
+    except Exception as e:
+        print(f"Aviso: Não foi possível limpar logs anteriores: {e}")
 
 class GeradorBaseAtiva:
     def __init__(self):
@@ -130,26 +155,76 @@ class GeradorBaseAtiva:
             logging.error(f"Erro no processo: {e}")
             raise
 
-
 # Exemplo de uso
 if __name__ == "__main__":
-    # Configurar a string de conexão com o banco de dados
-    # IMPORTANTE: Ajuste os parâmetros conforme seu ambiente
+    # Icons Unicode para logs
+    ICON_SUCCESS = "✓"
+    ICON_ERROR = "✗"
+    ICON_WARNING = "⚠"
     
-    # Opção 2: Com autenticação Windows (Trusted Connection)
-    connection_string = (
-        "DRIVER={SQL Server};"
-        "SERVER=seu_servidor;"
-        "DATABASE=seu_banco;"
-        "Trusted_Connection=yes"
-    )
+    # Acumula mensagens de erro
+    erros = []
+    resultado_final = None
     
-    # Criar instância e executar
-    gerador = GeradorBaseAtiva()
+    # Limpar logs anteriores no início da execução
+    limpar_logs()
     
     try:
-        caminho_arquivo = gerador.executar_processo_completo(connection_string)
-        print(f"\n✓ Arquivo gerado com sucesso!")
-        print(f"  Localização: {caminho_arquivo}")
+        # Recuperar credenciais do arquivo .env
+        server = os.getenv("SERVER_SRC")
+        database = os.getenv("DATABASE_SRC")
+        
+        # Validar se as credenciais foram carregadas
+        if not server or not database:
+            missing = []
+            if not server: missing.append("SERVER_SRC")
+            if not database: missing.append("DATABASE_SRC")
+            
+            msg_erro = f"Credenciais faltando no arquivo .env: {', '.join(missing)}"
+            erros.append(msg_erro)
+            raise ValueError(msg_erro)
+        
+        # Construir string de conexão com autenticação do Windows
+        conn_string = (
+            f"DRIVER={{SQL Server}};"
+            f"SERVER={server};"
+            f"DATABASE={database};"
+            f"Trusted_Connection=yes"
+        )
+        
+        # Testar conexão antes de executar o processo
+        try:
+            test_conn = pyodbc.connect(conn_string)
+            test_conn.close()
+            
+        except Exception as conn_error:
+            msg_erro = f"Conexão ao banco de dados"
+            erros.append(msg_erro)
+            raise
+        
+        # Criar instância e executar
+        try:
+            gerador = GeradorBaseAtiva()
+            caminho_arquivo = gerador.executar_processo_completo(conn_string)
+            resultado_final = "sucesso"
+            
+        except Exception as exec_error:
+            msg_erro = f"Geração da base ativa"
+            erros.append(msg_erro)
+            resultado_final = "erro"
+        
+    except ValueError as e:
+        resultado_final = "erro"
+        
     except Exception as e:
-        print(f"\n✗ Erro ao executar o processo: {e}")
+        resultado_final = "erro"
+    
+    finally:
+        # Salvar apenas o resumo final no log
+        if not erros:
+            salvar_log(f"{ICON_SUCCESS} Sucesso - Will Bank - tempos")
+            print(f"{ICON_SUCCESS} Sucesso - Will Bank - tempos")
+        else:
+            for erro in erros:
+                salvar_log(f"{ICON_ERROR} Erro - {erro}")
+                print(f"{ICON_ERROR} Erro - {erro}")
