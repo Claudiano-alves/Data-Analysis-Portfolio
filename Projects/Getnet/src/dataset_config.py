@@ -1,6 +1,6 @@
-# Ouze/src/dataset_config.py
+# Getnet/src/dataset_config.py
 
-OUZE_DATASETS = {
+GETNET_DATASETS = {
     "discagens_expert": True,
     "mailing_hist": True,
     "tab_acionamentos": True,
@@ -8,9 +8,8 @@ OUZE_DATASETS = {
     "dw_calendario": True,
     "pagamentos": True,
     "acordos": True,
-    "sms": True,
-    "rcs": True,
-    "email": True,
-    "telefone": True,
-    "blacklist_expert": True,
+    # "sms": True,
+    # "rcs": True,
+    # "email": True,
+    # "telefone": True,
 }

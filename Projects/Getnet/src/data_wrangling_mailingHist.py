@@ -1,6 +1,6 @@
 import numpy as np
 import pandas as pd
-from utils import unir_dataframes, salvar_log, registrar_tempo
+from .utils import unir_dataframes, salvar_log, registrar_tempo
 
 FAIXAS_ATRASO_BINS = [float('-inf'), 0, 30, 60, 90, 120, 150, 180, 360, 720, float('inf')]
 FAIXAS_ATRASO_LABELS = [
@@ -44,7 +44,6 @@ def adicionar_produto(df):
     
     df['PRODUTO'] = np.select(conditions, choices, default='Outros')
     return df
-
 
 def adicionar_faixa_atraso(df, coluna_atraso='ATRASO'):
     """
@@ -104,7 +103,7 @@ def adicionar_valor_principal(df_mailing_hist, df_cad_devf):
     
     return df_resultado
 
-def tratar_base_mailing_hist(df, df_cad_devf):
+def tratar_base_mailing_hist(df):
     """
     Aplica todos os tratamentos padrão para base de mailing_hist
     
@@ -116,7 +115,7 @@ def tratar_base_mailing_hist(df, df_cad_devf):
     """
     df = adicionar_produto(df)
     df = adicionar_faixa_atraso(df)
-    df = adicionar_valor_principal(df, df_cad_devf)
+    #df = adicionar_valor_principal(df, df_cad_devf)
     return df
 
 @registrar_tempo("Acumulado mailing hist por faixa de atraso")

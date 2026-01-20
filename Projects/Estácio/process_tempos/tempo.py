@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta
 import pandas as pd
-from db_connection import get_connection
-from querie import get_query_tempos
+from Projects.Estácio.process_tempos.db_connection import get_connection
+from Projects.Estácio.process_tempos.querie import get_query_tempos
 from openpyxl import load_workbook
 
 base_path = r"\\trc-dc-ad\OperacionalEstacio\PA provida\PA Provida - MODELO.xlsx"

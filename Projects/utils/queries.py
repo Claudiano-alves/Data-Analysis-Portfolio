@@ -71,7 +71,7 @@ def get_query_mailing_hist(dt_ini, dt_fim, where_clause=""):
     
     # Adicionar filtro customizado se houver
     if where_clause:
-        where_completo = f"{where_data} AND {where_clause}"
+        where_completo = f"{where_clause} AND {where_data}"
     else:
         where_completo = where_data
     
@@ -82,9 +82,10 @@ def get_query_mailing_hist(dt_ini, dt_fim, where_clause=""):
         LTRIM(RTRIM(CPF)) AS CPF,
         ATRASO,
         COD_CLI,
-        COD_CAR
+        COD_CAR,
+        VALOR
     FROM MAILING_HIST 
-    WHERE {where_completo}
+    {where_completo}
     """
     return query
 

@@ -30,7 +30,7 @@ def load_data_ouze(
         where_clientes_mailing = "COD_CLI = 253"
         # ACIONAMENTOS
         where_acionamentos = """
-            WHERE C.COD_CLI = 253
+              WHERE C.COD_CLI = 253
               AND C.COD_CAR = 1
               AND A.COD_RECUP NOT IN (15721)
               AND B.CLASSIFICACAO_ACIONAMENTO = 1

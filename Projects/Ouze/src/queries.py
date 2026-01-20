@@ -65,7 +65,8 @@ def get_query_mailing_hist(dt_ini, dt_fim):
         LTRIM(RTRIM(CPF)) AS CPF,
         ATRASO,
         COD_CLI,
-        COD_CAR
+        COD_CAR,
+        VALOR
     FROM MAILING_HIST 
     WHERE DATA BETWEEN '{dt_ini}' AND '{dt_fim}'
     AND COD_CLI = 253
