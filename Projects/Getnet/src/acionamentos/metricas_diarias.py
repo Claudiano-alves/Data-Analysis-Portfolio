@@ -5,7 +5,8 @@ Contém funções para gerar métricas diárias (dia a dia) de acionamentos.
 
 import pandas as pd
 from functools import reduce
-from ..utils import salvar_log, registrar_tempo
+from ..utils import registrar_tempo, salvar_log
+from ..config import LOG_ACIONAMENTOS
 
 
 def acionamentos_unique_origem_fxAtraso(df_acionamentos_enriquecido, df_dw_calendario):

@@ -1,0 +1,107 @@
+"""
+Módulo de Métricas Acumuladas de Pagamentos
+Contém funções para gerar métricas acumuladas (mensais) de pagamentos.
+"""
+
+import pandas as pd
+from ..utils import registrar_tempo, unir_dataframes, salvar_log
+from ..config import LOG_PAGAMENTOS
+from .log_config import salvar_log
+
+
+@registrar_tempo("Gerando acumulado de pagamentos")
+def gerar_acumulado_por_dia_util(df_agrupado):
+    """
+    Gera DataFrame com acumulado de pagamentos do início do mês até cada dia útil.
+    
+    Args:
+        df_agrupado (pd.DataFrame): DataFrame de pagamentos agrupados
+    
+    Returns:
+        tuple: (df_acumulado, df_esforco, df_unique)
+    """
+    salvar_log("=" * 60)
+    salvar_log("GERANDO ACUMULADO POR DIA ÚTIL")
+    salvar_log("=" * 60)
+    
+    if df_agrupado.empty:
+        salvar_log("AVISO: DataFrame de pagamentos está vazio. Retornando DataFrames vazios.")
+        salvar_log("=" * 60)
+        
+        colunas = [
+            'DATA_PAGTO', 'Indicador', 'qte', 'FX_ATRASO', 'TIPO',
+            'MesAbreviado', 'nr_dia_util', 'quartil', 'dt_mes', 'VALOR_PARC'
+        ]
+        df_vazio = pd.DataFrame(columns=colunas)
+        return df_vazio.copy(), df_vazio.copy(), df_vazio.copy()
+    
+    resultados = []
+    datas_unicas = sorted(df_agrupado['DATA_PAGTO'].unique())
+    
+    salvar_log(f"Total de datas únicas a processar: {len(datas_unicas)}")
+    
+    for i, data in enumerate(datas_unicas, 1):
+        if i % 10 == 0 or i == len(datas_unicas):
+            salvar_log(f"   Processando {i}/{len(datas_unicas)} datas...")
+        
+        inicio_mes = pd.Timestamp(data.year, data.month, 1).date()
+        
+        df_intervalo = df_agrupado[
+            (df_agrupado['DATA_PAGTO'] >= inicio_mes) & 
+            (df_agrupado['DATA_PAGTO'] <= data)
+        ].copy()
+        
+        if df_intervalo.empty:
+            continue
+        
+        # Agrupar por FX_ATRASO e TIPO
+        agrupado = df_intervalo.groupby(['FX_ATRASO', 'TIPO']).agg({
+            'qte': 'sum',
+            'VALOR_PARC': 'sum'
+        }).reset_index()
+        
+        info_data = df_agrupado[df_agrupado['DATA_PAGTO'] == data][
+            ['MesAbreviado', 'nr_dia_util', 'quartil', 'dt_mes']
+        ].drop_duplicates().iloc[0]
+        
+        agrupado['DATA_PAGTO'] = data
+        agrupado['Indicador'] = 'Pagamentos'
+        agrupado['MesAbreviado'] = info_data['MesAbreviado']
+        agrupado['nr_dia_util'] = info_data['nr_dia_util']
+        agrupado['quartil'] = info_data['quartil']
+        agrupado['dt_mes'] = info_data['dt_mes']
+        
+        resultados.append(agrupado)
+    
+    if not resultados:
+        salvar_log("AVISO: Nenhum resultado gerado após processamento. Retornando DataFrames vazios.")
+        salvar_log("=" * 60)
+        
+        colunas = [
+            'DATA_PAGTO', 'Indicador', 'qte', 'FX_ATRASO', 'TIPO',
+            'MesAbreviado', 'nr_dia_util', 'quartil', 'dt_mes', 'VALOR_PARC'
+        ]
+        df_vazio = pd.DataFrame(columns=colunas)
+        return df_vazio.copy(), df_vazio.copy(), df_vazio.copy()
+    
+    df_acumulado = pd.concat(resultados, ignore_index=True)
+    
+    df_acumulado = df_acumulado[[
+        'DATA_PAGTO', 'Indicador', 'qte', 'FX_ATRASO', 'TIPO',
+        'MesAbreviado', 'nr_dia_util', 'quartil', 'dt_mes', 'VALOR_PARC'
+    ]]
+    
+    salvar_log(f"Total de registros acumulados gerados: {len(df_acumulado)}")
+    salvar_log(f"Quantidade total final: {df_acumulado['qte'].sum()}")
+    salvar_log(f"Valor total final: R$ {df_acumulado['VALOR_PARC'].sum():,.2f}")
+    salvar_log("=" * 60)
+    
+    df_acumulado = df_acumulado[df_acumulado['qte'] > 0]
+    
+    df_unique = df_acumulado.copy()
+    df_unique['FX_ATRASO'] = 'Unique'
+    
+    df_esforco = df_acumulado.copy()
+    df_esforco['FX_ATRASO'] = 'Esforço'
+    
+    return df_acumulado, df_esforco, df_unique

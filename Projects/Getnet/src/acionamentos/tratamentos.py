@@ -4,7 +4,8 @@ Contém funções para limpeza, validação e enriquecimento de dados de acionam
 """
 
 import pandas as pd
-from ..utils import salvar_log, registrar_tempo
+from ..utils import registrar_tempo, salvar_log
+from ..config import LOG_ACIONAMENTOS
 
 
 @registrar_tempo("Substituindo tabulações por 0 e 1")
@@ -20,7 +21,7 @@ def tratar_acionamentos_tabulacao(df_tabualacao_aciona):
     """
     colunas_binarias = ['CPC', 'CPCA', 'PROMESSA']
     df_tabualacao_aciona[colunas_binarias] = df_tabualacao_aciona[colunas_binarias].astype(int)
-    salvar_log("Finalizado!")
+    salvar_log("Finalizado!", arquivo=LOG_ACIONAMENTOS)
     return df_tabualacao_aciona
 
 
@@ -43,8 +44,8 @@ def confere_tabulacao_acionamentos(df_tab_acionamentos, df_tabulacao_aciona):
     df_resultado['COD_ACIONA'] = df_resultado['COD_ACIONA'].astype(str)
     df_tabula['COD_ACIONA'] = df_tabula['COD_ACIONA'].astype(str)
     
-    salvar_log("=" * 80)
-    salvar_log(f"📊 Antes do merge - Acionamentos: {len(df_resultado):,} | Tabulações: {len(df_tabula):,}")
+    salvar_log("=" * 80, arquivo=LOG_ACIONAMENTOS)
+    salvar_log(f"📊 Antes do merge - Acionamentos: {len(df_resultado):,} | Tabulações: {len(df_tabula):,}", arquivo=LOG_ACIONAMENTOS)
     
     # Fazer o merge (trazendo DESC_ACIONA também)
     df_resultado = df_resultado.merge(
@@ -59,9 +60,9 @@ def confere_tabulacao_acionamentos(df_tab_acionamentos, df_tabulacao_aciona):
     # Adicionar coluna de contagem de acionamentos
     df_resultado['ACIONAMENTOS'] = 1
     
-    salvar_log(f"📊 Após merge: {len(df_resultado):,}")
-    salvar_log(f"📊 Acionamentos com DESC_ACIONA: {df_resultado['DESC_ACIONA'].notna().sum():,}")
-    salvar_log("=" * 80)
+    salvar_log(f"📊 Após merge: {len(df_resultado):,}", arquivo=LOG_ACIONAMENTOS)
+    salvar_log(f"📊 Acionamentos com DESC_ACIONA: {df_resultado['DESC_ACIONA'].notna().sum():,}", arquivo=LOG_ACIONAMENTOS)
+    salvar_log("=" * 80, arquivo=LOG_ACIONAMENTOS)
     
     return df_resultado
 
@@ -85,18 +86,18 @@ def enriquecer_acionamentos(df_acionamentos, df_mailing_hist, df_dw_calendario,
             pd.DataFrame: DataFrame enriquecido completo
     """
     df_resultado = df_acionamentos.copy()
-    salvar_log("=" * 80)
+    salvar_log("=" * 80, arquivo=LOG_ACIONAMENTOS)
     
     # ============================================
     # CLASSIFICAR ORIGEM DO ACIONAMENTO
     # ============================================
     if 'COD_RECUP' in df_resultado.columns:
-        salvar_log(f"📊 Classificando origem do acionamento...")
+        salvar_log(f"📊 Classificando origem do acionamento...", arquivo=LOG_ACIONAMENTOS)
         df_resultado['ORIGEM'] = df_resultado['COD_RECUP'].apply(
             lambda x: 'ROBÔ' if x == 1 else 'HUMANO'
         )
-        salvar_log(f"   ✓ Robô: {(df_resultado['ORIGEM'] == 'ROBÔ').sum():,}")
-        salvar_log(f"   ✓ Humano: {(df_resultado['ORIGEM'] == 'HUMANO').sum():,}")
+        salvar_log(f"   ✓ Robô: {(df_resultado['ORIGEM'] == 'ROBÔ').sum():,}", arquivo=LOG_ACIONAMENTOS)
+        salvar_log(f"   ✓ Humano: {(df_resultado['ORIGEM'] == 'HUMANO').sum():,}", arquivo=LOG_ACIONAMENTOS)
     else:
         salvar_log(f"⚠️  Coluna COD_RECUP não encontrada. Origem não será classificada.")
         df_resultado['ORIGEM'] = None

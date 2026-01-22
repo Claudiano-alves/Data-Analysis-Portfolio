@@ -134,11 +134,32 @@ def get_default_date_range() -> Tuple[str, str]:
     data_fim = (hoje - timedelta(days=1)).strftime('%Y-%m-%d')
     return data_inicio, data_fim
 
-LOG_FILE = 'logs/acionamentos.txt'
-
-def salvar_log(mensagem, arquivo=LOG_FILE):
-    """Salva mensagem no arquivo de log com timestamp"""
-    os.makedirs(os.path.dirname(arquivo), exist_ok=True)
+def salvar_log(mensagem, arquivo='logs/default.txt'):
+    """
+    Salva mensagem em arquivo de log com timestamp.
+    Função genérica que aceita qualquer caminho de arquivo.
+    
+    Args:
+        mensagem (str): Mensagem a ser registrada
+        arquivo (str): Caminho do arquivo de log.
+                      Padrão: 'logs/default.txt'
+                      Cada carteira/projeto deve definir seu próprio caminho.
+    
+    Exemplo:
+        # Em Projects/utils/utils.py (uso genérico)
+        salvar_log("Processamento iniciado", arquivo='src/logs/acionamentos.txt')
+        
+        # Em Projects/Getnet/src/acionamentos/log_config.py (wrapper específico)
+        from ...config import LOG_ACIONAMENTOS
+        def salvar_log(mensagem):
+            _salvar_log(mensagem, arquivo=LOG_ACIONAMENTOS)
+    """
+    # Criar diretório se não existir
+    diretorio = os.path.dirname(arquivo)
+    if diretorio:  # Se há diretório no caminho
+        os.makedirs(diretorio, exist_ok=True)
+    
+    # Registrar log com timestamp
     timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     with open(arquivo, 'a', encoding='utf-8') as f:
         f.write(f"[{timestamp}] {mensagem}\n")

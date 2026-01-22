@@ -11,7 +11,7 @@ from .queries import (
     get_query_dw_calendario
 )
 
-def data_loader(
+def data_loader_(
     conn_trc, 
     conn_bd2, 
     conn_src, 
@@ -247,34 +247,293 @@ def data_loader(
     
     return dataframes
 
-def load_all_data_(csv_path: Optional[str] = None) -> Tuple[pd.DataFrame, ...]:
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from typing import Optional, List, Dict
+import pandas as pd
+import time
+from threading import Lock
+
+# Lock para sincronizar prints/logs
+print_lock = Lock()
+
+def _carregar_dataset(nome_df, descricao, query_func, conexao, args):
     """
-    Função principal para carregar todos os dados.
+    Função auxiliar para carregar um dataset individual.
+    Retorna tupla (nome_df, df, tempo_decorrido, erro)
+    """
+    try:
+        tempo_inicio = time.time()
+        
+        # Executar query
+        query = query_func(*args)
+        df = pd.read_sql(query, conexao)
+        
+        tempo_fim = time.time()
+        tempo_decorrido = tempo_fim - tempo_inicio
+        
+        return (nome_df, df, tempo_decorrido, None)
+        
+    except Exception as e:
+        return (nome_df, None, 0, str(e))
+
+
+def data_loader(
+    conn_trc, 
+    conn_bd2, 
+    conn_src, 
+    data_inicio: str, 
+    data_fim: str,
+    where_campanhas: str = "",
+    where_clientes_mailing: str = "",
+    where_acionamentos: str = "",
+    where_tabulacao: str = "",
+    where_clientes_pagamentos: str = "",
+    where_clientes_acordos: str = "",
+    where_massivos: str = "",
+    where_telefones: str = "",
+    datasets_to_load: Optional[List[str]] = None,
+    max_workers: int = 5  # Número de threads paralelas
+) -> Dict[str, pd.DataFrame]:
+    """
+    Carrega dados necessários dos bancos de dados de forma paralela e configurável.
     
     Args:
-        csv_path: Caminho do arquivo CSV para calcular range de datas.
-                  Se None, usa o caminho padrão do servidor:
-                  \\trc-dc-ad\Planejamento\MIS\CARTEIRAS\GetNet\df_csvBI_padronizado.csv
-                  
+        conn_trc: Conexão com banco TRC
+        conn_bd2: Conexão com banco BD2
+        conn_src: Conexão com banco SRC
+        data_inicio: Data inicial no formato 'YYYY-MM-DD'
+        data_fim: Data final no formato 'YYYY-MM-DD'
+        where_campanhas: Cláusula WHERE para discagens
+        where_clientes_mailing: Cláusula WHERE para mailing_hist
+        where_acionamentos: Cláusula WHERE para acionamentos
+        where_tabulacao: Cláusula WHERE para tabulação
+        where_clientes_pagamentos: Cláusula WHERE para pagamentos
+        where_clientes_acordos: Cláusula WHERE para acordos
+        where_massivos: Cláusula WHERE para SMS, RCS e Email
+        where_telefones: Cláusula WHERE para telefones
+        datasets_to_load: Lista de datasets a serem carregados. Se None, carrega todos.
+        max_workers: Número máximo de threads paralelas (padrão: 5)
+        
     Returns:
-        Tupla com 9 DataFrames
-        
-    Exemplo de uso:
-        # Usando CSV padrão do servidor (recomendado)
-        dfs = load_all_data()
-        
-        # Usando CSV customizado
-        dfs = load_all_data('data/historico.csv')
-        
-        # Desempacotando
-        df_disc_exp, df_cad, df_tab, df_mail, df_cal, df_tabul, df_pag, df_acord, df_disc_tres = load_all_data()
+        Dicionário com DataFrames carregados
     """
-    # Determina o range de datas (csv_path=None usará o padrão do servidor)
-    data_inicio, data_fim = get_date_range_from_csv(csv_path)
+    import warnings
+    warnings.filterwarnings('ignore', category=UserWarning)
     
-    # Usa context manager para gerenciar conexões
-    with get_db_connections() as (conn_trc, conn_bd2, conn_src):
-        return data_loader(conn_trc, conn_bd2, conn_src, data_inicio, data_fim)
+    print(f"\n📊 Carregando dados de {data_inicio} até {data_fim}...\n")
+    salvar_log("="*80)
+    salvar_log(f"📊 INÍCIO DO CARREGAMENTO DE DADOS (PARALELO)")
+    salvar_log(f"   Período: {data_inicio} até {data_fim}")
+    salvar_log(f"   Workers: {max_workers} threads")
+    salvar_log("="*80)
+    
+    # Se não especificado, carrega todos os disponíveis
+    if datasets_to_load is None:
+        datasets_to_load = [
+            'discagens_expert', 'mailing_hist', 'tab_acionamentos',
+            'tabulacao_aciona', 'dw_calendario', 'pagamentos', 'acordos',
+            'sms', 'rcs', 'email', 'telefone', 'blacklist_expert',
+            'discagens_trestto'
+        ]
+    
+    # ===============================
+    # CONFIGURAÇÃO DE QUERIES
+    # ===============================
+    all_queries_config = {
+        "mailing_hist": (
+            "Mailing Histórico",
+            get_query_mailing_hist,
+            conn_bd2,
+            (data_inicio, data_fim, where_clientes_mailing),
+        ),
+        "dw_calendario": (
+            "Calendário",
+            get_query_dw_calendario,
+            conn_bd2,
+            (data_inicio, data_fim),
+        ),
+    }
+    
+    # Adicionar queries dinâmicas
+    if "discagens_expert" in datasets_to_load:
+        from utils.queries import get_query_discagens
+        all_queries_config["discagens_expert"] = (
+            "Discagens Expert",
+            get_query_discagens,
+            conn_src,
+            (data_inicio, data_fim, where_campanhas),
+        )
+    
+    if "tab_acionamentos" in datasets_to_load:
+        from utils.queries import get_query_base_acionamentos
+        all_queries_config["tab_acionamentos"] = (
+            "Tabulação de Acionamentos",
+            get_query_base_acionamentos,
+            conn_src,
+            (data_inicio, data_fim, where_acionamentos),
+        )
+    
+    if "tabulacao_aciona" in datasets_to_load:
+        from utils.queries import get_query_tabulacao_aciona
+        all_queries_config["tabulacao_aciona"] = (
+            "Tabulação Acionamentos",
+            get_query_tabulacao_aciona,
+            conn_bd2,
+            (where_tabulacao,),
+        )
+    
+    if "pagamentos" in datasets_to_load:
+        from utils.queries import get_query_pagamentos
+        all_queries_config["pagamentos"] = (
+            "Pagamentos",
+            get_query_pagamentos,
+            conn_src,
+            (data_inicio, data_fim, where_clientes_pagamentos),
+        )
+    
+    if "acordos" in datasets_to_load:
+        from utils.queries import get_query_acordos
+        all_queries_config["acordos"] = (
+            "Acordos",
+            get_query_acordos,
+            conn_src,
+            (data_inicio, data_fim, where_clientes_acordos),
+        )
+    
+    if "sms" in datasets_to_load:
+        from utils.queries import get_query_sms
+        all_queries_config["sms"] = (
+            "SMS",
+            get_query_sms,
+            conn_bd2,
+            (data_inicio, data_fim, where_massivos),
+        )
+    
+    if "rcs" in datasets_to_load:
+        from utils.queries import get_query_rcs
+        all_queries_config["rcs"] = (
+            "RCS",
+            get_query_rcs,
+            conn_bd2,
+            (data_inicio, data_fim, where_massivos),
+        )
+    
+    if "email" in datasets_to_load:
+        from utils.queries import get_query_email
+        all_queries_config["email"] = (
+            "Email",
+            get_query_email,
+            conn_bd2,
+            (data_inicio, data_fim, where_massivos),
+        )
+    
+    if "telefone" in datasets_to_load:
+        from utils.queries import get_query_telefone
+        all_queries_config["telefone"] = (
+            "Telefones",
+            get_query_telefone,
+            conn_src,
+            (where_telefones,),
+        )
+    
+    if "blacklist_expert" in datasets_to_load:
+        from utils.queries import get_query_blacklist_expert
+        all_queries_config["blacklist_expert"] = (
+            "Blacklist Expert",
+            get_query_blacklist_expert,
+            conn_src,
+            (),
+        )
+    
+    if "discagens_trestto" in datasets_to_load:
+        from utils.queries import get_query_discagens_trestto
+        all_queries_config["discagens_trestto"] = (
+            "Discagens Trestto",
+            get_query_discagens_trestto,
+            conn_trc,
+            (data_inicio, data_fim),
+        )
+    
+    # Validar datasets solicitados
+    invalid_datasets = set(datasets_to_load) - set(all_queries_config.keys())
+    if invalid_datasets:
+        raise ValueError(f"Datasets inválidos solicitados: {invalid_datasets}")
+    
+    salvar_log(f"📋 Datasets a serem carregados: {', '.join(datasets_to_load)}")
+    salvar_log("-"*80)
+    
+    # ===============================
+    # CARREGAMENTO PARALELO
+    # ===============================
+    dataframes = {}
+    tempo_total_inicio = time.time()
+    
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        # Submeter todas as tarefas
+        futures = {}
+        for nome_df in datasets_to_load:
+            if nome_df not in all_queries_config:
+                continue
+            
+            descricao, query_func, conexao, args = all_queries_config[nome_df]
+            future = executor.submit(
+                _carregar_dataset, 
+                nome_df, 
+                descricao, 
+                query_func, 
+                conexao, 
+                args
+            )
+            futures[future] = descricao
+        
+        # Processar resultados conforme concluem
+        for future in as_completed(futures):
+            descricao = futures[future]
+            nome_df, df, tempo_decorrido, erro = future.result()
+            
+            if erro:
+                erro_msg = f"❌ ERRO ao carregar {descricao}"
+                with print_lock:
+                    print(erro_msg)
+                    salvar_log(erro_msg)
+                    salvar_log(f"   ⚠️  Detalhes: {erro}")
+                    salvar_log("="*80)
+                raise Exception(f"Falha ao carregar {descricao}: {erro}")
+            
+            # Formatação do tempo
+            minutos = int(tempo_decorrido // 60)
+            segundos = int(tempo_decorrido % 60)
+            tempo_str = f"{minutos}m {segundos}s" if minutos > 0 else f"{segundos}s"
+            
+            # Formatação da quantidade de registros
+            qtd_registros = f"{len(df):,}".replace(",", ".")
+            
+            # Sincronizar output
+            with print_lock:
+                # Exibir no terminal (resumido)
+                print(f"✓ {descricao}: {qtd_registros} registros ({tempo_str})")
+                
+                # Registrar no log (completo)
+                salvar_log(f"✓ {descricao}")
+                salvar_log(f"   📊 Registros: {qtd_registros}")
+                salvar_log(f"   ⏱️  Tempo: {tempo_str}")
+                salvar_log("-"*80)
+            
+            dataframes[nome_df] = df
+    
+    # Tempo total
+    tempo_total = time.time() - tempo_total_inicio
+    minutos_total = int(tempo_total // 60)
+    segundos_total = int(tempo_total % 60)
+    tempo_total_str = f"{minutos_total}m {segundos_total}s" if minutos_total > 0 else f"{segundos_total}s"
+    
+    print(f"\n✅ Carregamento concluído em {tempo_total_str}")
+    salvar_log("="*80)
+    salvar_log(f"✅ CARREGAMENTO CONCLUÍDO")
+    salvar_log(f"   ⏱️  Tempo total: {tempo_total_str}")
+    salvar_log("="*80)
+    
+    return dataframes
 
 def load_all_data(
     csv_path: Optional[str] = None,

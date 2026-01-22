@@ -5,7 +5,8 @@ Contém funções para gerar métricas acumuladas (mensais) de acionamentos.
 
 import pandas as pd
 from functools import reduce
-from ..utils import salvar_log, registrar_tempo
+from ..utils import registrar_tempo, salvar_log
+from ..config import LOG_ACIONAMENTOS
 
 
 @registrar_tempo("Funil de acionamentos fxAtraso e origem humano")
