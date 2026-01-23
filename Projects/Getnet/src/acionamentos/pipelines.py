@@ -3,8 +3,8 @@ Módulo de Pipeline de Acionamentos
 Orquestra as funções de tratamento, métricas acumuladas e diárias.
 """
 
-from ..utils import unir_dataframes
-from .tratamentos import (
+from Projects.utils.utils import unir_dataframes
+from .data_processing import (
     tratar_acionamentos_tabulacao,
     confere_tabulacao_acionamentos,
     enriquecer_acionamentos
@@ -84,6 +84,20 @@ def acionamentos_humano(df_tab_acionamentos, df_tabulacao_aciona, df_dw_calendar
 
     df_analitico_acionamentos_humano = df_acionamentos_enriquecido_limpo.copy()
     
+    # ============================================
+    # ETAPA 5: SALVAR ANALÍTICOS
+    # ============================================
+    from Projects.utils.utils import salvar_dataframes_csv
+    from ..config import PROCESS_PATHS
+    
+    salvar_dataframes_csv(
+        caminho_destino=PROCESS_PATHS["acionamentos"],
+        df_enriquecido=df_acionamentos_enriquecido_limpo,
+        df_sem_faixa=df_acion_semFaixa_humano,
+        df_sem_descricao=df_acion_semDescricao_humano,
+        df_sem_origem=df_acion_semOrigem_humano
+    )
+
     return (
         df_acionamentos_humano, 
         df_analitico_acionamentos_humano, 

@@ -8,7 +8,7 @@ Estrutura de módulos:
 - pipelines: Orquestração completa
 """
 
-from .tratamentos import (
+from .data_processing import (
     tratar_acionamentos_tabulacao,
     confere_tabulacao_acionamentos,
     enriquecer_acionamentos,

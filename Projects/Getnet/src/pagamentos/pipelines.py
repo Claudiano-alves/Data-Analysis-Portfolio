@@ -4,7 +4,7 @@ Orquestra as funções de tratamento e geração de métricas de pagamentos.
 """
 
 from ..utils import unir_dataframes
-from .tratamentos import data_pagamentos
+from .data_processing import data_pagamentos
 from .metricas_acumuladas import gerar_acumulado_por_dia_util
 
 
@@ -29,7 +29,7 @@ def processar_pagamentos_completo(df_pagamentos, df_acordos, df_mailing_hist, df
     # ============================================
     # ETAPA 1: TRATAMENTO
     # ============================================
-    df_pagamentos_tratado, df_sem_fx_atraso, df_pagamentos_analitico = data_pagamentos(
+    df_pagamentos_tratado, df_pagamentos_sem_fx_atraso, df_pagamentos_analitico = data_pagamentos(
         df_pagamentos, df_acordos, df_mailing_hist, df_dw_calendario
     )
     
@@ -46,7 +46,19 @@ def processar_pagamentos_completo(df_pagamentos, df_acordos, df_mailing_hist, df
     else:
         df_pagamentos_final = unir_dataframes(df_pagamentos_acum, df_esforco, df_unique)
     
-    return df_pagamentos_final, df_sem_fx_atraso, df_pagamentos_analitico
+    # ============================================
+    # ETAPA 5: SALVAR ANALÍTICOS
+    # ============================================
+    from Projects.utils.utils import salvar_dataframes_csv
+    from ..config import PROCESS_PATHS
+    
+    salvar_dataframes_csv(
+        caminho_destino=PROCESS_PATHS["pagamentos"],
+        df_pagamentos_analitico=df_pagamentos_analitico,
+        df_pagamentos_sem_fx_atraso=df_pagamentos_sem_fx_atraso
+    )
+
+    return df_pagamentos_final, df_pagamentos_sem_fx_atraso, df_pagamentos_analitico
 
 
 def tratar_pagamentos(df_pagamentos, df_acordos, df_mailing_hist, df_dw_calendario):

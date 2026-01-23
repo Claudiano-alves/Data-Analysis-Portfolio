@@ -5,7 +5,7 @@ Contém funções para limpeza, validação e enriquecimento de dados de mailing
 
 import numpy as np
 import pandas as pd
-from ..utils import registrar_tempo, salvar_log
+from Projects.utils.utils import registrar_tempo, salvar_log
 from ..config import LOG_MAILING
 
 
@@ -87,7 +87,7 @@ def adicionar_valor_principal(df_mailing_hist, df_cad_devf):
     df_cad_devf_temp = df_cad_devf[['CONTRATO_FIN', 'VALORPRIN_FIN']].copy()
     df_cad_devf_temp['CONTRATO_FIN'] = df_cad_devf_temp['CONTRATO_FIN'].astype(str)
     
-    salvar_log(f"📊 Antes do join - Mailing: {len(df_resultado):,} | CAD_DEVF: {len(df_cad_devf_temp):,}")
+    salvar_log(f"📊 Antes do join - Mailing: {len(df_resultado):,} | CAD_DEVF: {len(df_cad_devf_temp):,}", arquivo_log=LOG_MAILING)
     
     df_resultado = df_resultado.merge(
         df_cad_devf_temp,
@@ -98,9 +98,9 @@ def adicionar_valor_principal(df_mailing_hist, df_cad_devf):
     
     df_resultado = df_resultado.drop(columns=['CONTRATO_FIN'])
     
-    salvar_log(f"📊 Após join: {len(df_resultado):,}")
-    salvar_log(f"📊 Contratos com valor: {df_resultado['VALORPRIN_FIN'].notna().sum():,}")
-    salvar_log(f"📊 Contratos sem valor: {df_resultado['VALORPRIN_FIN'].isna().sum():,}")
+    salvar_log(f"📊 Após join: {len(df_resultado):,}", arquivo_log=LOG_MAILING)
+    salvar_log(f"📊 Contratos com valor: {df_resultado['VALORPRIN_FIN'].notna().sum():,}", arquivo_log=LOG_MAILING)
+    salvar_log(f"📊 Contratos sem valor: {df_resultado['VALORPRIN_FIN'].isna().sum():,}", arquivo_log=LOG_MAILING)
     
     return df_resultado
 

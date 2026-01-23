@@ -7,7 +7,7 @@ Estrutura de módulos:
 - pipelines: Orquestração completa
 """
 
-from .tratamentos import (
+from .data_processing import (
     adicionar_produto,
     adicionar_faixa_atraso,
     adicionar_valor_principal,

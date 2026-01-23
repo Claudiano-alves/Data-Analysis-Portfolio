@@ -4,12 +4,13 @@ Combina o carregamento de dados com a execução do pipeline modular.
 """
 
 import time
-from ..utils import salvar_log, registrar_tempo
+from Projects.utils.utils import salvar_log, registrar_tempo
 from Projects.utils.data_loader import load_all_data
 from .pipelines import executar_pipeline_funil_completo
+from ..config import LOG_LOADING
 
 
-@registrar_tempo("Carregamento de dados")
+@registrar_tempo("Carregamento de dados", arquivo_log=LOG_LOADING)
 def carregar_dados_paralelo(
     csv_path=None,
     max_workers=6,
@@ -50,9 +51,9 @@ def carregar_dados_paralelo(
                 'discagens_trestto': pd.DataFrame
             }
     """
-    salvar_log("=" * 80)
-    salvar_log("INICIANDO CARREGAMENTO PARALELO DE DADOS")
-    salvar_log("=" * 80)
+    salvar_log("=" * 80, arquivo_log=LOG_LOADING)
+    salvar_log("INICIANDO CARREGAMENTO PARALELO DE DADOS", arquivo_log=LOG_LOADING)
+    salvar_log("=" * 80, arquivo_log=LOG_LOADING)
     
     tempo_inicio = time.time()
     
@@ -72,14 +73,14 @@ def carregar_dados_paralelo(
         
         tempo_total = time.time() - tempo_inicio
         
-        salvar_log(f"\n✅ Todos os dados carregados em {tempo_total:.1f}s")
-        salvar_log("=" * 80)
+        salvar_log(f"\n✅ Todos os dados carregados em {tempo_total:.1f}s", arquivo_log=LOG_LOADING)
+        salvar_log("=" * 80, arquivo_log=LOG_LOADING)
         
         return dados
     
     except Exception as e:
-        salvar_log(f"\n✗ ERRO ao carregar dados: {str(e)}")
-        salvar_log("=" * 80)
+        salvar_log(f"\n✗ ERRO ao carregar dados: {str(e)}", arquivo_log=LOG_LOADING)
+        salvar_log("=" * 80, arquivo_log=LOG_LOADING)
         raise
 
 
@@ -130,9 +131,9 @@ def executar_pipeline_completo_com_carregamento(
             csv_path=r"\\path\\to\\base.csv"
         )
     """
-    salvar_log("\n" + "=" * 80)
-    salvar_log("INICIANDO PIPELINE COMPLETO (CARREGAMENTO + PROCESSAMENTO)")
-    salvar_log("=" * 80)
+    salvar_log("\n" + "=" * 80, arquivo_log=LOG_LOADING)
+    salvar_log("INICIANDO PIPELINE COMPLETO (CARREGAMENTO + PROCESSAMENTO)", arquivo_log=LOG_LOADING)
+    salvar_log("=" * 80, arquivo_log=LOG_LOADING)
     
     tempo_total_inicio = time.time()
     
@@ -140,7 +141,7 @@ def executar_pipeline_completo_com_carregamento(
         # ============================================
         # ETAPA 1: CARREGAR DADOS
         # ============================================
-        salvar_log("\n📥 ETAPA 1: Carregando dados do banco...")
+        salvar_log("\n📥 ETAPA 1: Carregando dados do banco...", arquivo_log=LOG_LOADING)
         tempo_carga = time.time()
         
         dados = carregar_dados_paralelo(
@@ -161,7 +162,7 @@ def executar_pipeline_completo_com_carregamento(
         # ============================================
         # ETAPA 2: PROCESSAR DADOS
         # ============================================
-        salvar_log("\n⚙️ ETAPA 2: Processando dados com pipeline modular...")
+        salvar_log("\n⚙️ ETAPA 2: Processando dados com pipeline modular...", arquivo_log=LOG_LOADING)
         tempo_proc = time.time()
         
         resultados = executar_pipeline_funil_completo(
@@ -182,18 +183,18 @@ def executar_pipeline_completo_com_carregamento(
         # ============================================
         tempo_total = time.time() - tempo_total_inicio
         
-        salvar_log("\n" + "=" * 80)
-        salvar_log("RESUMO DO PIPELINE COMPLETO")
-        salvar_log("=" * 80)
-        salvar_log(f"📥 Carregamento: {tempo_carga_total:.1f}s")
-        salvar_log(f"⚙️ Processamento: {tempo_proc_total:.1f}s")
-        salvar_log(f"📊 TEMPO TOTAL: {tempo_total:.1f}s")
+        salvar_log("\n" + "=" * 80, arquivo_log=LOG_LOADING)
+        salvar_log("RESUMO DO PIPELINE COMPLETO", arquivo_log=LOG_LOADING)
+        salvar_log("=" * 80, arquivo_log=LOG_LOADING)
+        salvar_log(f"📥 Carregamento: {tempo_carga_total:.1f}s", arquivo_log=LOG_LOADING)
+        salvar_log(f"⚙️ Processamento: {tempo_proc_total:.1f}s", arquivo_log=LOG_LOADING)
+        salvar_log(f"📊 TEMPO TOTAL: {tempo_total:.1f}s", arquivo_log=LOG_LOADING)
         salvar_log(f"📈 Registros consolidados: {len(resultados['consolidado']):,}")
-        salvar_log("=" * 80 + "\n")
+        salvar_log("=" * 80 + "\n", arquivo_log=LOG_LOADING)
         
         return resultados
     
     except Exception as e:
-        salvar_log(f"\n✗ ERRO NO PIPELINE COMPLETO: {str(e)}")
-        salvar_log("=" * 80)
+        salvar_log(f"\n✗ ERRO NO PIPELINE COMPLETO: {str(e)}", arquivo_log=LOG_LOADING)
+        salvar_log("=" * 80, arquivo_log=LOG_LOADING)
         raise

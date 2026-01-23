@@ -8,7 +8,8 @@ Responsável pela orquestração completa do processamento de discagens trestto:
 """
 
 import pandas as pd
-from ...utils import unir_dataframes, salvar_log, registrar_tempo
+from Projects.utils.utils import unir_dataframes, salvar_log, registrar_tempo
+from ...config import LOG_DISCAGENS
 from .tratamentos import enriquecer_discagens_trestto
 from .metricas_acumuladas import (
     acionamentos_esforco_trestto,
@@ -17,7 +18,7 @@ from .metricas_acumuladas import (
 )
 
 
-@registrar_tempo("Pipeline completo DISCAGENS TRESTTO")
+@registrar_tempo("Pipeline completo DISCAGENS TRESTTO", arquivo_log=LOG_DISCAGENS)
 def processar_discagens_trestto_completo(
     df_discagens_trestto,
     df_mailing_hist,
@@ -40,22 +41,22 @@ def processar_discagens_trestto_completo(
     """
     
     # 1. Enriquecimento com mailing e calendário
-    salvar_log("="*80)
-    salvar_log("📊 INICIANDO PIPELINE DE DISCAGENS TRESTTO")
-    salvar_log("="*80)
+    salvar_log("="*80, arquivo_log=LOG_DISCAGENS)
+    salvar_log("📊 INICIANDO PIPELINE DE DISCAGENS TRESTTO", arquivo_log=LOG_DISCAGENS)
+    salvar_log("="*80, arquivo_log=LOG_DISCAGENS)
     
-    df_com_fx_atraso, df_sem_fx_atraso = enriquecer_discagens_trestto(
+    df_com_fx_atraso, df_discagens_trestto_sem_fx_atraso = enriquecer_discagens_trestto(
         df_discagens_trestto, df_mailing_hist, df_dw_calendario
     )
     
     # 2. Calcular métricas
-    salvar_log("\n📈 Calculando métricas acumuladas...")
+    salvar_log("\n📈 Calculando métricas acumuladas...", arquivo_log=LOG_DISCAGENS)
     df_esforco = acionamentos_esforco_trestto(df_com_fx_atraso, df_dw_calendario)
     df_unique = acionamentos_unique_trestto(df_com_fx_atraso, df_dw_calendario)
     df_fxAtraso_origem = acionamentos_fxAtraso_origem_trestto(df_com_fx_atraso, df_dw_calendario)
     
     # 3. Unir resultados
-    salvar_log("\n📦 Consolidando resultados...")
+    salvar_log("\n📦 Consolidando resultados...", arquivo_log=LOG_DISCAGENS)
     df_acionamentos_trestto = unir_dataframes(
         df_fxAtraso_origem, df_unique, df_esforco
     )
@@ -63,10 +64,22 @@ def processar_discagens_trestto_completo(
     # Analitico é o dataframe enriquecido
     df_analitico_trestto = df_com_fx_atraso.copy()
     
-    salvar_log("\n✅ PIPELINE DE DISCAGENS TRESTTO CONCLUÍDO!")
-    salvar_log("="*80)
+    salvar_log("\n✅ PIPELINE DE DISCAGENS TRESTTO CONCLUÍDO!", arquivo_log=LOG_DISCAGENS)
+    salvar_log("="*80, arquivo_log=LOG_DISCAGENS)
     
-    return df_acionamentos_trestto, df_analitico_trestto, df_sem_fx_atraso
+    # ============================================
+    # ETAPA 5: SALVAR ANALÍTICOS
+    # ============================================
+    from Projects.utils.utils import salvar_dataframes_csv
+    from ...config import PROCESS_PATHS
+    
+    salvar_dataframes_csv(
+        caminho_destino=PROCESS_PATHS["discagens"],
+        df_analitico_trestto=df_analitico_trestto,
+        df_discagens_trestto_sem_fx_atraso=df_discagens_trestto_sem_fx_atraso
+    )
+
+    return df_acionamentos_trestto, df_analitico_trestto, df_discagens_trestto_sem_fx_atraso
 
 
 __all__ = [

@@ -4,11 +4,11 @@ Contém funções para gerar métricas acumuladas (mensais) de pagamentos.
 """
 
 import pandas as pd
-from ..utils import registrar_tempo, unir_dataframes, salvar_log
+from Projects.utils.utils import registrar_tempo, unir_dataframes, salvar_log
 from ..config import LOG_PAGAMENTOS
 
 
-@registrar_tempo("Gerando acumulado de pagamentos")
+@registrar_tempo("Gerando acumulado de pagamentos", arquivo_log=LOG_PAGAMENTOS)
 def gerar_acumulado_por_dia_util(df_agrupado):
     """
     Gera DataFrame com acumulado de pagamentos do início do mês até cada dia útil.
@@ -19,14 +19,14 @@ def gerar_acumulado_por_dia_util(df_agrupado):
     Returns:
         tuple: (df_acumulado, df_esforco, df_unique)
     """
-    salvar_log("=" * 60)
-    salvar_log("GERANDO ACUMULADO POR DIA ÚTIL")
-    salvar_log("=" * 60)
+    salvar_log("=" * 60, arquivo_log=LOG_PAGAMENTOS)
+    salvar_log("GERANDO ACUMULADO POR DIA ÚTIL", arquivo_log=LOG_PAGAMENTOS)
+    salvar_log("=" * 60, arquivo_log=LOG_PAGAMENTOS)
     
     if df_agrupado.empty:
-        salvar_log("AVISO: DataFrame de pagamentos está vazio. Retornando DataFrames vazios.")
-        salvar_log("=" * 60)
-        
+        salvar_log("AVISO: DataFrame de pagamentos está vazio. Retornando DataFrames vazios.", arquivo_log=LOG_PAGAMENTOS)
+        salvar_log("=" * 60, arquivo_log=LOG_PAGAMENTOS)
+
         colunas = [
             'DATA_PAGTO', 'Indicador', 'qte', 'FX_ATRASO', 'TIPO',
             'MesAbreviado', 'nr_dia_util', 'quartil', 'dt_mes', 'VALOR_PARC'
@@ -37,11 +37,11 @@ def gerar_acumulado_por_dia_util(df_agrupado):
     resultados = []
     datas_unicas = sorted(df_agrupado['DATA_PAGTO'].unique())
     
-    salvar_log(f"Total de datas únicas a processar: {len(datas_unicas)}")
+    salvar_log(f"Total de datas únicas a processar: {len(datas_unicas)}", arquivo_log=LOG_PAGAMENTOS)
     
     for i, data in enumerate(datas_unicas, 1):
         if i % 10 == 0 or i == len(datas_unicas):
-            salvar_log(f"   Processando {i}/{len(datas_unicas)} datas...")
+            salvar_log(f"   Processando {i}/{len(datas_unicas)} datas...", arquivo_log=LOG_PAGAMENTOS)
         
         inicio_mes = pd.Timestamp(data.year, data.month, 1).date()
         
@@ -73,9 +73,9 @@ def gerar_acumulado_por_dia_util(df_agrupado):
         resultados.append(agrupado)
     
     if not resultados:
-        salvar_log("AVISO: Nenhum resultado gerado após processamento. Retornando DataFrames vazios.")
-        salvar_log("=" * 60)
-        
+        salvar_log("AVISO: Nenhum resultado gerado após processamento. Retornando DataFrames vazios.", arquivo_log=LOG_PAGAMENTOS)
+        salvar_log("=" * 60, arquivo_log=LOG_PAGAMENTOS)
+
         colunas = [
             'DATA_PAGTO', 'Indicador', 'qte', 'FX_ATRASO', 'TIPO',
             'MesAbreviado', 'nr_dia_util', 'quartil', 'dt_mes', 'VALOR_PARC'
@@ -90,11 +90,11 @@ def gerar_acumulado_por_dia_util(df_agrupado):
         'MesAbreviado', 'nr_dia_util', 'quartil', 'dt_mes', 'VALOR_PARC'
     ]]
     
-    salvar_log(f"Total de registros acumulados gerados: {len(df_acumulado)}")
-    salvar_log(f"Quantidade total final: {df_acumulado['qte'].sum()}")
-    salvar_log(f"Valor total final: R$ {df_acumulado['VALOR_PARC'].sum():,.2f}")
-    salvar_log("=" * 60)
-    
+    salvar_log(f"Total de registros acumulados gerados: {len(df_acumulado)}", arquivo_log=LOG_PAGAMENTOS)
+    salvar_log(f"Quantidade total final: {df_acumulado['qte'].sum()}", arquivo_log=LOG_PAGAMENTOS)
+    salvar_log(f"Valor total final: R$ {df_acumulado['VALOR_PARC'].sum():,.2f}", arquivo_log=LOG_PAGAMENTOS)
+    salvar_log("=" * 60, arquivo_log=LOG_PAGAMENTOS)
+
     df_acumulado = df_acumulado[df_acumulado['qte'] > 0]
     
     df_unique = df_acumulado.copy()

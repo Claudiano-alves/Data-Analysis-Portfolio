@@ -4,11 +4,11 @@ Contém funções para limpeza, validação e enriquecimento de dados de acionam
 """
 
 import pandas as pd
-from ..utils import registrar_tempo, salvar_log
+from Projects.utils.utils import registrar_tempo, salvar_log
 from ..config import LOG_ACIONAMENTOS
 
 
-@registrar_tempo("Substituindo tabulações por 0 e 1")
+@registrar_tempo("Substituindo tabulações por 0 e 1", arquivo_log=LOG_ACIONAMENTOS)
 def tratar_acionamentos_tabulacao(df_tabualacao_aciona):
     """
     Converte colunas de tabulação para formato binário (0 e 1).
@@ -25,7 +25,7 @@ def tratar_acionamentos_tabulacao(df_tabualacao_aciona):
     return df_tabualacao_aciona
 
 
-@registrar_tempo("Conferindo tabulações aos acionamentos")
+@registrar_tempo("Conferindo tabulações aos acionamentos", arquivo_log=LOG_ACIONAMENTOS)
 def confere_tabulacao_acionamentos(df_tab_acionamentos, df_tabulacao_aciona):
     """
     Faz o merge entre tab_acionamentos e tabulacao_aciona e adiciona flags de CPC, CPCA e PROMESSA
@@ -67,7 +67,7 @@ def confere_tabulacao_acionamentos(df_tab_acionamentos, df_tabulacao_aciona):
     return df_resultado
 
 
-@registrar_tempo("Enriquecendo acionamentos mailing hist e calendário")
+@registrar_tempo("Enriquecendo acionamentos mailing hist e calendário", arquivo_log=LOG_ACIONAMENTOS)
 def enriquecer_acionamentos(df_acionamentos, df_mailing_hist, df_dw_calendario, 
                            separar_inconsistencias_flag=True):
     """
@@ -168,7 +168,7 @@ def enriquecer_acionamentos(df_acionamentos, df_mailing_hist, df_dw_calendario,
         return df_resultado
 
 
-@registrar_tempo("Separando inconsistências")
+@registrar_tempo("Separando inconsistências", arquivo_log=LOG_ACIONAMENTOS)
 def separar_inconsistencias(df_acionamentos):
     """
     Separa acionamentos com inconsistências em DataFrames específicos

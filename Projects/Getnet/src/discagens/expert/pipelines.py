@@ -10,8 +10,9 @@ Responsável pela orquestração completa do processamento de discagens expert:
 """
 
 import pandas as pd
-from ...utils import unir_dataframes, salvar_log, registrar_tempo
-from .tratamentos import (
+from Projects.utils.utils import unir_dataframes, salvar_log, registrar_tempo
+from ...config import LOG_DISCAGENS
+from .data_processing import (
     tratar_base_discagens_expert,
     criar_df_tabulacoes_robo,
     enriquecer_com_tabulacoes_robo,
@@ -25,7 +26,7 @@ from .metricas_acumuladas import (
 )
 
 
-@registrar_tempo("Pipeline completo DISCAGENS EXPERT")
+@registrar_tempo("Pipeline completo DISCAGENS EXPERT", arquivo_log=LOG_DISCAGENS)
 def processar_discagens_expert_completo(
     df_discagens_expert,
     df_mailing_hist,
@@ -51,10 +52,10 @@ def processar_discagens_expert_completo(
     """
     
     # 1. Tratamento base
-    salvar_log("="*80)
-    salvar_log("📊 INICIANDO PIPELINE DE DISCAGENS EXPERT")
-    salvar_log("="*80)
-    
+    salvar_log("="*80, arquivo_log=LOG_DISCAGENS)
+    salvar_log("📊 INICIANDO PIPELINE DE DISCAGENS EXPERT", arquivo_log=LOG_DISCAGENS)
+    salvar_log("="*80, arquivo_log=LOG_DISCAGENS)
+
     df_tratado = tratar_base_discagens_expert(df_discagens_expert)
     
     # 2. Enriquecer com tabulações robô
@@ -62,34 +63,48 @@ def processar_discagens_expert_completo(
     df_enriquecido = enriquecer_com_tabulacoes_robo(df_tratado, df_tabulacoes_robo)
     
     # 3. Enriquecer com mailing e calendário
-    df_com_fx_atraso, df_sem_fx_atraso = enriquecer_com_mailing_calendario(
+    df_com_fx_atraso, df_discagens_sem_fx_atraso = enriquecer_com_mailing_calendario(
         df_enriquecido, df_mailing_hist, df_dw_calendario
     )
     
     # 4. Segmentar
-    df_restante, df_humano_tabulados, df_operacao_outros = segmentar_discagens_expert(
+    df_enriquecido_discagens_expert_limpo, df_humano_tabulados_como_robo, df_dicagens_operacaoOutros = segmentar_discagens_expert(
         df_com_fx_atraso
     )
     
     # 5. Calcular métricas
-    salvar_log("\n📈 Calculando métricas acumuladas...")
-    df_esforco = acionamentos_esforco_expert(df_restante, df_dw_calendario)
-    df_unique = acionamentos_unique_expert(df_restante, df_dw_calendario)
-    df_fxAtraso_origem = acionamentos_fxAtraso_origem_expert(df_restante, df_dw_calendario)
+    salvar_log("\n📈 Calculando métricas acumuladas...", arquivo_log=LOG_DISCAGENS)
+    df_esforco = acionamentos_esforco_expert(df_enriquecido_discagens_expert_limpo, df_dw_calendario)
+    df_unique = acionamentos_unique_expert(df_enriquecido_discagens_expert_limpo, df_dw_calendario)
+    df_fxAtraso_origem = acionamentos_fxAtraso_origem_expert(df_enriquecido_discagens_expert_limpo, df_dw_calendario)
     
     # 6. Unir resultados
-    salvar_log("\n📦 Consolidando resultados...")
+    salvar_log("\n📦 Consolidando resultados...", arquivo_log=LOG_DISCAGENS)
     df_acionamentos_expert = unir_dataframes(
         df_fxAtraso_origem, df_unique, df_esforco
     )
-    
+
     # Analitico é o dataframe segmentado
-    df_analitico_expert = df_restante.copy()
+    df_analitico_expert = df_enriquecido_discagens_expert_limpo.copy()
     
-    salvar_log("\n✅ PIPELINE DE DISCAGENS EXPERT CONCLUÍDO!")
-    salvar_log("="*80)
+    salvar_log("\n✅ PIPELINE DE DISCAGENS EXPERT CONCLUÍDO!", arquivo_log=LOG_DISCAGENS)
+    salvar_log("="*80, arquivo_log=LOG_DISCAGENS)
+
+    # ============================================
+    # ETAPA 5: SALVAR ANALÍTICOS
+    # ============================================
+    from Projects.utils.utils import salvar_dataframes_csv
+    from ...config import PROCESS_PATHS
     
-    return df_acionamentos_expert, df_analitico_expert, df_sem_fx_atraso, df_humano_tabulados, df_operacao_outros
+    salvar_dataframes_csv(
+        caminho_destino=PROCESS_PATHS["discagens"],
+        df_analitico_expert=df_analitico_expert,
+        df_discagens_sem_fx_atraso=df_discagens_sem_fx_atraso,
+        df_humano_tabulados_como_robo=df_humano_tabulados_como_robo,
+        df_dicagens_operacaoOutros=df_dicagens_operacaoOutros
+    )
+    
+    return df_acionamentos_expert, df_analitico_expert, df_discagens_sem_fx_atraso, df_humano_tabulados_como_robo, df_dicagens_operacaoOutros
 
 
 __all__ = [

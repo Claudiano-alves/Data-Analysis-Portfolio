@@ -4,11 +4,11 @@ Contém funções para gerar métricas acumuladas (mensais) de mailing.
 """
 
 import pandas as pd
-from ..utils import registrar_tempo, unir_dataframes, salvar_log
+from Projects.utils.utils import registrar_tempo, unir_dataframes, salvar_log
 from ..config import LOG_MAILING
 
 
-@registrar_tempo("Acumulado mailing hist por faixa de atraso")
+@registrar_tempo("Acumulado mailing hist por faixa de atraso", arquivo_log=LOG_MAILING)
 def gerar_acumulado_maling_hist_fxAtraso(df_maling_hist, df_dw_calendario):
     """
     Gera DataFrame com acumulado de contratos e CPFs do mailing por dia útil,
@@ -121,7 +121,7 @@ def gerar_acumulado_maling_hist_fxAtraso(df_maling_hist, df_dw_calendario):
     return df_acumulado
 
 
-@registrar_tempo("Acumulado mailing hist unique")
+@registrar_tempo("Acumulado mailing hist unique", arquivo_log=LOG_MAILING)
 def gerar_acumulado_maling_hist_unique(df_maling_hist, df_dw_calendario):
     """
     Gera DataFrame com acumulado ÚNICO de contratos e CPFs do mailing por dia útil.

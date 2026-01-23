@@ -21,6 +21,7 @@ LOG_ACIONAMENTOS = os.path.join(LOGS_DIR, 'acionamentos.txt')
 LOG_DISCAGENS = os.path.join(LOGS_DIR, 'discagens.txt')
 LOG_MAILING = os.path.join(LOGS_DIR, 'mailing.txt')
 LOG_PAGAMENTOS = os.path.join(LOGS_DIR, 'pagamentos.txt')
+LOG_LOADING = os.path.join(LOGS_DIR, 'loading.txt')
 
 # Dicionário de logs (útil para acesso dinâmico)
 LOGS = {
@@ -28,7 +29,28 @@ LOGS = {
     'discagens': LOG_DISCAGENS,
     'mailing': LOG_MAILING,
     'pagamentos': LOG_PAGAMENTOS,
+    'loading': LOG_LOADING,
 }
+
+# ============================================
+# OUTRAS CONFIGURAÇÕES (Adicionar conforme necessário)
+# ============================================
+
+# config.py
+from pathlib import Path
+
+# Caminho base para salvar os arquivos analíticos
+caminho_base = Path(r"\\trc-dc-ad\Planejamento\MIS\CARTEIRAS\GetNet\Analíticos")
+
+# Dicionário com os caminhos específicos
+PROCESS_PATHS = {
+    "acionamentos": caminho_base / "acionamentos",
+    "pagamentos": caminho_base / "pagamentos",
+    "acordos": caminho_base / "acordos",
+    "discagens": caminho_base / "discagens"
+}
+
+
 
 # ============================================
 # OUTRAS CONFIGURAÇÕES (Adicionar conforme necessário)

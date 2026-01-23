@@ -4,15 +4,15 @@ Orquestra o pipeline completo integrando todos os módulos.
 """
 
 import time
-from ..utils import unir_dataframes, salvar_log, registrar_tempo
+from Projects.utils.utils import unir_dataframes, salvar_log, registrar_tempo
 from ..mailing.pipelines import processar_mailing_completo
 from ..pagamentos.pipelines import processar_pagamentos_completo
 from ..acionamentos.pipelines import acionamentos_humano
 from ..discagens.expert import processar_discagens_expert_completo
 from ..discagens.trestto import processar_discagens_trestto_completo
+from ..config import LOG_LOADING
 
-
-@registrar_tempo("Pipeline completo de funil")
+@registrar_tempo("Pipeline completo de funil", arquivo_log=LOG_LOADING)
 def executar_pipeline_funil_completo(
     df_tab_acionamentos,
     df_tabulacao_aciona,
@@ -46,9 +46,9 @@ def executar_pipeline_funil_completo(
     Returns:
         dict: Dicionário com todos os resultados do pipeline
     """
-    salvar_log("=" * 80)
-    salvar_log("INICIANDO PIPELINE COMPLETO DE FUNIL")
-    salvar_log("=" * 80)
+    salvar_log("=" * 80, arquivo_log=LOG_LOADING)
+    salvar_log("INICIANDO PIPELINE COMPLETO DE FUNIL", arquivo_log=LOG_LOADING)
+    salvar_log("=" * 80, arquivo_log=LOG_LOADING)
     
     tempo_inicio = time.time()
     
@@ -58,7 +58,7 @@ def executar_pipeline_funil_completo(
         # ============================================
         # ETAPA 1: MAILING (independente)
         # ============================================
-        salvar_log("\n📧 ETAPA 1: Processando Mailing...")
+        salvar_log("\n📧 ETAPA 1: Processando Mailing...", arquivo_log=LOG_LOADING)
         tempo_etapa = time.time()
         
         df_mailing_final = processar_mailing_completo(
@@ -67,13 +67,13 @@ def executar_pipeline_funil_completo(
         )
         
         tempo_mailing = time.time() - tempo_etapa
-        salvar_log(f"✓ Mailing processado em {tempo_mailing:.1f}s")
+        salvar_log(f"✓ Mailing processado em {tempo_mailing:.1f}s", arquivo_log=LOG_LOADING)
         resultados['mailing'] = df_mailing_final
         
         # ============================================
         # ETAPA 2: ACIONAMENTOS (depende de mailing)
         # ============================================
-        salvar_log("\n📞 ETAPA 2: Processando Acionamentos...")
+        salvar_log("\n📞 ETAPA 2: Processando Acionamentos...", arquivo_log=LOG_LOADING)
         tempo_etapa = time.time()
         
         (
@@ -90,14 +90,14 @@ def executar_pipeline_funil_completo(
         )
         
         tempo_acionamentos = time.time() - tempo_etapa
-        salvar_log(f"✓ Acionamentos processados em {tempo_acionamentos:.1f}s")
+        salvar_log(f"✓ Acionamentos processados em {tempo_acionamentos:.1f}s", arquivo_log=LOG_LOADING)
         resultados['acionamentos'] = df_acionamentos_final
         resultados['acionamentos_analitico'] = df_acionamentos_analitico
         
         # ============================================
         # ETAPA 3: PAGAMENTOS (depende de mailing)
         # ============================================
-        salvar_log("\n💰 ETAPA 3: Processando Pagamentos...")
+        salvar_log("\n💰 ETAPA 3: Processando Pagamentos...", arquivo_log=LOG_LOADING)
         tempo_etapa = time.time()
         
         (
@@ -112,21 +112,21 @@ def executar_pipeline_funil_completo(
         )
         
         tempo_pagamentos = time.time() - tempo_etapa
-        salvar_log(f"✓ Pagamentos processados em {tempo_pagamentos:.1f}s")
+        salvar_log(f"✓ Pagamentos processados em {tempo_pagamentos:.1f}s", arquivo_log=LOG_LOADING)
         resultados['pagamentos'] = df_pagamentos_final
         resultados['pagamentos_analitico'] = df_pagamentos_analitico
         
         # ============================================
         # ETAPA 4: DISCAGENS (independentes)
         # ============================================
-        salvar_log("\n📞 ETAPA 4: Processando Discagens...")
+        salvar_log("\n📞 ETAPA 4: Processando Discagens...", arquivo_log=LOG_LOADING)
         
         df_discagens_expert_final = None
         df_discagens_trestto_final = None
         
         if df_discagens_expert is not None and not df_discagens_expert.empty:
             tempo_etapa = time.time()
-            salvar_log("\n   🔹 Processando Discagens EXPERT...")
+            salvar_log("\n   🔹 Processando Discagens EXPERT...", arquivo_log=LOG_LOADING)
             
             (
                 df_discagens_expert_final,
@@ -141,11 +141,11 @@ def executar_pipeline_funil_completo(
             )
             
             tempo_expert = time.time() - tempo_etapa
-            salvar_log(f"   ✓ Discagens EXPERT: {len(df_discagens_expert_final):,} registros ({tempo_expert:.1f}s)")
+            salvar_log(f"   ✓ Discagens EXPERT: {len(df_discagens_expert_final):,} registros ({tempo_expert:.1f}s)", arquivo_log=LOG_LOADING)
         
         if df_discagens_trestto is not None and not df_discagens_trestto.empty:
             tempo_etapa = time.time()
-            salvar_log("\n   🔹 Processando Discagens TRESTTO...")
+            salvar_log("\n   🔹 Processando Discagens TRESTTO...", arquivo_log=LOG_LOADING)
             
             (
                 df_discagens_trestto_final,
@@ -158,12 +158,12 @@ def executar_pipeline_funil_completo(
             )
             
             tempo_trestto = time.time() - tempo_etapa
-            salvar_log(f"   ✓ Discagens TRESTTO: {len(df_discagens_trestto_final):,} registros ({tempo_trestto:.1f}s)")
+            salvar_log(f"   ✓ Discagens TRESTTO: {len(df_discagens_trestto_final):,} registros ({tempo_trestto:.1f}s)", arquivo_log=LOG_LOADING)
         
         # ============================================
         # ETAPA 5: CONSOLIDAÇÃO
         # ============================================
-        salvar_log("\n🔗 ETAPA 5: Consolidando resultados...")
+        salvar_log("\n🔗 ETAPA 5: Consolidando resultados...", arquivo_log=LOG_LOADING)
         tempo_etapa = time.time()
         
         df_consolidado = consolidar_dataframes_funil(
@@ -175,7 +175,7 @@ def executar_pipeline_funil_completo(
         )
         
         tempo_consolidacao = time.time() - tempo_etapa
-        salvar_log(f"✓ Consolidação realizada em {tempo_consolidacao:.1f}s")
+        salvar_log(f"✓ Consolidação realizada em {tempo_consolidacao:.1f}s", arquivo_log=LOG_LOADING)
         resultados['consolidado'] = df_consolidado
         
         # ============================================
@@ -183,21 +183,21 @@ def executar_pipeline_funil_completo(
         # ============================================
         tempo_total = time.time() - tempo_inicio
         
-        salvar_log("\n" + "=" * 80)
-        salvar_log("RESUMO DO PIPELINE")
-        salvar_log("=" * 80)
-        salvar_log(f"✓ Mailing: {len(df_mailing_final):,} registros ({tempo_mailing:.1f}s)")
-        salvar_log(f"✓ Acionamentos: {len(df_acionamentos_final):,} registros ({tempo_acionamentos:.1f}s)")
-        salvar_log(f"✓ Pagamentos: {len(df_pagamentos_final):,} registros ({tempo_pagamentos:.1f}s)")
-        salvar_log(f"✓ Consolidado: {len(df_consolidado):,} registros ({tempo_consolidacao:.1f}s)")
-        salvar_log(f"\n⏱️ TEMPO TOTAL: {tempo_total:.1f}s")
-        salvar_log("=" * 80)
+        salvar_log("\n" + "=" * 80, arquivo_log=LOG_LOADING)
+        salvar_log("RESUMO DO PIPELINE", arquivo_log=LOG_LOADING)
+        salvar_log("=" * 80, arquivo_log=LOG_LOADING)
+        salvar_log(f"✓ Mailing: {len(df_mailing_final):,} registros ({tempo_mailing:.1f}s)", arquivo_log=LOG_LOADING)
+        salvar_log(f"✓ Acionamentos: {len(df_acionamentos_final):,} registros ({tempo_acionamentos:.1f}s)", arquivo_log=LOG_LOADING)
+        salvar_log(f"✓ Pagamentos: {len(df_pagamentos_final):,} registros ({tempo_pagamentos:.1f}s)", arquivo_log=LOG_LOADING)
+        salvar_log(f"✓ Consolidado: {len(df_consolidado):,} registros ({tempo_consolidacao:.1f}s)", arquivo_log=LOG_LOADING)
+        salvar_log(f"\n⏱️ TEMPO TOTAL: {tempo_total:.1f}s", arquivo_log=LOG_LOADING)
+        salvar_log("=" * 80, arquivo_log=LOG_LOADING)
         
         return resultados
     
     except Exception as e:
-        salvar_log(f"\n✗ ERRO NO PIPELINE: {str(e)}")
-        salvar_log("=" * 80)
+        salvar_log(f"\n✗ ERRO NO PIPELINE: {str(e)}", arquivo_log=LOG_LOADING)
+        salvar_log("=" * 80, arquivo_log=LOG_LOADING)
         raise
 
 
@@ -221,7 +221,7 @@ def consolidar_dataframes_funil(
     Returns:
         pd.DataFrame: DataFrame consolidado
     """
-    salvar_log("Consolidando DataFrames...")
+    salvar_log("Consolidando DataFrames...", arquivo_log=LOG_LOADING)
     
     dfs_para_unir = [df_mailing, df_acionamentos, df_pagamentos]
     
@@ -233,6 +233,6 @@ def consolidar_dataframes_funil(
     
     df_consolidado = unir_dataframes(*dfs_para_unir)
     
-    salvar_log(f"✓ Consolidação concluída: {len(df_consolidado):,} registros")
+    salvar_log(f"✓ Consolidação concluída: {len(df_consolidado):,} registros", arquivo_log=LOG_LOADING)
     
     return df_consolidado

@@ -10,8 +10,8 @@ Responsável por:
 
 import numpy as np
 import pandas as pd
-from ...utils import salvar_log, registrar_tempo
-
+from Projects.utils.utils import salvar_log, registrar_tempo
+from ...config import LOG_DISCAGENS
 # ============================================
 # CONSTANTES
 # ============================================
@@ -101,7 +101,7 @@ def adicionar_origem(df_discagens_expert):
     return df_discagens_expert
 
 
-@registrar_tempo("Tratamento base discagens expert")
+@registrar_tempo("Tratamento base discagens expert", arquivo_log=LOG_DISCAGENS)
 def tratar_base_discagens_expert(df):
     """
     Aplica todos os tratamentos padrão para base de discagens expert:
@@ -118,11 +118,11 @@ def tratar_base_discagens_expert(df):
     df = adicionar_operacao(df)
     df = adicionar_estado_por_ddd(df)
     df = adicionar_origem(df)
-    salvar_log(f"✅ Tratamento de discagens expert concluído")
+    salvar_log(f"✅ Tratamento de discagens expert concluído", arquivo_log=LOG_DISCAGENS)
     return df
 
 
-@registrar_tempo("Criação DF tabulações robô")
+@registrar_tempo("Criação DF tabulações robô", arquivo_log=LOG_DISCAGENS)
 def criar_df_tabulacoes_robo():
     """
     Cria um DataFrame com classificação de códigos de tabulação.
@@ -159,11 +159,11 @@ def criar_df_tabulacoes_robo():
     df_tabulacoes['CPCA'] = df_tabulacoes['COD_TABULACAO'].isin(codigos_cpca).astype(int)
     df_tabulacoes['PROMESSA'] = df_tabulacoes['COD_TABULACAO'].isin(codigos_promessa).astype(int)
     
-    salvar_log(f"✅ DataFrame de classificação de tabulações criado! ({len(df_tabulacoes)} códigos)")
+    salvar_log(f"✅ DataFrame de classificação de tabulações criado! ({len(df_tabulacoes)} códigos)", arquivo_log=LOG_DISCAGENS)
     return df_tabulacoes
 
 
-@registrar_tempo("Enriquecimento com tabulações robô")
+@registrar_tempo("Enriquecimento com tabulações robô", arquivo_log=LOG_DISCAGENS)
 def enriquecer_com_tabulacoes_robo(df_discagens_expert, df_tabulacoes_robo):
     """
     Enriquece o DataFrame de discagens_expert com classificações de tabulação.
@@ -175,7 +175,7 @@ def enriquecer_com_tabulacoes_robo(df_discagens_expert, df_tabulacoes_robo):
     Returns:
         pd.DataFrame: DataFrame enriquecido com colunas TRABALHADO, ACIONAMENTOS, CPC, CPCA, PROMESSA
     """
-    salvar_log(f"📊 Merge com classificações de tabulação... ({len(df_discagens_expert):,} registros)")
+    salvar_log(f"📊 Merge com classificações de tabulação... ({len(df_discagens_expert):,} registros)", arquivo_log=LOG_DISCAGENS)
     
     df_resultado = df_discagens_expert.merge(
         df_tabulacoes_robo[['COD_TABULACAO', 'ACIONAMENTOS', 'CPC', 'CPCA', 'PROMESSA']],
@@ -190,11 +190,11 @@ def enriquecer_com_tabulacoes_robo(df_discagens_expert, df_tabulacoes_robo):
     colunas_indicadores = ['ACIONAMENTOS', 'CPC', 'CPCA', 'PROMESSA']
     df_resultado[colunas_indicadores] = df_resultado[colunas_indicadores].fillna(0)
     
-    salvar_log(f"✓ Enriquecimento concluído! ({len(df_resultado):,} registros)")
+    salvar_log(f"✓ Enriquecimento concluído! ({len(df_resultado):,} registros)", arquivo_log=LOG_DISCAGENS)
     return df_resultado
 
 
-@registrar_tempo("Enriquecimento com mailing e calendário")
+@registrar_tempo("Enriquecimento com mailing e calendário", arquivo_log=LOG_DISCAGENS)
 def enriquecer_com_mailing_calendario(df_discagens, df_mailing_hist, df_dw_calendario):
     """
     Enriquece o DataFrame de discagens com dados de mailing_hist e calendário.
@@ -220,17 +220,17 @@ def enriquecer_com_mailing_calendario(df_discagens, df_mailing_hist, df_dw_calen
     df_resultado['DATA'] = pd.to_datetime(df_resultado['DATA']).dt.date
     df_mailing_temp['DATA'] = pd.to_datetime(df_mailing_temp['DATA']).dt.date
     
-    salvar_log(f"📊 Merge com mailing_hist... ({len(df_resultado):,} registros)")
+    salvar_log(f"📊 Merge com mailing_hist... ({len(df_resultado):,} registros)", arquivo_log=LOG_DISCAGENS)
     df_resultado = df_resultado.merge(df_mailing_temp, on=['CONTRATO', 'DATA'], how='left')
     registros_sem_fx = df_resultado['FX_ATRASO'].isna().sum()
-    salvar_log(f"   ⚠️  Registros sem FX_ATRASO: {registros_sem_fx:,}")
+    salvar_log(f"   ⚠️  Registros sem FX_ATRASO: {registros_sem_fx:,}", arquivo_log=LOG_DISCAGENS)
     
     # Enriquecer com calendário
     df_resultado['DATA'] = pd.to_datetime(df_resultado['DATA']).dt.date
     df_dw_calendario_temp = df_dw_calendario.copy()
     df_dw_calendario_temp['dt_data'] = pd.to_datetime(df_dw_calendario_temp['dt_data']).dt.date
     
-    salvar_log(f"📅 Merge com dw_calendario...")
+    salvar_log(f"📅 Merge com dw_calendario...", arquivo_log=LOG_DISCAGENS)
     df_resultado = df_resultado.merge(
         df_dw_calendario_temp[['dt_data', 'nr_dia_util', 'quartil', 'dt_mes', 'mes_abreviado']],
         left_on='DATA', right_on='dt_data', how='left'
@@ -240,11 +240,11 @@ def enriquecer_com_mailing_calendario(df_discagens, df_mailing_hist, df_dw_calen
     df_com_fx_atraso = df_resultado[df_resultado['FX_ATRASO'].notna()].copy()
     df_sem_fx_atraso = df_resultado[df_resultado['FX_ATRASO'].isna()].copy()
     
-    salvar_log(f"📦 COM FX_ATRASO: {len(df_com_fx_atraso):,} | SEM FX_ATRASO: {len(df_sem_fx_atraso):,}")
+    salvar_log(f"📦 COM FX_ATRASO: {len(df_com_fx_atraso):,} | SEM FX_ATRASO: {len(df_sem_fx_atraso):,}", arquivo_log=LOG_DISCAGENS)
     return df_com_fx_atraso, df_sem_fx_atraso
 
 
-@registrar_tempo("Segmentação de discagens expert")
+@registrar_tempo("Segmentação de discagens expert", arquivo_log=LOG_DISCAGENS)
 def segmentar_discagens_expert(df):
     """
     Separa o DataFrame em 3 grupos:
@@ -268,11 +268,11 @@ def segmentar_discagens_expert(df):
     df_operacao_outros = df_trabalho[condicao_outros].copy()
     df_restante = df_trabalho[~condicao_outros].copy()
     
-    salvar_log(f"📊 Segmentação de discagens expert:")
-    salvar_log(f"   • Humano + Primeiro Acionamento: {len(df_humano_primeiro):,} ({len(df_humano_primeiro)/len(df)*100:.1f}%)")
-    salvar_log(f"   • Operação 'Outros': {len(df_operacao_outros):,} ({len(df_operacao_outros)/len(df)*100:.1f}%)")
-    salvar_log(f"   • Restante: {len(df_restante):,} ({len(df_restante)/len(df)*100:.1f}%)")
-    
+    salvar_log(f"📊 Segmentação de discagens expert:", arquivo_log=LOG_DISCAGENS)
+    salvar_log(f"   • Humano + Primeiro Acionamento: {len(df_humano_primeiro):,} ({len(df_humano_primeiro)/len(df)*100:.1f}%)", arquivo_log=LOG_DISCAGENS)
+    salvar_log(f"   • Operação 'Outros': {len(df_operacao_outros):,} ({len(df_operacao_outros)/len(df)*100:.1f}%)", arquivo_log=LOG_DISCAGENS)
+    salvar_log(f"   • Restante: {len(df_restante):,} ({len(df_restante)/len(df)*100:.1f}%)", arquivo_log=LOG_DISCAGENS)
+
     return df_restante, df_humano_primeiro, df_operacao_outros
 
 

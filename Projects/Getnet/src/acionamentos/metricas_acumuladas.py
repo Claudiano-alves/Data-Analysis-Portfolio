@@ -5,11 +5,11 @@ Contém funções para gerar métricas acumuladas (mensais) de acionamentos.
 
 import pandas as pd
 from functools import reduce
-from ..utils import registrar_tempo, salvar_log
+from Projects.utils.utils import registrar_tempo, salvar_log
 from ..config import LOG_ACIONAMENTOS
 
 
-@registrar_tempo("Funil de acionamentos fxAtraso e origem humano")
+@registrar_tempo("Funil de acionamentos fxAtraso e origem humano", arquivo_log=LOG_ACIONAMENTOS)
 def acionamentos_fxAtraso_origem_humano(df_acionamentos_enriquecido_limpo, df_dw_calendario):
     """
     Gera contagem acumulada mensal de acionamentos únicos por CPF + FX_ATRASO + ORIGEM (melhor score).
@@ -44,14 +44,14 @@ def acionamentos_fxAtraso_origem_humano(df_acionamentos_enriquecido_limpo, df_dw
     datas_calendario = df_calendario_periodo['dt_data'].tolist()
     resultados = []
 
-    salvar_log("=" * 80)
-    salvar_log(f"📊 Processando acumulado mensal por FX_ATRASO + ORIGEM para {len(datas_calendario)} datas...")
+    salvar_log("=" * 80, arquivo=LOG_ACIONAMENTOS)
+    salvar_log(f"📊 Processando acumulado mensal por FX_ATRASO + ORIGEM para {len(datas_calendario)} datas...", arquivo=LOG_ACIONAMENTOS)
 
     ultimo_valor_por_mes = {}
 
     for i, data in enumerate(datas_calendario, 1):
         if i % 10 == 0 or i == len(datas_calendario):
-            salvar_log(f"   Processando {i}/{len(datas_calendario)} datas...")
+            salvar_log(f"   Processando {i}/{len(datas_calendario)} datas...", arquivo=LOG_ACIONAMENTOS)
         
         inicio_mes = pd.Timestamp(data.year, data.month, 1)
         chave_mes = (data.year, data.month)
@@ -124,7 +124,7 @@ def acionamentos_fxAtraso_origem_humano(df_acionamentos_enriquecido_limpo, df_dw
     df_final['TRABALHADO'] = 0
     df_final['VALORPRIN_FIN_TRABALHADO'] = 0.0
 
-    salvar_log(f"\n📅 Merge com dw_calendario...")
+    salvar_log(f"\n📅 Merge com dw_calendario...", arquivo=LOG_ACIONAMENTOS)
     df_final = df_final.merge(
         df_dw_calendario_temp[['dt_data', 'nr_dia_util', 'quartil', 'dt_mes', 'mes_abreviado']],
         left_on='DATA_ACIONA',
@@ -146,18 +146,18 @@ def acionamentos_fxAtraso_origem_humano(df_acionamentos_enriquecido_limpo, df_dw
     ]
     df_final = df_final[colunas_ordenadas]
 
-    salvar_log(f"   ✓ Registros finais: {len(df_final):,}")
-    salvar_log(f"\n📈 Totais acumulados por FX_ATRASO + ORIGEM (última data):")
-    salvar_log(f"   ✓ ACIONAMENTOS: {df_final[df_final['DATA_ACIONA'] == df_final['DATA_ACIONA'].max()]['ACIONAMENTOS'].sum():,}")
-    salvar_log(f"   ✓ CPC: {df_final[df_final['DATA_ACIONA'] == df_final['DATA_ACIONA'].max()]['CPC'].sum():,}")
-    salvar_log(f"   ✓ CPCA: {df_final[df_final['DATA_ACIONA'] == df_final['DATA_ACIONA'].max()]['CPCA'].sum():,}")
-    salvar_log(f"   ✓ PROMESSA: {df_final[df_final['DATA_ACIONA'] == df_final['DATA_ACIONA'].max()]['PROMESSA'].sum():,}")
+    salvar_log(f"   ✓ Registros finais: {len(df_final):,}", arquivo=LOG_ACIONAMENTOS)
+    salvar_log(f"\n📈 Totais acumulados por FX_ATRASO + ORIGEM (última data):", arquivo=LOG_ACIONAMENTOS)
+    salvar_log(f"   ✓ ACIONAMENTOS: {df_final[df_final['DATA_ACIONA'] == df_final['DATA_ACIONA'].max()]['ACIONAMENTOS'].sum():,}", arquivo=LOG_ACIONAMENTOS)
+    salvar_log(f"   ✓ CPC: {df_final[df_final['DATA_ACIONA'] == df_final['DATA_ACIONA'].max()]['CPC'].sum():,}", arquivo=LOG_ACIONAMENTOS)
+    salvar_log(f"   ✓ CPCA: {df_final[df_final['DATA_ACIONA'] == df_final['DATA_ACIONA'].max()]['CPCA'].sum():,}", arquivo=LOG_ACIONAMENTOS)
+    salvar_log(f"   ✓ PROMESSA: {df_final[df_final['DATA_ACIONA'] == df_final['DATA_ACIONA'].max()]['PROMESSA'].sum():,}", arquivo=LOG_ACIONAMENTOS)
     salvar_log("=" * 80)
 
     return df_final
 
 
-@registrar_tempo("Funil de acionamentos unique humano")
+@registrar_tempo("Funil de acionamentos unique humano", arquivo_log=LOG_ACIONAMENTOS)
 def acionamentos_unique_humano(df_acionamentos_enriquecido_limpo, df_dw_calendario):
     """
     Gera contagem acumulada mensal de acionamentos únicos por CPF (melhor score) por FX_ATRASO e ORIGEM.
@@ -191,14 +191,14 @@ def acionamentos_unique_humano(df_acionamentos_enriquecido_limpo, df_dw_calendar
     datas_calendario = df_calendario_periodo['dt_data'].tolist()
     resultados = []
 
-    salvar_log("=" * 80)
-    salvar_log(f"📊 Processando acumulado mensal ÚNICO (melhor score por CPF) para {len(datas_calendario)} datas...")
+    salvar_log("=" * 80, arquivo=LOG_ACIONAMENTOS)
+    salvar_log(f"📊 Processando acumulado mensal ÚNICO (melhor score por CPF) para {len(datas_calendario)} datas...", arquivo=LOG_ACIONAMENTOS)
 
     ultimo_valor_por_mes = {}
 
     for i, data in enumerate(datas_calendario, 1):
         if i % 10 == 0 or i == len(datas_calendario):
-            salvar_log(f"   Processando {i}/{len(datas_calendario)} datas...")
+            salvar_log(f"   Processando {i}/{len(datas_calendario)} datas...", arquivo=LOG_ACIONAMENTOS)
         
         inicio_mes = pd.Timestamp(data.year, data.month, 1)
         chave_mes = (data.year, data.month)
@@ -271,7 +271,7 @@ def acionamentos_unique_humano(df_acionamentos_enriquecido_limpo, df_dw_calendar
     df_final['TRABALHADO'] = 0
     df_final['VALORPRIN_FIN_TRABALHADO'] = 0.0
 
-    salvar_log(f"\n📅 Merge com dw_calendario...")
+    salvar_log(f"\n📅 Merge com dw_calendario...", arquivo=LOG_ACIONAMENTOS)
     df_final = df_final.merge(
         df_dw_calendario_temp[['dt_data', 'nr_dia_util', 'quartil', 'dt_mes', 'mes_abreviado']],
         left_on='DATA_ACIONA',
@@ -293,19 +293,19 @@ def acionamentos_unique_humano(df_acionamentos_enriquecido_limpo, df_dw_calendar
     ]
     df_final = df_final[colunas_ordenadas]
 
-    salvar_log(f"   ✓ Registros finais: {len(df_final):,}")
-    salvar_log(f"\n📈 Totais acumulados ÚNICOS (última data):")
-    salvar_log(f"   ✓ ACIONAMENTOS: {df_final[df_final['DATA_ACIONA'] == df_final['DATA_ACIONA'].max()]['ACIONAMENTOS'].sum():,}")
-    salvar_log(f"   ✓ CPC: {df_final[df_final['DATA_ACIONA'] == df_final['DATA_ACIONA'].max()]['CPC'].sum():,}")
-    salvar_log(f"   ✓ CPCA: {df_final[df_final['DATA_ACIONA'] == df_final['DATA_ACIONA'].max()]['CPCA'].sum():,}")
-    salvar_log(f"   ✓ PROMESSA: {df_final[df_final['DATA_ACIONA'] == df_final['DATA_ACIONA'].max()]['PROMESSA'].sum():,}")
-    salvar_log("=" * 80)
+    salvar_log(f"   ✓ Registros finais: {len(df_final):,}", arquivo=LOG_ACIONAMENTOS)
+    salvar_log(f"\n📈 Totais acumulados ÚNICOS (última data):", arquivo=LOG_ACIONAMENTOS)
+    salvar_log(f"   ✓ ACIONAMENTOS: {df_final[df_final['DATA_ACIONA'] == df_final['DATA_ACIONA'].max()]['ACIONAMENTOS'].sum():,}", arquivo=LOG_ACIONAMENTOS)
+    salvar_log(f"   ✓ CPC: {df_final[df_final['DATA_ACIONA'] == df_final['DATA_ACIONA'].max()]['CPC'].sum():,}", arquivo=LOG_ACIONAMENTOS)
+    salvar_log(f"   ✓ CPCA: {df_final[df_final['DATA_ACIONA'] == df_final['DATA_ACIONA'].max()]['CPCA'].sum():,}", arquivo=LOG_ACIONAMENTOS)
+    salvar_log(f"   ✓ PROMESSA: {df_final[df_final['DATA_ACIONA'] == df_final['DATA_ACIONA'].max()]['PROMESSA'].sum():,}", arquivo=LOG_ACIONAMENTOS)
+    salvar_log("=" * 80, arquivo=LOG_ACIONAMENTOS)
 
     df_final['FX_ATRASO'] = 'Unique'
     return df_final
 
 
-@registrar_tempo("Funil de acionamentos esforço humano")
+@registrar_tempo("Funil de acionamentos esforço humano", arquivo_log=LOG_ACIONAMENTOS)
 def acionamentos_esforco_humano(df_acionamentos_enriquecido_limpo, df_dw_calendario):
     """
     Gera contagem acumulada mensal de acionamentos por FX_ATRASO e ORIGEM.
@@ -339,14 +339,14 @@ def acionamentos_esforco_humano(df_acionamentos_enriquecido_limpo, df_dw_calenda
     datas_calendario = df_calendario_periodo['dt_data'].tolist()
     resultados = []
     
-    salvar_log("=" * 80)
-    salvar_log(f"📊 Processando acumulado mensal para {len(datas_calendario)} datas...")
+    salvar_log("=" * 80, arquivo=LOG_ACIONAMENTOS)
+    salvar_log(f"📊 Processando acumulado mensal para {len(datas_calendario)} datas...", arquivo=LOG_ACIONAMENTOS)
     
     ultimo_valor_por_mes = {}
     
     for i, data in enumerate(datas_calendario, 1):
         if i % 10 == 0 or i == len(datas_calendario):
-            salvar_log(f"   Processando {i}/{len(datas_calendario)} datas...")
+            salvar_log(f"   Processando {i}/{len(datas_calendario)} datas...", arquivo=LOG_ACIONAMENTOS)
         
         inicio_mes = pd.Timestamp(data.year, data.month, 1)
         chave_mes = (data.year, data.month)
@@ -403,7 +403,7 @@ def acionamentos_esforco_humano(df_acionamentos_enriquecido_limpo, df_dw_calenda
     df_final['TRABALHADO'] = 0
     df_final['VALORPRIN_FIN_TRABALHADO'] = 0.0
 
-    salvar_log(f"\n📅 Merge com dw_calendario...")
+    salvar_log(f"\n📅 Merge com dw_calendario...", arquivo=LOG_ACIONAMENTOS)
     df_final = df_final.merge(
         df_dw_calendario_temp[['dt_data', 'nr_dia_util', 'quartil', 'dt_mes', 'mes_abreviado']],
         left_on='DATA_ACIONA',
@@ -425,12 +425,12 @@ def acionamentos_esforco_humano(df_acionamentos_enriquecido_limpo, df_dw_calenda
     ]
     df_final = df_final[colunas_ordenadas]
     
-    salvar_log(f"   ✓ Registros finais: {len(df_final):,}")
-    salvar_log(f"\n📈 Totais acumulados:")
-    salvar_log(f"   ✓ ACIONAMENTOS: {df_final[df_final['DATA_ACIONA'] == df_final['DATA_ACIONA'].max()]['ACIONAMENTOS'].sum():,}")
-    salvar_log(f"   ✓ CPC: {df_final[df_final['DATA_ACIONA'] == df_final['DATA_ACIONA'].max()]['CPC'].sum():,}")
-    salvar_log(f"   ✓ CPCA: {df_final[df_final['DATA_ACIONA'] == df_final['DATA_ACIONA'].max()]['CPCA'].sum():,}")
-    salvar_log(f"   ✓ PROMESSA: {df_final[df_final['DATA_ACIONA'] == df_final['DATA_ACIONA'].max()]['PROMESSA'].sum():,}")
+    salvar_log(f"   ✓ Registros finais: {len(df_final):,}", arquivo=LOG_ACIONAMENTOS)
+    salvar_log(f"\n📈 Totais acumulados:", arquivo=LOG_ACIONAMENTOS)
+    salvar_log(f"   ✓ ACIONAMENTOS: {df_final[df_final['DATA_ACIONA'] == df_final['DATA_ACIONA'].max()]['ACIONAMENTOS'].sum():,}", arquivo=LOG_ACIONAMENTOS)
+    salvar_log(f"   ✓ CPC: {df_final[df_final['DATA_ACIONA'] == df_final['DATA_ACIONA'].max()]['CPC'].sum():,}", arquivo=LOG_ACIONAMENTOS)
+    salvar_log(f"   ✓ CPCA: {df_final[df_final['DATA_ACIONA'] == df_final['DATA_ACIONA'].max()]['CPCA'].sum():,}", arquivo=LOG_ACIONAMENTOS)
+    salvar_log(f"   ✓ PROMESSA: {df_final[df_final['DATA_ACIONA'] == df_final['DATA_ACIONA'].max()]['PROMESSA'].sum():,}", arquivo=LOG_ACIONAMENTOS)
     salvar_log("=" * 80)
 
     df_final['FX_ATRASO'] = 'Esforço'

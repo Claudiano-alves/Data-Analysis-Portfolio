@@ -8,13 +8,14 @@ Responsável por calcular:
 """
 
 import pandas as pd
-from ...utils import salvar_log, registrar_tempo
+from Projects.utils.utils import salvar_log, registrar_tempo
+from ...config import LOG_DISCAGENS
 
 import warnings
 warnings.filterwarnings("ignore", category=FutureWarning)
 
 
-@registrar_tempo("Funil ESFORÇO - Expert")
+@registrar_tempo("Funil ESFORÇO - Expert", arquivo_log=LOG_DISCAGENS)
 def acionamentos_esforco_expert(df_com_fx_atraso, df_dw_calendario):
     """
     Gera contagem acumulada mensal de acionamentos por FX_ATRASO e ORIGEM (sem deduplicação).
@@ -32,11 +33,11 @@ def acionamentos_esforco_expert(df_com_fx_atraso, df_dw_calendario):
     datas_unicas = sorted(df['DATA'].unique())
     resultados = []
     
-    salvar_log(f"📊 Processando ESFORÇO (todas as discagens) para {len(datas_unicas)} datas...")
+    salvar_log(f"📊 Processando ESFORÇO (todas as discagens) para {len(datas_unicas)} datas...", arquivo_log=LOG_DISCAGENS)
     
     for i, data in enumerate(datas_unicas, 1):
         if i % 10 == 0 or i == len(datas_unicas):
-            salvar_log(f"   Processando {i}/{len(datas_unicas)} datas...")
+            salvar_log(f"   Processando {i}/{len(datas_unicas)} datas...", arquivo_log=LOG_DISCAGENS)
         
         inicio_mes = pd.Timestamp(data.year, data.month, 1)
         df_intervalo = df[(df['DATA'] >= inicio_mes) & (df['DATA'] <= data)].copy()
@@ -84,12 +85,12 @@ def acionamentos_esforco_expert(df_com_fx_atraso, df_dw_calendario):
     ]
     df_final = df_final[colunas_ordenadas]
     
-    salvar_log(f"   ✓ Registros finais: {len(df_final):,}")
+    salvar_log(f"   ✓ Registros finais: {len(df_final):,}", arquivo_log=LOG_DISCAGENS)
     df_final['FX_ATRASO'] = 'Esforço'
     return df_final
 
 
-@registrar_tempo("Funil UNIQUE - Expert")
+@registrar_tempo("Funil UNIQUE - Expert", arquivo_log=LOG_DISCAGENS)
 def acionamentos_unique_expert(df_com_fx_atraso, df_dw_calendario):
     """
     Gera contagem acumulada mensal de acionamentos únicos por CPF (melhor score).
@@ -107,11 +108,11 @@ def acionamentos_unique_expert(df_com_fx_atraso, df_dw_calendario):
     datas_unicas = sorted(df['DATA'].unique())
     resultados = []
     
-    salvar_log(f"📊 Processando UNIQUE (melhor score por CPF) para {len(datas_unicas)} datas...")
+    salvar_log(f"📊 Processando UNIQUE (melhor score por CPF) para {len(datas_unicas)} datas...", arquivo_log=LOG_DISCAGENS)
     
     for i, data in enumerate(datas_unicas, 1):
         if i % 10 == 0 or i == len(datas_unicas):
-            salvar_log(f"   Processando {i}/{len(datas_unicas)} datas...")
+            salvar_log(f"   Processando {i}/{len(datas_unicas)} datas...", arquivo_log=LOG_DISCAGENS)
         
         inicio_mes = pd.Timestamp(data.year, data.month, 1)
         df_intervalo = df[(df['DATA'] >= inicio_mes) & (df['DATA'] <= data)].copy()
@@ -175,12 +176,12 @@ def acionamentos_unique_expert(df_com_fx_atraso, df_dw_calendario):
     ]
     df_final = df_final[colunas_ordenadas]
     
-    salvar_log(f"   ✓ Registros finais: {len(df_final):,}")
+    salvar_log(f"   ✓ Registros finais: {len(df_final):,}", arquivo_log=LOG_DISCAGENS)
     df_final['FX_ATRASO'] = 'Unique'
     return df_final
 
 
-@registrar_tempo("Funil fxAtraso_origem - Expert")
+@registrar_tempo("Funil fxAtraso_origem - Expert", arquivo_log=LOG_DISCAGENS)
 def acionamentos_fxAtraso_origem_expert(df_com_fx_atraso, df_dw_calendario):
     """
     Gera contagem acumulada mensal de acionamentos únicos por CPF + FX_ATRASO (melhor score).
@@ -198,11 +199,11 @@ def acionamentos_fxAtraso_origem_expert(df_com_fx_atraso, df_dw_calendario):
     datas_unicas = sorted(df['DATA'].unique())
     resultados = []
     
-    salvar_log(f"📊 Processando fxAtraso_origem (melhor score por CPF+FX_ATRASO) para {len(datas_unicas)} datas...")
+    salvar_log(f"📊 Processando fxAtraso_origem (melhor score por CPF+FX_ATRASO) para {len(datas_unicas)} datas...", arquivo_log=LOG_DISCAGENS)
     
     for i, data in enumerate(datas_unicas, 1):
         if i % 10 == 0 or i == len(datas_unicas):
-            salvar_log(f"   Processando {i}/{len(datas_unicas)} datas...")
+            salvar_log(f"   Processando {i}/{len(datas_unicas)} datas...", arquivo_log=LOG_DISCAGENS)
         
         inicio_mes = pd.Timestamp(data.year, data.month, 1)
         df_intervalo = df[(df['DATA'] >= inicio_mes) & (df['DATA'] <= data)].copy()
@@ -266,7 +267,7 @@ def acionamentos_fxAtraso_origem_expert(df_com_fx_atraso, df_dw_calendario):
     ]
     df_final = df_final[colunas_ordenadas]
     
-    salvar_log(f"   ✓ Registros finais: {len(df_final):,}")
+    salvar_log(f"   ✓ Registros finais: {len(df_final):,}", arquivo_log=LOG_DISCAGENS)
     return df_final
 
 

@@ -4,11 +4,11 @@ Contém funções para limpeza, validação e enriquecimento de dados de pagamen
 """
 
 import pandas as pd
-from ..utils import registrar_tempo, salvar_log
+from Projects.utils.utils import registrar_tempo, salvar_log
 from ..config import LOG_PAGAMENTOS
 
 
-@registrar_tempo("Dados de pagamentos")
+@registrar_tempo("Dados de pagamentos", arquivo_log=LOG_PAGAMENTOS)
 def data_pagamentos(df_pagamentos, df_acordos, df_mailing_hist, df_dw_calendario):
     """
     Processa dados de pagamentos com validações e enriquecimentos.
@@ -29,12 +29,12 @@ def data_pagamentos(df_pagamentos, df_acordos, df_mailing_hist, df_dw_calendario
     df_mailing_hist['DATA'] = pd.to_datetime(df_mailing_hist['DATA'])
     df_mailing_hist_unique = df_mailing_hist[['CONTRATO', 'FX_ATRASO', 'DATA']].drop_duplicates()
 
-    salvar_log("=" * 60)
-    salvar_log("INÍCIO DO PROCESSAMENTO DE PAGAMENTOS")
-    salvar_log("=" * 60)
-    salvar_log(f"Total de registros em df_pagamentos: {len(df_pagamentos)}")
-    salvar_log(f"Total de registros em df_acordos: {len(df_acordos)}")
-    salvar_log(f"Total de registros únicos em df_mailing_hist: {len(df_mailing_hist_unique)}")
+    salvar_log("=" * 60, arquivo_log=LOG_PAGAMENTOS)
+    salvar_log("INÍCIO DO PROCESSAMENTO DE PAGAMENTOS", arquivo_log=LOG_PAGAMENTOS)
+    salvar_log("=" * 60, arquivo_log=LOG_PAGAMENTOS)
+    salvar_log(f"Total de registros em df_pagamentos: {len(df_pagamentos)}", arquivo_log=LOG_PAGAMENTOS)
+    salvar_log(f"Total de registros em df_acordos: {len(df_acordos)}", arquivo_log=LOG_PAGAMENTOS)
+    salvar_log(f"Total de registros únicos em df_mailing_hist: {len(df_mailing_hist_unique)}", arquivo_log=LOG_PAGAMENTOS)
 
     # Filtrar acordos válidos
     df_acordos_validos = (
@@ -44,7 +44,7 @@ def data_pagamentos(df_pagamentos, df_acordos, df_mailing_hist, df_dw_calendario
     )
 
     df_acordos_validos['DATA_ACORDO'] = pd.to_datetime(df_acordos_validos['DATA_ACORDO'])
-    salvar_log(f"Total de acordos válidos (não cancelados): {len(df_acordos_validos)}")
+    salvar_log(f"Total de acordos válidos (não cancelados): {len(df_acordos_validos)}", arquivo_log=LOG_PAGAMENTOS)
 
     # Merge com acordos
     df_resultado = df_pagamentos.merge(
@@ -53,7 +53,7 @@ def data_pagamentos(df_pagamentos, df_acordos, df_mailing_hist, df_dw_calendario
         how='inner'
     )
 
-    salvar_log(f"Total de registros após cruzamento com acordos: {len(df_resultado)}")
+    salvar_log(f"Total de registros após cruzamento com acordos: {len(df_resultado)}", arquivo_log=LOG_PAGAMENTOS)
 
     df_resultado['DATA_PAGTO'] = pd.to_datetime(df_resultado['DATA_PAGTO']).dt.date
     df_dw_calendario_temp = df_dw_calendario.copy()
@@ -68,7 +68,7 @@ def data_pagamentos(df_pagamentos, df_acordos, df_mailing_hist, df_dw_calendario
         how='left'
     ).drop(columns=['dt_data'])
 
-    salvar_log(f"Total de registros após cruzamento com calendário: {len(df_resultado)}")
+    salvar_log(f"Total de registros após cruzamento com calendário: {len(df_resultado)}", arquivo_log=LOG_PAGAMENTOS)
 
     # Merge com mailing_hist
     df_pagamentos_tratado = df_resultado.merge(
@@ -78,17 +78,17 @@ def data_pagamentos(df_pagamentos, df_acordos, df_mailing_hist, df_dw_calendario
         how='left'
     ).drop(columns=['CONTRATO', 'DATA'])
 
-    salvar_log(f"Total de registros após cruzamento com histórico: {len(df_pagamentos_tratado)}")
+    salvar_log(f"Total de registros após cruzamento com histórico: {len(df_pagamentos_tratado)}", arquivo_log=LOG_PAGAMENTOS)
 
     df_com_fx_atraso = df_pagamentos_tratado[df_pagamentos_tratado['FX_ATRASO'].notna()]
     df_sem_fx_atraso = df_pagamentos_tratado[df_pagamentos_tratado['FX_ATRASO'].isna()]
 
-    salvar_log("=" * 60)
-    salvar_log("SEPARAÇÃO DE DADOS POR FX_ATRASO")
-    salvar_log("=" * 60)
-    salvar_log(f"Pagamentos COM FX_ATRASO: {len(df_com_fx_atraso)}")
-    salvar_log(f"Pagamentos SEM FX_ATRASO: {len(df_sem_fx_atraso)}")
-    salvar_log("=" * 60)
+    salvar_log("=" * 60, arquivo_log=LOG_PAGAMENTOS)
+    salvar_log("SEPARAÇÃO DE DADOS POR FX_ATRASO", arquivo_log=LOG_PAGAMENTOS)
+    salvar_log("=" * 60, arquivo_log=LOG_PAGAMENTOS)
+    salvar_log(f"Pagamentos COM FX_ATRASO: {len(df_com_fx_atraso)}", arquivo_log=LOG_PAGAMENTOS)
+    salvar_log(f"Pagamentos SEM FX_ATRASO: {len(df_sem_fx_atraso)}", arquivo_log=LOG_PAGAMENTOS)
+    salvar_log("=" * 60, arquivo_log=LOG_PAGAMENTOS)
     
     # Agrupar por faixa e tipo
     df_agrupado = df_com_fx_atraso.groupby(
@@ -98,7 +98,7 @@ def data_pagamentos(df_pagamentos, df_acordos, df_mailing_hist, df_dw_calendario
         VALOR_PARC=('VALOR_PARC', 'sum')
     ).reset_index()
 
-    salvar_log(f"Total de linhas agrupadas (antes de remover qte=0): {len(df_agrupado)}")
+    salvar_log(f"Total de linhas agrupadas (antes de remover qte=0): {len(df_agrupado)}", arquivo_log=LOG_PAGAMENTOS)
 
     df_agrupado['Indicador'] = 'Pagamentos'
     df_agrupado = df_agrupado.rename(columns={'mes_abreviado': 'MesAbreviado'})
@@ -113,15 +113,15 @@ def data_pagamentos(df_pagamentos, df_acordos, df_mailing_hist, df_dw_calendario
     df_agrupado = df_agrupado[df_agrupado['qte'] > 0]
     linhas_removidas = df_agrupado_antes - len(df_agrupado)
 
-    salvar_log(f"Linhas removidas com qte=0: {linhas_removidas}")
-    salvar_log(f"Total de linhas finais no DataFrame agrupado: {len(df_agrupado)}")
+    salvar_log(f"Linhas removidas com qte=0: {linhas_removidas}", arquivo_log=LOG_PAGAMENTOS)
+    salvar_log(f"Total de linhas finais no DataFrame agrupado: {len(df_agrupado)}", arquivo_log=LOG_PAGAMENTOS)
 
-    salvar_log("=" * 60)
-    salvar_log("RESUMO FINAL")
-    salvar_log("=" * 60)
-    salvar_log(f"Valor total de parcelas: R$ {df_agrupado['VALOR_PARC'].sum():,.2f}")
-    salvar_log(f"Quantidade total de pagamentos: {df_agrupado['qte'].sum()}")
-    salvar_log("=" * 60)
+    salvar_log("=" * 60, arquivo_log=LOG_PAGAMENTOS)
+    salvar_log("RESUMO FINAL", arquivo_log=LOG_PAGAMENTOS)
+    salvar_log("=" * 60, arquivo_log=LOG_PAGAMENTOS)
+    salvar_log(f"Valor total de parcelas: R$ {df_agrupado['VALOR_PARC'].sum():,.2f}", arquivo_log=LOG_PAGAMENTOS)
+    salvar_log(f"Quantidade total de pagamentos: {df_agrupado['qte'].sum()}", arquivo_log=LOG_PAGAMENTOS)
+    salvar_log("=" * 60, arquivo_log=LOG_PAGAMENTOS)
 
     df_pagamentos_analitico = df_pagamentos_tratado.copy()
 
