@@ -53,7 +53,7 @@ def processar_pagamentos_completo(df_pagamentos, df_acordos, df_mailing_hist, df
     from ..config import PROCESS_PATHS
     
     salvar_dataframes_csv(
-        caminho_destino=PROCESS_PATHS["pagamentos"],
+        processo="pagamentos",
         df_pagamentos_analitico=df_pagamentos_analitico,
         df_pagamentos_sem_fx_atraso=df_pagamentos_sem_fx_atraso
     )

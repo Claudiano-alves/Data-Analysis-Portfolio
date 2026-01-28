@@ -74,7 +74,7 @@ def processar_discagens_trestto_completo(
     from ...config import PROCESS_PATHS
     
     salvar_dataframes_csv(
-        caminho_destino=PROCESS_PATHS["discagens"],
+        processo="discagens",
         df_analitico_trestto=df_analitico_trestto,
         df_discagens_trestto_sem_fx_atraso=df_discagens_trestto_sem_fx_atraso
     )

@@ -12,7 +12,7 @@ if root_path not in sys.path:
 # ============================================
 # NOVO: Função integrada com carregamento
 # ============================================
-def atualizar_arquivo_funil_completo(caminho_destino=None):
+def atualizar_arquivo_funil_completo(caminho_destino=None, datasets_to_load=None):
     """
     ✅ NOVO: Executa o pipeline COMPLETO (carregamento + processamento) 
     e atualiza o arquivo Excel com novos dados.
@@ -51,6 +51,9 @@ def atualizar_arquivo_funil_completo(caminho_destino=None):
         )
     """
     
+    if datasets_to_load is None:
+        datasets_to_load = DATASETS_TO_LOAD
+
     if caminho_destino is None:
         caminho_destino = r"\\trc-dc-ad\Planejamento\MIS\Pipelines\df_csvBI_padronizado_teste.xlsx"
     
@@ -64,7 +67,7 @@ def atualizar_arquivo_funil_completo(caminho_destino=None):
     try:
         # 1. Executa pipeline COMPLETO (carrega dados + processa tudo)
         print("🔄 Executando pipeline completo (carregamento + processamento)...")
-        resultados_pipeline = executar_pipeline_completo_com_carregamento(datasets_to_load=DATASETS_TO_LOAD, **FILTROS_SQL)
+        resultados_pipeline = executar_pipeline_completo_com_carregamento(datasets_to_load=datasets_to_load, **FILTROS_SQL)
         
         df_funil_final = resultados_pipeline['consolidado']
         

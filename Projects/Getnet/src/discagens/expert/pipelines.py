@@ -97,7 +97,7 @@ def processar_discagens_expert_completo(
     from ...config import PROCESS_PATHS
     
     salvar_dataframes_csv(
-        caminho_destino=PROCESS_PATHS["discagens"],
+        processo="discagens",
         df_analitico_expert=df_analitico_expert,
         df_discagens_sem_fx_atraso=df_discagens_sem_fx_atraso,
         df_humano_tabulados_como_robo=df_humano_tabulados_como_robo,

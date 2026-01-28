@@ -91,7 +91,7 @@ def acionamentos_humano(df_tab_acionamentos, df_tabulacao_aciona, df_dw_calendar
     from ..config import PROCESS_PATHS
     
     salvar_dataframes_csv(
-        caminho_destino=PROCESS_PATHS["acionamentos"],
+        processo="acionamentos",
         df_enriquecido=df_acionamentos_enriquecido_limpo,
         df_sem_faixa=df_acion_semFaixa_humano,
         df_sem_descricao=df_acion_semDescricao_humano,

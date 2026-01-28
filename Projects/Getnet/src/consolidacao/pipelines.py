@@ -61,7 +61,7 @@ def executar_pipeline_funil_completo(
         salvar_log("\n📧 ETAPA 1: Processando Mailing...", arquivo_log=LOG_LOADING)
         tempo_etapa = time.time()
         
-        df_mailing_final = processar_mailing_completo(
+        df_mailing_hist, df_mailing_final = processar_mailing_completo(
             df_mailing_hist,
             df_dw_calendario
         )
@@ -86,7 +86,7 @@ def executar_pipeline_funil_completo(
             df_tab_acionamentos,
             df_tabulacao_aciona,
             df_dw_calendario,
-            df_mailing_final  # ⬅️ Usa resultado de mailing
+            df_mailing_hist  # ⬅️ Usa resultado de mailing
         )
         
         tempo_acionamentos = time.time() - tempo_etapa
@@ -107,7 +107,7 @@ def executar_pipeline_funil_completo(
         ) = processar_pagamentos_completo(
             df_pagamentos,
             df_acordos,
-            df_mailing_final,  # ⬅️ Usa resultado de mailing
+            df_mailing_hist,  # ⬅️ Usa resultado de mailing
             df_dw_calendario
         )
         
@@ -136,7 +136,7 @@ def executar_pipeline_funil_completo(
                 df_expert_outros
             ) = processar_discagens_expert_completo(
                 df_discagens_expert,
-                df_mailing_final,
+                df_mailing_hist,
                 df_dw_calendario
             )
             
@@ -153,7 +153,7 @@ def executar_pipeline_funil_completo(
                 df_trestto_semFaixa
             ) = processar_discagens_trestto_completo(
                 df_discagens_trestto,
-                df_mailing_final,
+                df_mailing_hist,
                 df_dw_calendario
             )
             

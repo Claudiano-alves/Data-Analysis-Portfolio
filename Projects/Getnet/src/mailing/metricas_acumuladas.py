@@ -21,13 +21,13 @@ def gerar_acumulado_maling_hist_fxAtraso(df_maling_hist, df_dw_calendario):
     Returns:
         pd.DataFrame: DataFrame com acumulado por faixa de atraso
     """
-    salvar_log("=" * 60, arquivo=LOG_MAILING)
-    salvar_log("INÍCIO DO PROCESSAMENTO DE MALING_HIST", arquivo=LOG_MAILING)
-    salvar_log("=" * 60, arquivo=LOG_MAILING)
-    salvar_log(f"Total de registros em df_maling_hist: {len(df_maling_hist)}", arquivo=LOG_MAILING)
+    salvar_log("=" * 60, arquivo_log=LOG_MAILING)
+    salvar_log("INÍCIO DO PROCESSAMENTO DE MALING_HIST", arquivo_log=LOG_MAILING)
+    salvar_log("=" * 60, arquivo_log=LOG_MAILING)
+    salvar_log(f"Total de registros em df_maling_hist: {len(df_maling_hist)}", arquivo_log=LOG_MAILING)
     
     df_reduzido = df_maling_hist[['DATA', 'CONTRATO', 'CPF', 'FX_ATRASO', 'VALOR']].copy()
-    salvar_log(f"Memória reduzida - trabalhando com {len(df_reduzido.columns)} colunas", arquivo=LOG_MAILING)
+    salvar_log(f"Memória reduzida - trabalhando com {len(df_reduzido.columns)} colunas", arquivo_log=LOG_MAILING)
     
     df_reduzido['DATA'] = pd.to_datetime(df_reduzido['DATA'])
     
@@ -42,16 +42,16 @@ def gerar_acumulado_maling_hist_fxAtraso(df_maling_hist, df_dw_calendario):
         how='inner'
     ).drop(columns=['dt_data'])
     
-    salvar_log(f"Registros após merge com calendário: {len(df_reduzido)}", arquivo=LOG_MAILING)
+    salvar_log(f"Registros após merge com calendário: {len(df_reduzido)}", arquivo_log=LOG_MAILING)
     
     resultados = []
     datas_unicas = sorted(df_reduzido['DATA'].unique())
     
-    salvar_log(f"Total de datas únicas a processar: {len(datas_unicas)}", arquivo=LOG_MAILING)
+    salvar_log(f"Total de datas únicas a processar: {len(datas_unicas)}", arquivo_log=LOG_MAILING)
     
     for i, data in enumerate(datas_unicas, 1):
         if i % 10 == 0 or i == len(datas_unicas):
-            salvar_log(f"   Processando {i}/{len(datas_unicas)} datas...", arquivo=LOG_MAILING)
+            salvar_log(f"   Processando {i}/{len(datas_unicas)} datas...", arquivo_log=LOG_MAILING)
         
         inicio_mes = pd.Timestamp(data.year, data.month, 1)
         
@@ -109,14 +109,14 @@ def gerar_acumulado_maling_hist_fxAtraso(df_maling_hist, df_dw_calendario):
         'nr_dia_util', 'quartil', 'dt_mes', 'VALOR'
     ]]
     
-    salvar_log("=" * 60, arquivo=LOG_MAILING)
-    salvar_log("RESUMO FINAL MALING_HIST", arquivo=LOG_MAILING)
-    salvar_log("=" * 60, arquivo=LOG_MAILING)
-    salvar_log(f"Total de registros acumulados gerados: {len(df_acumulado)}", arquivo=LOG_MAILING)
-    salvar_log(f"Registros de Contratos: {len(df_acumulado[df_acumulado['Indicador'] == 'Contrato'])}", arquivo=LOG_MAILING)
-    salvar_log(f"Registros de CPFs: {len(df_acumulado[df_acumulado['Indicador'] == 'Carteira (CPFs)'])}", arquivo=LOG_MAILING)
-    salvar_log(f"Valor total final: R$ {df_acumulado['VALOR'].sum():,.2f}", arquivo=LOG_MAILING)
-    salvar_log("=" * 60, arquivo=LOG_MAILING)
+    salvar_log("=" * 60, arquivo_log=LOG_MAILING)
+    salvar_log("RESUMO FINAL MALING_HIST", arquivo_log=LOG_MAILING)
+    salvar_log("=" * 60, arquivo_log=LOG_MAILING)
+    salvar_log(f"Total de registros acumulados gerados: {len(df_acumulado)}", arquivo_log=LOG_MAILING)
+    salvar_log(f"Registros de Contratos: {len(df_acumulado[df_acumulado['Indicador'] == 'Contrato'])}", arquivo_log=LOG_MAILING)
+    salvar_log(f"Registros de CPFs: {len(df_acumulado[df_acumulado['Indicador'] == 'Carteira (CPFs)'])}", arquivo_log=LOG_MAILING)
+    salvar_log(f"Valor total final: R$ {df_acumulado['VALOR'].sum():,.2f}", arquivo_log=LOG_MAILING)
+    salvar_log("=" * 60, arquivo_log=LOG_MAILING)
     
     return df_acumulado
 
@@ -134,13 +134,13 @@ def gerar_acumulado_maling_hist_unique(df_maling_hist, df_dw_calendario):
     Returns:
         pd.DataFrame: DataFrame com acumulado único
     """
-    salvar_log("=" * 60, arquivo=LOG_MAILING)
-    salvar_log("INÍCIO DO PROCESSAMENTO DE MALING_HIST", arquivo=LOG_MAILING)
-    salvar_log("=" * 60, arquivo=LOG_MAILING)
-    salvar_log(f"Total de registros em df_maling_hist: {len(df_maling_hist)}", arquivo=LOG_MAILING)
+    salvar_log("=" * 60, arquivo_log=LOG_MAILING)
+    salvar_log("INÍCIO DO PROCESSAMENTO DE MALING_HIST", arquivo_log=LOG_MAILING)
+    salvar_log("=" * 60, arquivo_log=LOG_MAILING)
+    salvar_log(f"Total de registros em df_maling_hist: {len(df_maling_hist)}", arquivo_log=LOG_MAILING)
     
     df_reduzido = df_maling_hist[['DATA', 'CONTRATO', 'CPF', 'VALOR']].copy()
-    salvar_log(f"Memória reduzida - trabalhando com {len(df_reduzido.columns)} colunas", arquivo=LOG_MAILING)
+    salvar_log(f"Memória reduzida - trabalhando com {len(df_reduzido.columns)} colunas", arquivo_log=LOG_MAILING)
     
     df_reduzido['DATA'] = pd.to_datetime(df_reduzido['DATA'])
     
@@ -155,16 +155,16 @@ def gerar_acumulado_maling_hist_unique(df_maling_hist, df_dw_calendario):
         how='inner'
     ).drop(columns=['dt_data'])
     
-    salvar_log(f"Registros após merge com calendário: {len(df_reduzido)}", arquivo=LOG_MAILING)
+    salvar_log(f"Registros após merge com calendário: {len(df_reduzido)}", arquivo_log=LOG_MAILING)
     
     resultados = []
     datas_unicas = sorted(df_reduzido['DATA'].unique())
     
-    salvar_log(f"Total de datas únicas a processar: {len(datas_unicas)}", arquivo=LOG_MAILING)
+    salvar_log(f"Total de datas únicas a processar: {len(datas_unicas)}", arquivo_log=LOG_MAILING)
     
     for i, data in enumerate(datas_unicas, 1):
         if i % 10 == 0 or i == len(datas_unicas):
-            salvar_log(f"   Processando {i}/{len(datas_unicas)} datas...", arquivo=LOG_MAILING)
+            salvar_log(f"   Processando {i}/{len(datas_unicas)} datas...", arquivo_log=LOG_MAILING)
         
         inicio_mes = pd.Timestamp(data.year, data.month, 1)
         
@@ -226,13 +226,13 @@ def gerar_acumulado_maling_hist_unique(df_maling_hist, df_dw_calendario):
         'nr_dia_util', 'quartil', 'dt_mes', 'VALOR'
     ]]
     
-    salvar_log("=" * 60, arquivo=LOG_MAILING)
-    salvar_log("RESUMO FINAL MALING_HIST", arquivo=LOG_MAILING)
-    salvar_log("=" * 60, arquivo=LOG_MAILING)
-    salvar_log(f"Total de registros acumulados gerados: {len(df_acumulado)}", arquivo=LOG_MAILING)
-    salvar_log(f"Registros de Contratos: {len(df_acumulado[df_acumulado['Indicador'] == 'Contratos'])}", arquivo=LOG_MAILING)
-    salvar_log(f"Registros de CPFs: {len(df_acumulado[df_acumulado['Indicador'] == 'Carteira (CPFs)'])}", arquivo=LOG_MAILING)
-    salvar_log(f"Valor total final: R$ {df_acumulado['VALOR'].sum():,.2f}", arquivo=LOG_MAILING)
-    salvar_log("=" * 60, arquivo=LOG_MAILING)
+    salvar_log("=" * 60, arquivo_log=LOG_MAILING)
+    salvar_log("RESUMO FINAL MALING_HIST", arquivo_log=LOG_MAILING)
+    salvar_log("=" * 60, arquivo_log=LOG_MAILING)
+    salvar_log(f"Total de registros acumulados gerados: {len(df_acumulado)}", arquivo_log=LOG_MAILING)
+    salvar_log(f"Registros de Contratos: {len(df_acumulado[df_acumulado['Indicador'] == 'Contratos'])}", arquivo_log=LOG_MAILING)
+    salvar_log(f"Registros de CPFs: {len(df_acumulado[df_acumulado['Indicador'] == 'Carteira (CPFs)'])}", arquivo_log=LOG_MAILING)
+    salvar_log(f"Valor total final: R$ {df_acumulado['VALOR'].sum():,.2f}", arquivo_log=LOG_MAILING)
+    salvar_log("=" * 60, arquivo_log=LOG_MAILING)
     
     return df_acumulado

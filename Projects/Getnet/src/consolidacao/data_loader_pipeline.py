@@ -112,6 +112,7 @@ def carregar_dados_paralelo(
 
 
 def executar_pipeline_completo_com_carregamento(
+    datasets_to_load=None,
     csv_path=None,
     where_campanhas="",
     where_clientes_mailing="",
@@ -157,6 +158,9 @@ def executar_pipeline_completo_com_carregamento(
             csv_path=r"\\path\\to\\base.csv"
         )
     """
+    if datasets_to_load is None:
+        datasets_to_load = DATASETS_TO_LOAD
+
     salvar_log("\n" + "=" * 80, arquivo_log=LOG_LOADING)
     salvar_log("INICIANDO PIPELINE COMPLETO (CARREGAMENTO + PROCESSAMENTO)", arquivo_log=LOG_LOADING)
     salvar_log("=" * 80, arquivo_log=LOG_LOADING)
@@ -171,7 +175,7 @@ def executar_pipeline_completo_com_carregamento(
         tempo_carga = time.time()
         
         dados = carregar_dados_paralelo(
-            datasets_to_load=DATASETS_TO_LOAD,
+            datasets_to_load=datasets_to_load,
             csv_path=csv_path,
             where_campanhas=where_campanhas,
             where_clientes_mailing=where_clientes_mailing,

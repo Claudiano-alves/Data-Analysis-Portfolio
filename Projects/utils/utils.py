@@ -381,12 +381,12 @@ def unir_dataframes(*dfs, validar_colunas=True, colunas_esperadas=None, mapeamen
 
 def salvar_log(mensagem, arquivo_log='logs/default.txt'):
     """
-    Salva mensagem em arquivo de log com timestamp.
-    Função genérica que aceita qualquer caminho de arquivo.
+    Salva mensagem em arquivo_log de log com timestamp.
+    Função genérica que aceita qualquer caminho de arquivo_log.
     
     Args:
         mensagem (str): Mensagem a ser registrada
-        arquivo (str): Caminho do arquivo de log.
+        arquivo_log (str): Caminho do arquivo_log de log.
                       Padrão: 'logs/default.txt'
                       Cada carteira/projeto deve definir seu próprio caminho.
     

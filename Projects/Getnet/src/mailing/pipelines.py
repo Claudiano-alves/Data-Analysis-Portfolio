@@ -3,7 +3,7 @@ Módulo de Pipeline de Mailing
 Orquestra as funções de tratamento e geração de métricas de mailing.
 """
 
-from ..utils import unir_dataframes
+from utils.utils import unir_dataframes
 from .data_processing import tratar_base_mailing_hist
 from .metricas_acumuladas import (
     gerar_acumulado_maling_hist_fxAtraso,
@@ -49,7 +49,7 @@ def processar_mailing_completo(df_mailing_hist, df_dw_calendario):
     # ============================================
     df_mailing_final = unir_dataframes(df_mailing_fxAtraso, df_mailing_unique)
     
-    return df_mailing_final
+    return df_mailing_tratado, df_mailing_final
 
 
 def gerar_acumulado_mailing_hist(df_mailing_hist, df_dw_calendario):
