@@ -1,12 +1,18 @@
 import pandas as pd
 from openpyxl import load_workbook
-from pipeline_funil import executar_pipeline_funil
-from consolidacao.data_loader_pipeline import executar_pipeline_completo_com_carregamento
+import sys
+import os
+from Getnet.src.consolidacao.data_loader_pipeline import executar_pipeline_completo_com_carregamento
+from Getnet.src.config import FILTROS_SQL, DATASETS_TO_LOAD
 
+root_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
+
+if root_path not in sys.path:
+    sys.path.append(root_path)
 # ============================================
 # NOVO: Função integrada com carregamento
 # ============================================
-def atualizar_arquivo_funil_completo(caminho_destino=None, **filtros_sql):
+def atualizar_arquivo_funil_completo(caminho_destino=None):
     """
     ✅ NOVO: Executa o pipeline COMPLETO (carregamento + processamento) 
     e atualiza o arquivo Excel com novos dados.
@@ -46,7 +52,7 @@ def atualizar_arquivo_funil_completo(caminho_destino=None, **filtros_sql):
     """
     
     if caminho_destino is None:
-        caminho_destino = r"\\trc-dc-ad\Planejamento\MIS\CARTEIRAS\GetNet\df_csvBI_padronizado.xlsx"
+        caminho_destino = r"\\trc-dc-ad\Planejamento\MIS\Pipelines\df_csvBI_padronizado_teste.xlsx"
     
     resultado = {
         'sucesso': False,
@@ -58,7 +64,7 @@ def atualizar_arquivo_funil_completo(caminho_destino=None, **filtros_sql):
     try:
         # 1. Executa pipeline COMPLETO (carrega dados + processa tudo)
         print("🔄 Executando pipeline completo (carregamento + processamento)...")
-        resultados_pipeline = executar_pipeline_completo_com_carregamento(**filtros_sql)
+        resultados_pipeline = executar_pipeline_completo_com_carregamento(datasets_to_load=DATASETS_TO_LOAD, **FILTROS_SQL)
         
         df_funil_final = resultados_pipeline['consolidado']
         
@@ -71,7 +77,7 @@ def atualizar_arquivo_funil_completo(caminho_destino=None, **filtros_sql):
         try:
             # 2. Lê o arquivo existente
             print("📂 Lendo arquivo existente...")
-            df_existente = pd.read_excel(caminho_destino, sheet_name='df_csvBI_padronizado')
+            df_existente = pd.read_excel(caminho_destino, sheet_name='df_csvBI_padronizado_teste')
             df_existente['data'] = pd.to_datetime(df_existente['data'], errors='coerce')
             
             # 3. Obtém última data
@@ -93,7 +99,7 @@ def atualizar_arquivo_funil_completo(caminho_destino=None, **filtros_sql):
             
             # 5. Carrega workbook e adiciona dados
             wb = load_workbook(caminho_destino)
-            ws = wb['df_csvBI_padronizado']
+            ws = wb['df_csvBI_padronizado_teste']
             proxima_linha = ws.max_row + 1
             linha_inicial = proxima_linha
             
@@ -115,7 +121,7 @@ def atualizar_arquivo_funil_completo(caminho_destino=None, **filtros_sql):
         except FileNotFoundError:
             print("⚠️ Arquivo não encontrado. Criando novo...")
             with pd.ExcelWriter(caminho_destino, engine='openpyxl') as writer:
-                df_funil_final.to_excel(writer, sheet_name='df_csvBI_padronizado', index=False)
+                df_funil_final.to_excel(writer, sheet_name='df_csvBI_padronizado_teste', index=False)
             
             resultado['sucesso'] = True
             resultado['mensagem'] = f"Novo arquivo criado com {len(df_funil_final)} registros."
@@ -150,10 +156,10 @@ def atualizar_arquivo_funil(caminho_destino=None):
             - 'registros_novos': int com quantidade de registros adicionados
             - 'ultima_data': str com a última data processada
     """
-    
+    from pipeline_funil import executar_pipeline_funil
     # Define o caminho padrão se não for fornecido
     if caminho_destino is None:
-        caminho_destino = r"\\trc-dc-ad\Planejamento\MIS\CARTEIRAS\GetNet\df_csvBI_padronizado.xlsx"
+        caminho_destino = r"\\trc-dc-ad\Planejamento\MIS\Pipelines\df_csvBI_padronizado_teste.xlsx"
     
     resultado = {
         'sucesso': False,
@@ -176,7 +182,7 @@ def atualizar_arquivo_funil(caminho_destino=None):
         try:
             # 2. Lê o arquivo existente da aba 'df_csvBI_padronizado'
             print("📂 Lendo arquivo existente...")
-            df_existente = pd.read_excel(caminho_destino, sheet_name='df_csvBI_padronizado')
+            df_existente = pd.read_excel(caminho_destino, sheet_name='df_csvBI_padronizado_teste')
             
             # 3. Converte a coluna 'data' para datetime
             df_existente['data'] = pd.to_datetime(df_existente['data'], errors='coerce')
@@ -201,7 +207,7 @@ def atualizar_arquivo_funil(caminho_destino=None):
             
             # 6. Carrega o workbook existente SEM destruir formatação
             wb = load_workbook(caminho_destino)
-            ws = wb['df_csvBI_padronizado']
+            ws = wb['df_csvBI_padronizado_teste']
             
             # 7. Encontra a próxima linha vazia (após a última linha com dados)
             proxima_linha = ws.max_row + 1
@@ -228,7 +234,7 @@ def atualizar_arquivo_funil(caminho_destino=None):
             # Arquivo não existe, cria um novo
             print("⚠️ Arquivo não encontrado. Criando novo arquivo com os dados gerados.")
             with pd.ExcelWriter(caminho_destino, engine='openpyxl') as writer:
-                df_funil_final.to_excel(writer, sheet_name='df_csvBI_padronizado', index=False)
+                df_funil_final.to_excel(writer, sheet_name='df_csvBI_padronizado_teste', index=False)
             
             resultado['sucesso'] = True
             resultado['mensagem'] = "Arquivo criado com sucesso!"
@@ -257,7 +263,7 @@ if __name__ == "__main__":
     print("Executando: atualizar_arquivo_funil_completo() [RECOMENDADO]")
     print("(Carregamento + Processamento Modular + Consolidação)\n")
     
-    resultado = atualizar_arquivo_funil_completo()
+    resultado = atualizar_arquivo_funil_completo(datasets_to_load=DATASETS_TO_LOAD)
     
     print("\n📋 Resultado da execução:")
     print(f"   ✅ Sucesso: {resultado['sucesso']}")

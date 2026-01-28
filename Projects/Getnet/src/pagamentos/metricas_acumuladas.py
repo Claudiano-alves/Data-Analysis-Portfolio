@@ -4,7 +4,7 @@ Contém funções para gerar métricas acumuladas (mensais) de pagamentos.
 """
 
 import pandas as pd
-from Projects.utils.utils import registrar_tempo, unir_dataframes, salvar_log
+from utils.utils import registrar_tempo, unir_dataframes, salvar_log
 from ..config import LOG_PAGAMENTOS
 
 

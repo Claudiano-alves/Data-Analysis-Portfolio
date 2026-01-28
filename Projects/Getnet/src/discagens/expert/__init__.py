@@ -4,7 +4,7 @@ __init__.py - Módulo Expert de Discagens
 Exports principais para importação simplificada
 """
 
-from .tratamentos import (
+from .data_processing import (
     tratar_base_discagens_expert,
     criar_df_tabulacoes_robo,
     enriquecer_com_tabulacoes_robo,

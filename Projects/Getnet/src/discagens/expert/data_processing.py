@@ -10,7 +10,7 @@ Responsável por:
 
 import numpy as np
 import pandas as pd
-from Projects.utils.utils import salvar_log, registrar_tempo
+from utils.utils import salvar_log, registrar_tempo
 from ...config import LOG_DISCAGENS
 # ============================================
 # CONSTANTES

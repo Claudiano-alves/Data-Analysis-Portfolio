@@ -4,7 +4,7 @@ Contém funções para limpeza, validação e enriquecimento de dados de acionam
 """
 
 import pandas as pd
-from Projects.utils.utils import registrar_tempo, salvar_log
+from utils.utils import registrar_tempo, salvar_log
 from ..config import LOG_ACIONAMENTOS
 
 

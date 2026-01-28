@@ -3,7 +3,7 @@ Módulo de Pipeline de Acionamentos
 Orquestra as funções de tratamento, métricas acumuladas e diárias.
 """
 
-from Projects.utils.utils import unir_dataframes
+from utils.utils import unir_dataframes
 from .data_processing import (
     tratar_acionamentos_tabulacao,
     confere_tabulacao_acionamentos,

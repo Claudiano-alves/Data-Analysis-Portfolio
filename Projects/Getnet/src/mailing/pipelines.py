@@ -4,7 +4,7 @@ Orquestra as funções de tratamento e geração de métricas de mailing.
 """
 
 from ..utils import unir_dataframes
-from .tratamentos import tratar_base_mailing_hist
+from .data_processing import tratar_base_mailing_hist
 from .metricas_acumuladas import (
     gerar_acumulado_maling_hist_fxAtraso,
     gerar_acumulado_maling_hist_unique

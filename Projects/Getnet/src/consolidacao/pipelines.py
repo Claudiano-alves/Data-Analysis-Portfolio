@@ -4,7 +4,7 @@ Orquestra o pipeline completo integrando todos os módulos.
 """
 
 import time
-from Projects.utils.utils import unir_dataframes, salvar_log, registrar_tempo
+from utils.utils import unir_dataframes, salvar_log, registrar_tempo
 from ..mailing.pipelines import processar_mailing_completo
 from ..pagamentos.pipelines import processar_pagamentos_completo
 from ..acionamentos.pipelines import acionamentos_humano

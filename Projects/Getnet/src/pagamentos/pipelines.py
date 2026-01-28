@@ -3,7 +3,7 @@ Módulo de Pipeline de Pagamentos
 Orquestra as funções de tratamento e geração de métricas de pagamentos.
 """
 
-from ..utils import unir_dataframes
+from utils.utils import unir_dataframes
 from .data_processing import data_pagamentos
 from .metricas_acumuladas import gerar_acumulado_por_dia_util
 

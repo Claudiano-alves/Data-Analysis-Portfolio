@@ -68,3 +68,36 @@ PROCESSING_CONFIG = {
     'remover_duplicatas': True,
     'fill_na_with_zero': True,
 }
+
+# Filtros base reutilizáveis
+WHERE_CLIENTES = "WHERE COD_CLI IN(196,198,228)"
+
+# Dicionário de filtros SQL para o pipeline
+FILTROS_SQL = {
+    'where_campanhas': "A.GrupoPrincipal IN (SELECT G.id_grupo FROM grupo G WHERE G.ID_CAMPANHA IN (19, 30))",
+    'where_clientes_mailing': WHERE_CLIENTES,
+    'where_acionamentos': "WHERE ((C.COD_CLI = 198 AND C.COD_CAR IN (1, 2, 3)) OR (C.COD_CLI = 196 AND C.COD_CAR IN (1, 3, 4)) OR (C.COD_CLI = 228 AND C.COD_CAR = 2))",
+    'where_tabulacao': WHERE_CLIENTES,
+    'where_clientes_pagamentos': WHERE_CLIENTES,
+    'where_clientes_acordos': WHERE_CLIENTES
+    #'where_massivos': "",
+    #'where_telefones': ""  # ou f"CPF_DEV IN (SELECT CPF_DEV FROM CAD_DEVF {WHERE_CLIENTES})" se precisar
+}
+
+# Datasets (se necessário)
+# Datasets a carregar (apenas os necessários)
+DATASETS_TO_LOAD = [
+    'discagens_expert',    
+    'mailing_hist',        
+    'tab_acionamentos',    
+    'tabulacao_aciona',    
+    'dw_calendario',       
+    'pagamentos',          
+    'acordos',
+    # 'sms',               
+    # 'rcs',               
+    # 'email',             
+    # 'telefone',          
+    # 'blacklist_expert',  
+    # 'discagens_trestto'  
+]

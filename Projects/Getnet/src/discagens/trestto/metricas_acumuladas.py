@@ -11,7 +11,7 @@ import pandas as pd
 from datetime import datetime, timedelta
 import warnings
 
-from Projects.utils.utils import salvar_log, registrar_tempo
+from utils.utils import salvar_log, registrar_tempo
 from ...config import LOG_DISCAGENS
 
 warnings.filterwarnings("ignore", category=FutureWarning)

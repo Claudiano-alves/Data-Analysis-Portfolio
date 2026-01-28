@@ -7,7 +7,7 @@ Estrutura de módulos:
 - pipelines: Orquestração completa
 """
 
-from .tratamentos import data_pagamentos
+from .data_processing import data_pagamentos
 
 from .metricas_acumuladas import gerar_acumulado_por_dia_util
 

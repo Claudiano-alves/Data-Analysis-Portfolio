@@ -48,7 +48,7 @@ def salvar_dataframes_csv(
         ...     df_sem_origem=df_acion_semOrigem_humano
         ... )
     """
-    from .config import PROCESS_PATHS  # Importar o dicionário de caminhos
+    from Projects.Getnet.src.config import PROCESS_PATHS  # Importar o dicionário de caminhos
     
     resultados = {}
     
@@ -379,7 +379,7 @@ def unir_dataframes(*dfs, validar_colunas=True, colunas_esperadas=None, mapeamen
     
     return df_unido
 
-def salvar_log(mensagem, arquivo='logs/default.txt'):
+def salvar_log(mensagem, arquivo_log='logs/default.txt'):
     """
     Salva mensagem em arquivo de log com timestamp.
     Função genérica que aceita qualquer caminho de arquivo.
@@ -392,21 +392,21 @@ def salvar_log(mensagem, arquivo='logs/default.txt'):
     
     Exemplo:
         # Em Projects/utils/utils.py (uso genérico)
-        salvar_log("Processamento iniciado", arquivo='src/logs/acionamentos.txt')
+        salvar_log("Processamento iniciado", arquivo_log='src/logs/acionamentos.txt')
         
         # Em Projects/Getnet/src/acionamentos/log_config.py (wrapper específico)
         from ...config import LOG_ACIONAMENTOS
         def salvar_log(mensagem):
-            _salvar_log(mensagem, arquivo=LOG_ACIONAMENTOS)
+            _salvar_log(mensagem, arquivo_log=LOG_ACIONAMENTOS)
     """
     # Criar diretório se não existir
-    diretorio = os.path.dirname(arquivo)
+    diretorio = os.path.dirname(arquivo_log)
     if diretorio:  # Se há diretório no caminho
         os.makedirs(diretorio, exist_ok=True)
     
     # Registrar log com timestamp
     timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-    with open(arquivo, 'a', encoding='utf-8') as f:
+    with open(arquivo_log, 'a', encoding='utf-8') as f:
         f.write(f"[{timestamp}] {mensagem}\n")
 
 def registrar_tempo(nome_processo, arquivo_log='logs/default.txt'):
@@ -435,7 +435,7 @@ def registrar_tempo(nome_processo, arquivo_log='logs/default.txt'):
     def decorator(funcao):
         @wraps(funcao)
         def wrapper(*args, **kwargs):
-            salvar_log(f"▶️  Iniciando: {nome_processo}", arquivo=arquivo_log)
+            salvar_log(f"▶️  Iniciando: {nome_processo}", arquivo_log=arquivo_log)
             
             inicio = time.time()
             try:
@@ -445,7 +445,7 @@ def registrar_tempo(nome_processo, arquivo_log='logs/default.txt'):
                 tempo_execucao = fim - inicio
                 salvar_log(
                     f"✅ Concluído: {nome_processo} - Tempo: {formatar_tempo(tempo_execucao)}", 
-                    arquivo=arquivo_log
+                    arquivo_log=arquivo_log
                 )
                 
                 return resultado
@@ -454,7 +454,7 @@ def registrar_tempo(nome_processo, arquivo_log='logs/default.txt'):
                 tempo_execucao = fim - inicio
                 salvar_log(
                     f"❌ Erro em {nome_processo}: {str(e)} - Tempo até erro: {formatar_tempo(tempo_execucao)}", 
-                    arquivo=arquivo_log
+                    arquivo_log=arquivo_log
                 )
                 raise
                 

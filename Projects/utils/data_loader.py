@@ -247,35 +247,79 @@ def data_loader_(
     
     return dataframes
 
-from concurrent.futures import ThreadPoolExecutor, as_completed
-from typing import Optional, List, Dict
-import pandas as pd
-import time
-from threading import Lock
-
-# Lock para sincronizar prints/logs
-print_lock = Lock()
-
-def _carregar_dataset(nome_df, descricao, query_func, conexao, args):
+def load_all_data_(
+    csv_path: Optional[str] = None,
+    where_campanhas: str = "",
+    where_clientes_mailing: str = "",
+    where_acionamentos: str = "",
+    where_tabulacao: str = "",
+    where_clientes_pagamentos: str = "",
+    where_clientes_acordos: str = "",
+    where_massivos: str = "",
+    where_telefones: str = "",
+) -> Tuple[pd.DataFrame, ...]:
     """
-    Função auxiliar para carregar um dataset individual.
-    Retorna tupla (nome_df, df, tempo_decorrido, erro)
+    Função principal para carregar todos os dados.
+    
+    Args:
+        csv_path: Caminho do arquivo CSV para calcular range de datas.
+                  Se None, usa o caminho padrão do servidor:
+                  \\trc-dc-ad\Planejamento\MIS\CARTEIRAS\GetNet\df_csvBI_padronizado.csv
+        where_campanhas: Cláusula WHERE para discagens
+        where_clientes_mailing: Cláusula WHERE para mailing_hist
+        where_acionamentos: Cláusula WHERE para acionamentos
+        where_tabulacao: Cláusula WHERE para tabulação
+        where_clientes_pagamentos: Cláusula WHERE para pagamentos
+        where_clientes_acordos: Cláusula WHERE para acordos
+        where_massivos: Cláusula WHERE para SMS, RCS e Email
+        where_telefones: Cláusula WHERE para telefones
+                  
+    Returns:
+        Tupla com 12 DataFrames
+        
+    Exemplo de uso:
+        # Definir WHEREs
+        where_campanhas_ouze = "A.GrupoPrincipal IN (SELECT G.id_grupo FROM grupo G WHERE G.ID_CAMPANHA IN (19, 30))"
+        where_clientes = "COD_CLI IN(196,198,228)"
+        
+        # Usando CSV padrão do servidor (recomendado)
+        dfs = load_all_data(
+            where_campanhas=where_campanhas_ouze,
+            where_clientes_mailing=where_clientes,
+            where_clientes_pagamentos=where_clientes
+        )
+        
+        # Usando CSV customizado
+        dfs = load_all_data(
+            csv_path='data/historico.csv',
+            where_campanhas=where_campanhas_ouze
+        )
+        
+        # Desempacotando
+        (df_disc_exp, df_mail, df_tab, df_tabul, df_cal, 
+         df_pag, df_acord, df_sms, df_rcs, df_email, 
+         df_tel, df_black) = load_all_data(where_campanhas=where_campanhas_ouze)
     """
-    try:
-        tempo_inicio = time.time()
-        
-        # Executar query
-        query = query_func(*args)
-        df = pd.read_sql(query, conexao)
-        
-        tempo_fim = time.time()
-        tempo_decorrido = tempo_fim - tempo_inicio
-        
-        return (nome_df, df, tempo_decorrido, None)
-        
-    except Exception as e:
-        return (nome_df, None, 0, str(e))
-
+    # Determina o range de datas (csv_path=None usará o padrão do servidor)
+    data_inicio, data_fim = get_date_range_from_csv(csv_path)
+    
+    # Usa context manager para gerenciar conexões
+    with get_db_connections() as (conn_trc, conn_bd2, conn_src):
+        return data_loader(
+            conn_trc=conn_trc,
+            conn_bd2=conn_bd2,
+            conn_src=conn_src,
+            data_inicio=data_inicio,
+            data_fim=data_fim,
+            where_campanhas=where_campanhas,
+            where_clientes_mailing=where_clientes_mailing,
+            where_acionamentos=where_acionamentos,
+            where_tabulacao=where_tabulacao,
+            where_clientes_pagamentos=where_clientes_pagamentos,
+            where_clientes_acordos=where_clientes_acordos,
+            where_massivos=where_massivos,
+            where_telefones=where_telefones
+        )
 
 def data_loader(
     conn_trc, 
@@ -291,11 +335,10 @@ def data_loader(
     where_clientes_acordos: str = "",
     where_massivos: str = "",
     where_telefones: str = "",
-    datasets_to_load: Optional[List[str]] = None,
-    max_workers: int = 5  # Número de threads paralelas
+    datasets_to_load: Optional[List[str]] = None
 ) -> Dict[str, pd.DataFrame]:
     """
-    Carrega dados necessários dos bancos de dados de forma paralela e configurável.
+    Carrega dados necessários dos bancos de dados.
     
     Args:
         conn_trc: Conexão com banco TRC
@@ -312,19 +355,14 @@ def data_loader(
         where_massivos: Cláusula WHERE para SMS, RCS e Email
         where_telefones: Cláusula WHERE para telefones
         datasets_to_load: Lista de datasets a serem carregados. Se None, carrega todos.
-        max_workers: Número máximo de threads paralelas (padrão: 5)
         
     Returns:
         Dicionário com DataFrames carregados
     """
-    import warnings
-    warnings.filterwarnings('ignore', category=UserWarning)
-    
     print(f"\n📊 Carregando dados de {data_inicio} até {data_fim}...\n")
     salvar_log("="*80)
-    salvar_log(f"📊 INÍCIO DO CARREGAMENTO DE DADOS (PARALELO)")
+    salvar_log(f"📊 INÍCIO DO CARREGAMENTO DE DADOS")
     salvar_log(f"   Período: {data_inicio} até {data_fim}")
-    salvar_log(f"   Workers: {max_workers} threads")
     salvar_log("="*80)
     
     # Se não especificado, carrega todos os disponíveis
@@ -463,42 +501,27 @@ def data_loader(
     salvar_log("-"*80)
     
     # ===============================
-    # CARREGAMENTO PARALELO
+    # CARREGAMENTO DE DADOS
     # ===============================
     dataframes = {}
     tempo_total_inicio = time.time()
+    total_datasets = len(datasets_to_load)
     
-    with ThreadPoolExecutor(max_workers=max_workers) as executor:
-        # Submeter todas as tarefas
-        futures = {}
-        for nome_df in datasets_to_load:
-            if nome_df not in all_queries_config:
-                continue
-            
-            descricao, query_func, conexao, args = all_queries_config[nome_df]
-            future = executor.submit(
-                _carregar_dataset, 
-                nome_df, 
-                descricao, 
-                query_func, 
-                conexao, 
-                args
-            )
-            futures[future] = descricao
+    for idx, nome_df in enumerate(datasets_to_load, 1):
+        if nome_df not in all_queries_config:
+            continue
         
-        # Processar resultados conforme concluem
-        for future in as_completed(futures):
-            descricao = futures[future]
-            nome_df, df, tempo_decorrido, erro = future.result()
+        descricao, query_func, conexao, args = all_queries_config[nome_df]
+        
+        try:
+            tempo_inicio = time.time()
             
-            if erro:
-                erro_msg = f"❌ ERRO ao carregar {descricao}"
-                with print_lock:
-                    print(erro_msg)
-                    salvar_log(erro_msg)
-                    salvar_log(f"   ⚠️  Detalhes: {erro}")
-                    salvar_log("="*80)
-                raise Exception(f"Falha ao carregar {descricao}: {erro}")
+            # Executar query
+            query = query_func(*args)
+            df = pd.read_sql(query, conexao)
+            
+            tempo_fim = time.time()
+            tempo_decorrido = tempo_fim - tempo_inicio
             
             # Formatação do tempo
             minutos = int(tempo_decorrido // 60)
@@ -508,18 +531,24 @@ def data_loader(
             # Formatação da quantidade de registros
             qtd_registros = f"{len(df):,}".replace(",", ".")
             
-            # Sincronizar output
-            with print_lock:
-                # Exibir no terminal (resumido)
-                print(f"✓ {descricao}: {qtd_registros} registros ({tempo_str})")
-                
-                # Registrar no log (completo)
-                salvar_log(f"✓ {descricao}")
-                salvar_log(f"   📊 Registros: {qtd_registros}")
-                salvar_log(f"   ⏱️  Tempo: {tempo_str}")
-                salvar_log("-"*80)
+            # Exibir no terminal
+            print(f"[{idx}/{total_datasets}] ✓ {descricao}: {qtd_registros} registros ({tempo_str})")
+            
+            # Registrar no log
+            salvar_log(f"✓ [{idx}/{total_datasets}] {descricao}")
+            salvar_log(f"   📊 Registros: {qtd_registros}")
+            salvar_log(f"   ⏱️  Tempo: {tempo_str}")
+            salvar_log("-"*80)
             
             dataframes[nome_df] = df
+            
+        except Exception as e:
+            erro_msg = f"❌ ERRO ao carregar {descricao}"
+            print(erro_msg)
+            salvar_log(erro_msg)
+            salvar_log(f"   ⚠️  Detalhes: {str(e)}")
+            salvar_log("="*80)
+            raise Exception(f"Falha ao carregar {descricao}: {str(e)}")
     
     # Tempo total
     tempo_total = time.time() - tempo_total_inicio
@@ -536,6 +565,7 @@ def data_loader(
     return dataframes
 
 def load_all_data(
+    datasets_to_load=None,
     csv_path: Optional[str] = None,
     where_campanhas: str = "",
     where_clientes_mailing: str = "",
@@ -544,7 +574,7 @@ def load_all_data(
     where_clientes_pagamentos: str = "",
     where_clientes_acordos: str = "",
     where_massivos: str = "",
-    where_telefones: str = "",
+    where_telefones: str = ""
 ) -> Tuple[pd.DataFrame, ...]:
     """
     Função principal para carregar todos os dados.
@@ -593,12 +623,13 @@ def load_all_data(
     
     # Usa context manager para gerenciar conexões
     with get_db_connections() as (conn_trc, conn_bd2, conn_src):
-        return data_loader(
+        dataframes = data_loader(
             conn_trc=conn_trc,
             conn_bd2=conn_bd2,
             conn_src=conn_src,
             data_inicio=data_inicio,
             data_fim=data_fim,
+            datasets_to_load=datasets_to_load,
             where_campanhas=where_campanhas,
             where_clientes_mailing=where_clientes_mailing,
             where_acionamentos=where_acionamentos,
@@ -608,6 +639,23 @@ def load_all_data(
             where_massivos=where_massivos,
             where_telefones=where_telefones
         )
+        
+        # Retornar na ordem esperada (tupla de 12 DataFrames)
+        return (
+            dataframes.get('discagens_expert', pd.DataFrame()),
+            dataframes.get('mailing_hist', pd.DataFrame()),
+            dataframes.get('tab_acionamentos', pd.DataFrame()),
+            dataframes.get('tabulacao_aciona', pd.DataFrame()),
+            dataframes.get('dw_calendario', pd.DataFrame()),
+            dataframes.get('pagamentos', pd.DataFrame()),
+            dataframes.get('acordos', pd.DataFrame()),
+            dataframes.get('sms', pd.DataFrame()),
+            dataframes.get('rcs', pd.DataFrame()),
+            dataframes.get('email', pd.DataFrame()),
+            dataframes.get('telefone', pd.DataFrame()),
+            dataframes.get('blacklist_expert', pd.DataFrame()),
+        )
+
 # ============================================================================
 # EXEMPLO DE USO
 # ============================================================================
