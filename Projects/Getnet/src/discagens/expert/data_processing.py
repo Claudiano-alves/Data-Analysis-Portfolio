@@ -214,7 +214,7 @@ def enriquecer_com_mailing_calendario(df_discagens, df_mailing_hist, df_dw_calen
     df_resultado['CONTRATO'] = df_resultado['CONTRATO'].astype(str).str.upper().str.strip()
     
     # Enriquecer com mailing_hist
-    df_mailing_temp = df_mailing_hist[['CONTRATO', 'DATA', 'FX_ATRASO', 'VALORPRIN_FIN']].copy()
+    df_mailing_temp = df_mailing_hist[['CONTRATO', 'DATA', 'FX_ATRASO', 'VALOR']].copy()
     df_mailing_temp['CONTRATO'] = df_mailing_temp['CONTRATO'].astype(str).str.upper().str.strip()
     
     df_resultado['DATA'] = pd.to_datetime(df_resultado['DATA']).dt.date

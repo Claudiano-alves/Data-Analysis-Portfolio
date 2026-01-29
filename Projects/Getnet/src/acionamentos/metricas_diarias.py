@@ -55,11 +55,11 @@ def acionamentos_unique_origem_fxAtraso(df_acionamentos_enriquecido, df_dw_calen
             )
             .agg({ 
                 'CPF_DEV': 'nunique',
-                'VALORPRIN_FIN': 'sum'
+                'VALOR': 'sum'
             })
             .rename(columns={
                 'CPF_DEV': nome_coluna,
-                'VALORPRIN_FIN': f'VALORPRIN_FIN_{nome_coluna}'
+                'VALOR': f'VALORPRIN_FIN_{nome_coluna}'
             })
             .reset_index()
         )
@@ -140,11 +140,11 @@ def acionamentos_unique_fxAtraso(df_acionamentos_com_calendario, df_dw_calendari
             )
             .agg({ 
                 'CPF_DEV': 'nunique',
-                'VALORPRIN_FIN': 'sum'
+                'VALOR': 'sum'
             })
             .rename(columns={
                 'CPF_DEV': nome_coluna,
-                'VALORPRIN_FIN': f'VALORPRIN_FIN_{nome_coluna}'
+                'VALOR': f'VALORPRIN_FIN_{nome_coluna}'
             })
             .reset_index()
         )
@@ -227,10 +227,10 @@ def acionamentos_esforco_origem_fxAtraso(df_acionamentos_enriquecido, df_dw_cale
             )
             .agg({ 
                 nome_coluna: 'sum',
-                'VALORPRIN_FIN': 'sum'
+                'VALOR': 'sum'
             })
             .rename(columns={
-                'VALORPRIN_FIN': f'VALORPRIN_FIN_{nome_coluna}'
+                'VALOR': f'VALORPRIN_FIN_{nome_coluna}'
             })
             .reset_index()
         )

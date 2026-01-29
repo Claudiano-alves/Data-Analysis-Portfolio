@@ -100,15 +100,15 @@ def acionamentos_esforco_trestto(df_discagens, df_dw_calendario):
         
         agrupado = df_intervalo.groupby(['FX_ATRASO', 'ORIGEM']).apply(lambda g: pd.Series({
             'TRABALHADO': g['TRABALHADO'].sum(),
-            'VALORPRIN_FIN_TRABALHADO': g.loc[g['TRABALHADO'] == 1, 'VALORPRIN_FIN'].sum(),
+            'VALORPRIN_FIN_TRABALHADO': g.loc[g['TRABALHADO'] == 1, 'VALOR'].sum(),
             'ACIONAMENTOS': g['ACIONAMENTOS'].sum(),
-            'VALORPRIN_FIN_ACIONAMENTOS': g.loc[g['ACIONAMENTOS'] == 1, 'VALORPRIN_FIN'].sum(),
+            'VALORPRIN_FIN_ACIONAMENTOS': g.loc[g['ACIONAMENTOS'] == 1, 'VALOR'].sum(),
             'CPC': g['CPC'].sum(),
-            'VALORPRIN_FIN_CPC': g.loc[g['CPC'] == 1, 'VALORPRIN_FIN'].sum(),
+            'VALORPRIN_FIN_CPC': g.loc[g['CPC'] == 1, 'VALOR'].sum(),
             'CPCA': g['CPCA'].sum(),
-            'VALORPRIN_FIN_CPCA': g.loc[g['CPCA'] == 1, 'VALORPRIN_FIN'].sum(),
+            'VALORPRIN_FIN_CPCA': g.loc[g['CPCA'] == 1, 'VALOR'].sum(),
             'PROMESSA': g['PROMESSA'].sum(),
-            'VALORPRIN_FIN_PROMESSA': g.loc[g['PROMESSA'] == 1, 'VALORPRIN_FIN'].sum()
+            'VALORPRIN_FIN_PROMESSA': g.loc[g['PROMESSA'] == 1, 'VALOR'].sum()
         })).reset_index()
         
         agrupado['DATA'] = data
@@ -231,15 +231,15 @@ def acionamentos_unique_trestto(df_discagens, df_dw_calendario):
         
         agrupado = df_unique.groupby(['FX_ATRASO', 'ORIGEM']).apply(lambda g: pd.Series({
             'TRABALHADO': g['TRABALHADO_BIN'].sum(),
-            'VALORPRIN_FIN_TRABALHADO': g.loc[g['TRABALHADO_BIN'] == 1, 'VALORPRIN_FIN'].sum(),
+            'VALORPRIN_FIN_TRABALHADO': g.loc[g['TRABALHADO_BIN'] == 1, 'VALOR'].sum(),
             'ACIONAMENTOS': g['ACIONAMENTOS_BIN'].sum(),
-            'VALORPRIN_FIN_ACIONAMENTOS': g.loc[g['ACIONAMENTOS_BIN'] == 1, 'VALORPRIN_FIN'].sum(),
+            'VALORPRIN_FIN_ACIONAMENTOS': g.loc[g['ACIONAMENTOS_BIN'] == 1, 'VALOR'].sum(),
             'CPC': g['CPC_BIN'].sum(),
-            'VALORPRIN_FIN_CPC': g.loc[g['CPC_BIN'] == 1, 'VALORPRIN_FIN'].sum(),
+            'VALORPRIN_FIN_CPC': g.loc[g['CPC_BIN'] == 1, 'VALOR'].sum(),
             'CPCA': g['CPCA_BIN'].sum(),
-            'VALORPRIN_FIN_CPCA': g.loc[g['CPCA_BIN'] == 1, 'VALORPRIN_FIN'].sum(),
+            'VALORPRIN_FIN_CPCA': g.loc[g['CPCA_BIN'] == 1, 'VALOR'].sum(),
             'PROMESSA': g['PROMESSA_BIN'].sum(),
-            'VALORPRIN_FIN_PROMESSA': g.loc[g['PROMESSA_BIN'] == 1, 'VALORPRIN_FIN'].sum()
+            'VALORPRIN_FIN_PROMESSA': g.loc[g['PROMESSA_BIN'] == 1, 'VALOR'].sum()
         })).reset_index()
         
         agrupado['DATA'] = data
@@ -330,15 +330,15 @@ def acionamentos_fxAtraso_origem_trestto(df_discagens, df_dw_calendario):
         # Agrupar
         agrupado = df_unique.groupby(['FX_ATRASO', 'ORIGEM']).apply(lambda g: pd.Series({
             'TRABALHADO': g['TRABALHADO'].sum(),
-            'VALORPRIN_FIN_TRABALHADO': g.loc[g['TRABALHADO'] == 1, 'VALORPRIN_FIN'].sum(),
+            'VALORPRIN_FIN_TRABALHADO': g.loc[g['TRABALHADO'] == 1, 'VALOR'].sum(),
             'ACIONAMENTOS': g['ACIONAMENTOS'].sum(),
-            'VALORPRIN_FIN_ACIONAMENTOS': g.loc[g['ACIONAMENTOS'] == 1, 'VALORPRIN_FIN'].sum(),
+            'VALORPRIN_FIN_ACIONAMENTOS': g.loc[g['ACIONAMENTOS'] == 1, 'VALOR'].sum(),
             'CPC': g['CPC'].sum(),
-            'VALORPRIN_FIN_CPC': g.loc[g['CPC'] == 1, 'VALORPRIN_FIN'].sum(),
+            'VALORPRIN_FIN_CPC': g.loc[g['CPC'] == 1, 'VALOR'].sum(),
             'CPCA': g['CPCA'].sum(),
-            'VALORPRIN_FIN_CPCA': g.loc[g['CPCA'] == 1, 'VALORPRIN_FIN'].sum(),
+            'VALORPRIN_FIN_CPCA': g.loc[g['CPCA'] == 1, 'VALOR'].sum(),
             'PROMESSA': g['PROMESSA'].sum(),
-            'VALORPRIN_FIN_PROMESSA': g.loc[g['PROMESSA'] == 1, 'VALORPRIN_FIN'].sum()
+            'VALORPRIN_FIN_PROMESSA': g.loc[g['PROMESSA'] == 1, 'VALOR'].sum()
         })).reset_index()
         
         agrupado['DATA'] = data

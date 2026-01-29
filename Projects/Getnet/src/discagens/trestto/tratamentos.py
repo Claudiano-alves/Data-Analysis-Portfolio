@@ -54,7 +54,7 @@ def enriquecer_discagens_trestto(df_discagens_trestto, df_mailing_hist, df_dw_ca
     salvar_log(f"📊 Mailing: {len(df_mailing):,}", arquivo_log=LOG_DISCAGENS)
     
     # Enriquecer com mailing_hist
-    df_mailing_temp = df_mailing[['CPF', 'DATA', 'PRODUTO', 'FX_ATRASO', 'VALORPRIN_FIN']].drop_duplicates()
+    df_mailing_temp = df_mailing[['CPF', 'DATA', 'PRODUTO', 'FX_ATRASO', 'VALOR']].drop_duplicates()
     
     salvar_log(f"\n📊 Merge com mailing_hist...", arquivo_log=LOG_DISCAGENS)
     salvar_log(f"   Registros antes: {len(df_consolidado):,}", arquivo_log=LOG_DISCAGENS)

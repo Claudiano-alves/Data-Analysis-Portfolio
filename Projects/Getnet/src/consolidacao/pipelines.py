@@ -56,6 +56,23 @@ def executar_pipeline_funil_completo(
     
     try:
         # ============================================
+        # PRÉ-PROCESSAMENTO: Adicionar coluna TIPO aos acordos
+        # ============================================
+        salvar_log("\n🔧 PRÉ-PROCESSAMENTO: Enriquecendo acordos com TIPO...", arquivo_log=LOG_LOADING)
+        
+        # Códigos que identificam acordos do tipo ROBÔ
+        codigos_robo = [1626, 1, 11003]
+        
+        # Criar coluna TIPO baseada em RECUP_ACO
+        df_acordos['TIPO'] = df_acordos['RECUP_ACO'].apply(
+            lambda x: 'ROBÔ' if x in codigos_robo else 'HUMANO'
+        )
+        
+        salvar_log(f"✓ Coluna TIPO adicionada aos acordos", arquivo_log=LOG_LOADING)
+        salvar_log(f"  - Acordos ROBÔ: {(df_acordos['TIPO'] == 'ROBÔ').sum():,}", arquivo_log=LOG_LOADING)
+        salvar_log(f"  - Acordos HUMANO: {(df_acordos['TIPO'] == 'HUMANO').sum():,}", arquivo_log=LOG_LOADING)
+        
+        # ============================================
         # ETAPA 1: MAILING (independente)
         # ============================================
         salvar_log("\n📧 ETAPA 1: Processando Mailing...", arquivo_log=LOG_LOADING)
