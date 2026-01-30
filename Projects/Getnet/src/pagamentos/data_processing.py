@@ -39,8 +39,8 @@ def data_pagamentos(df_pagamentos, df_acordos, df_mailing_hist, df_dw_calendario
     # Filtrar acordos válidos
     df_acordos_validos = (
         df_acordos[df_acordos['CANC_ACORDO'].isna()]
-        .drop_duplicates(subset=['CONTRATO_FIN', 'NACORDO_ACO', 'TIPO'])
-        [['CONTRATO_FIN', 'NACORDO_ACO', 'TIPO', 'DATA_ACORDO']]
+        .drop_duplicates(subset=['CONTRATO_FIN', 'NACORDO_ACO', 'ORIGEM'])
+        [['CONTRATO_FIN', 'NACORDO_ACO', 'ORIGEM', 'DATA_ACORDO']]
     )
 
     df_acordos_validos['DATA_ACORDO'] = pd.to_datetime(df_acordos_validos['DATA_ACORDO'])
@@ -92,7 +92,7 @@ def data_pagamentos(df_pagamentos, df_acordos, df_mailing_hist, df_dw_calendario
     
     # Agrupar por faixa e tipo
     df_agrupado = df_com_fx_atraso.groupby(
-        ['DATA_PAGTO', 'FX_ATRASO', 'TIPO', 'mes_abreviado', 'nr_dia_util', 'quartil', 'dt_mes']
+        ['DATA_PAGTO', 'FX_ATRASO', 'ORIGEM', 'mes_abreviado', 'nr_dia_util', 'quartil', 'dt_mes']
     ).agg(
         qte=('CPF_DEV', 'count'),
         VALOR_PARC=('VALOR_PARC', 'sum')
@@ -104,7 +104,7 @@ def data_pagamentos(df_pagamentos, df_acordos, df_mailing_hist, df_dw_calendario
     df_agrupado = df_agrupado.rename(columns={'mes_abreviado': 'MesAbreviado'})
 
     df_agrupado = df_agrupado[[
-        'DATA_PAGTO', 'Indicador', 'qte', 'FX_ATRASO', 'TIPO',
+        'DATA_PAGTO', 'Indicador', 'qte', 'FX_ATRASO', 'ORIGEM',
         'MesAbreviado', 'nr_dia_util', 'quartil', 'dt_mes', 'VALOR_PARC'
     ]]
 

@@ -85,18 +85,17 @@ def acionamentos_humano(df_tab_acionamentos, df_tabulacao_aciona, df_dw_calendar
     df_analitico_acionamentos_humano = df_acionamentos_enriquecido_limpo.copy()
     
     # ============================================
-    # ETAPA 5: SALVAR ANALÍTICOS
+    # ETAPA 6: SALVAR ANALÍTICOS
     # ============================================
-    from Projects.utils.utils import salvar_dataframes_csv
-    from ..config import PROCESS_PATHS
+    # from Projects.utils.utils import salvar_dataframes_csv
     
-    salvar_dataframes_csv(
-        processo="acionamentos",
-        df_enriquecido=df_acionamentos_enriquecido_limpo,
-        df_sem_faixa=df_acion_semFaixa_humano,
-        df_sem_descricao=df_acion_semDescricao_humano,
-        df_sem_origem=df_acion_semOrigem_humano
-    )
+    # salvar_dataframes_csv(
+    #     processo="acionamentos",
+    #     df_enriquecido=df_acionamentos_enriquecido_limpo,
+    #     df_sem_faixa=df_acion_semFaixa_humano,
+    #     df_sem_descricao=df_acion_semDescricao_humano,
+    #     df_sem_origem=df_acion_semOrigem_humano
+    # )
 
     return (
         df_acionamentos_humano, 

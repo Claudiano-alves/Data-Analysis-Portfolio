@@ -28,7 +28,7 @@ def gerar_acumulado_por_dia_util(df_agrupado):
         salvar_log("=" * 60, arquivo_log=LOG_PAGAMENTOS)
 
         colunas = [
-            'DATA_PAGTO', 'Indicador', 'qte', 'FX_ATRASO', 'TIPO',
+            'DATA_PAGTO', 'Indicador', 'qte', 'FX_ATRASO', 'ORIGEM',
             'MesAbreviado', 'nr_dia_util', 'quartil', 'dt_mes', 'VALOR_PARC'
         ]
         df_vazio = pd.DataFrame(columns=colunas)
@@ -53,8 +53,8 @@ def gerar_acumulado_por_dia_util(df_agrupado):
         if df_intervalo.empty:
             continue
         
-        # Agrupar por FX_ATRASO e TIPO
-        agrupado = df_intervalo.groupby(['FX_ATRASO', 'TIPO']).agg({
+        # Agrupar por FX_ATRASO e ORIGEM
+        agrupado = df_intervalo.groupby(['FX_ATRASO', 'ORIGEM']).agg({
             'qte': 'sum',
             'VALOR_PARC': 'sum'
         }).reset_index()
@@ -77,7 +77,7 @@ def gerar_acumulado_por_dia_util(df_agrupado):
         salvar_log("=" * 60, arquivo_log=LOG_PAGAMENTOS)
 
         colunas = [
-            'DATA_PAGTO', 'Indicador', 'qte', 'FX_ATRASO', 'TIPO',
+            'DATA_PAGTO', 'Indicador', 'qte', 'FX_ATRASO', 'ORIGEM',
             'MesAbreviado', 'nr_dia_util', 'quartil', 'dt_mes', 'VALOR_PARC'
         ]
         df_vazio = pd.DataFrame(columns=colunas)
@@ -86,7 +86,7 @@ def gerar_acumulado_por_dia_util(df_agrupado):
     df_acumulado = pd.concat(resultados, ignore_index=True)
     
     df_acumulado = df_acumulado[[
-        'DATA_PAGTO', 'Indicador', 'qte', 'FX_ATRASO', 'TIPO',
+        'DATA_PAGTO', 'Indicador', 'qte', 'FX_ATRASO', 'ORIGEM',
         'MesAbreviado', 'nr_dia_util', 'quartil', 'dt_mes', 'VALOR_PARC'
     ]]
     

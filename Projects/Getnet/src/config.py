@@ -86,18 +86,18 @@ FILTROS_SQL = {
 
 # Datasets (se necessário)
 # Datasets a carregar (apenas os necessários)
-DATASETS_TO_LOAD = [
-    'discagens_expert',    
-    'mailing_hist',        
-    'tab_acionamentos',    
-    'tabulacao_aciona',    
-    'dw_calendario',       
-    'pagamentos',          
-    'acordos',
-    # 'sms',               
-    # 'rcs',               
-    # 'email',             
-    # 'telefone',          
-    # 'blacklist_expert',  
-    # 'discagens_trestto'  
-]
+DATASETS_TO_LOAD = {
+    'discagens_expert': True,    
+    'mailing_hist': True,        
+    'tab_acionamentos': True,    
+    'tabulacao_aciona': True,    
+    'dw_calendario': True,       
+    'pagamentos': True,          
+    'acordos': True,
+    'sms': False,               
+    'rcs': False,               
+    'email': False,             
+    'telefone': False,          
+    'blacklist_expert': False,  
+    'discagens_trestto': False  
+}

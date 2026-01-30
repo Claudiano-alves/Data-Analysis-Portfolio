@@ -4,7 +4,7 @@ Orquestra o pipeline completo integrando todos os módulos.
 """
 
 import time
-from utils.utils import unir_dataframes, salvar_log, registrar_tempo
+from utils.utils import unir_dataframes, salvar_log, registrar_tempo, transformar_funil_formato_long
 from ..mailing.pipelines import processar_mailing_completo
 from ..pagamentos.pipelines import processar_pagamentos_completo
 from ..acionamentos.pipelines import acionamentos_humano
@@ -56,21 +56,21 @@ def executar_pipeline_funil_completo(
     
     try:
         # ============================================
-        # PRÉ-PROCESSAMENTO: Adicionar coluna TIPO aos acordos
+        # PRÉ-PROCESSAMENTO: Adicionar coluna ORIGEM aos acordos
         # ============================================
-        salvar_log("\n🔧 PRÉ-PROCESSAMENTO: Enriquecendo acordos com TIPO...", arquivo_log=LOG_LOADING)
+        salvar_log("\n🔧 PRÉ-PROCESSAMENTO: Enriquecendo acordos com ORIGEM...", arquivo_log=LOG_LOADING)
         
         # Códigos que identificam acordos do tipo ROBÔ
         codigos_robo = [1626, 1, 11003]
         
-        # Criar coluna TIPO baseada em RECUP_ACO
-        df_acordos['TIPO'] = df_acordos['RECUP_ACO'].apply(
+        # Criar coluna ORIGEM baseada em RECUP_ACO
+        df_acordos['ORIGEM'] = df_acordos['RECUP_ACO'].apply(
             lambda x: 'ROBÔ' if x in codigos_robo else 'HUMANO'
         )
         
-        salvar_log(f"✓ Coluna TIPO adicionada aos acordos", arquivo_log=LOG_LOADING)
-        salvar_log(f"  - Acordos ROBÔ: {(df_acordos['TIPO'] == 'ROBÔ').sum():,}", arquivo_log=LOG_LOADING)
-        salvar_log(f"  - Acordos HUMANO: {(df_acordos['TIPO'] == 'HUMANO').sum():,}", arquivo_log=LOG_LOADING)
+        salvar_log(f"✓ Coluna ORIGEM adicionada aos acordos", arquivo_log=LOG_LOADING)
+        salvar_log(f"  - Acordos ROBÔ: {(df_acordos['ORIGEM'] == 'ROBÔ').sum():,}", arquivo_log=LOG_LOADING)
+        salvar_log(f"  - Acordos HUMANO: {(df_acordos['ORIGEM'] == 'HUMANO').sum():,}", arquivo_log=LOG_LOADING)
         
         # ============================================
         # ETAPA 1: MAILING (independente)
@@ -177,18 +177,35 @@ def executar_pipeline_funil_completo(
             tempo_trestto = time.time() - tempo_etapa
             salvar_log(f"   ✓ Discagens TRESTTO: {len(df_discagens_trestto_final):,} registros ({tempo_trestto:.1f}s)", arquivo_log=LOG_LOADING)
         
+
         # ============================================
-        # ETAPA 5: CONSOLIDAÇÃO
+        # ETAPA 5: UNIÃO ACIONAMENTO/DISCAGENS E TRANSFORMAÇÃO EM FORMATO LONG
+        # ============================================
+        df_acionamentos_discagens = unir_dataframes(df_acionamentos_final, df_discagens_expert_final, df_discagens_trestto_final)
+        df_acionamentos_discagens = transformar_funil_formato_long(df_acionamentos_discagens)
+
+        # ============================================
+        # PRÉ-CONSOLIDAÇÃO: Padronizar nomes de colunas
+        # ============================================
+        salvar_log("\n🔄 Padronizando nomes de colunas para consolidação...", arquivo_log=LOG_LOADING)
+        
+        # Renomear VALOR → VALORPRIN_FIN no mailing
+        if df_mailing_final is not None and not df_mailing_final.empty:
+            if 'VALOR' in df_mailing_final.columns:
+                df_mailing_final = df_mailing_final.copy()
+                df_mailing_final.rename(columns={'VALOR': 'VALORPRIN_FIN'}, inplace=True)
+                salvar_log("✓ Coluna VALOR renomeada para VALORPRIN_FIN no mailing", arquivo_log=LOG_LOADING)
+
+        # ============================================
+        # ETAPA 6: CONSOLIDAÇÃO
         # ============================================
         salvar_log("\n🔗 ETAPA 5: Consolidando resultados...", arquivo_log=LOG_LOADING)
         tempo_etapa = time.time()
-        
+
         df_consolidado = consolidar_dataframes_funil(
             df_mailing_final,
-            df_acionamentos_final,
             df_pagamentos_final,
-            df_discagens_expert_final,
-            df_discagens_trestto_final
+            df_acionamentos_discagens
         )
         
         tempo_consolidacao = time.time() - tempo_etapa

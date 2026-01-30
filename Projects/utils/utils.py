@@ -276,6 +276,73 @@ def get_default_date_range() -> Tuple[str, str]:
     data_fim = (hoje - timedelta(days=1)).strftime('%Y-%m-%d')
     return data_inicio, data_fim
 
+def transformar_funil_formato_long(df_acionamentos_funil):
+    """
+    Transforma o DataFrame de acionamentos do formato wide para long.
+    
+    De: DATA | FX_ATRASO | ORIGEM | TRABALHADO | ACIONAMENTOS | CPC | CPCA | PROMESSA | ...
+    Para: DATA | Indicador | qte | FX_ATRASO | ORIGEM | MesAbreviado | nr_dia_util | quartil | dt_mes | VALORPRIN_FIN
+    """
+    
+    # Definir os indicadores que serão transformados
+    indicadores = {
+        'TRABALHADO': 'VALORPRIN_FIN_TRABALHADO',
+        'ACIONAMENTOS': 'VALORPRIN_FIN_ACIONAMENTOS',
+        'CPC': 'VALORPRIN_FIN_CPC',
+        'CPCA': 'VALORPRIN_FIN_CPCA',
+        'PROMESSA': 'VALORPRIN_FIN_PROMESSA'
+    }
+    
+    resultados = []
+    
+    for indicador, col_valor in indicadores.items():
+        # Criar um DataFrame para cada indicador
+        df_temp = df_acionamentos_funil[[
+            'DATA',
+            'FX_ATRASO',
+            'ORIGEM',
+            indicador,
+            col_valor,
+            'mes_abreviado',
+            'nr_dia_util',
+            'quartil',
+            'dt_mes'
+        ]].copy()
+        
+        # Renomear colunas
+        df_temp = df_temp.rename(columns={
+            indicador: 'qte',
+            col_valor: 'VALORPRIN_FIN',
+            'mes_abreviado': 'MesAbreviado'
+        })
+        
+        # Adicionar coluna Indicador
+        df_temp['Indicador'] = indicador.upper()
+        
+        resultados.append(df_temp)
+    
+    # Concatenar todos os indicadores
+    df_final = pd.concat(resultados, ignore_index=True)
+    
+    # Reordenar colunas conforme solicitado
+    df_final = df_final[[
+        'DATA',
+        'Indicador',
+        'qte',
+        'FX_ATRASO',
+        'ORIGEM',
+        'MesAbreviado',
+        'nr_dia_util',
+        'quartil',
+        'dt_mes',
+        'VALORPRIN_FIN'
+    ]]
+    
+    # Ordenar por DATA, FX_ATRASO e Indicador
+    df_final = df_final.sort_values(['DATA', 'FX_ATRASO', 'Indicador']).reset_index(drop=True)
+    
+    return df_final
+
 def unir_dataframes(*dfs, validar_colunas=True, colunas_esperadas=None, mapeamento_colunas=None):
     """
     Une múltiplos DataFrames verticalmente com padronização de colunas.
