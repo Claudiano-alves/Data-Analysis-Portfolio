@@ -2,7 +2,7 @@
 Módulo de Consolidação de Funil
 Orquestra o pipeline completo integrando todos os módulos.
 """
-
+import pandas as pd
 import time
 from utils.utils import unir_dataframes, salvar_log, registrar_tempo, transformar_funil_formato_long
 from ..mailing.pipelines import processar_mailing_completo
@@ -190,12 +190,15 @@ def executar_pipeline_funil_completo(
         salvar_log("\n🔄 Padronizando nomes de colunas para consolidação...", arquivo_log=LOG_LOADING)
         
         # Renomear VALOR → VALORPRIN_FIN no mailing
-        if df_mailing_final is not None and not df_mailing_final.empty:
-            if 'VALOR' in df_mailing_final.columns:
-                df_mailing_final = df_mailing_final.copy()
-                df_mailing_final.rename(columns={'VALOR': 'VALORPRIN_FIN'}, inplace=True)
-                salvar_log("✓ Coluna VALOR renomeada para VALORPRIN_FIN no mailing", arquivo_log=LOG_LOADING)
-
+        # if df_mailing_final is not None and not df_mailing_final.empty:
+        #     if 'VALOR' in df_mailing_final.columns:
+        #         df_mailing_final = df_mailing_final.copy()
+        #         df_mailing_final.rename(columns={'VALOR': 'VALORPRIN_FIN'}, inplace=True)
+        #         salvar_log("✓ Coluna VALOR renomeada para VALORPRIN_FIN no mailing", arquivo_log=LOG_LOADING)
+        # if 'VALOR' in df_mailing_final.columns:
+        #     df_mailing_final.rename(columns={'VALOR': 'VALORPRIN_FIN'}, inplace=True)
+        # elif 'VALORPRIN_FIN' not in df_mailing_final.columns:
+        #     salvar_log("⚠️ Atenção: coluna de valor não encontrada no mailing", arquivo_log=LOG_LOADING)
         # ============================================
         # ETAPA 6: CONSOLIDAÇÃO
         # ============================================
@@ -204,8 +207,8 @@ def executar_pipeline_funil_completo(
 
         df_consolidado = consolidar_dataframes_funil(
             df_mailing_final,
-            df_pagamentos_final,
-            df_acionamentos_discagens
+            df_acionamentos_discagens,
+            df_pagamentos_final
         )
         
         tempo_consolidacao = time.time() - tempo_etapa
@@ -234,13 +237,125 @@ def executar_pipeline_funil_completo(
         salvar_log("=" * 80, arquivo_log=LOG_LOADING)
         raise
 
-
 def consolidar_dataframes_funil(
     df_mailing,
     df_acionamentos,
-    df_pagamentos,
-    df_expert=None,
-    df_trestto=None
+    df_pagamentos
+):
+    """
+    Consolida todos os DataFrames em um único DataFrame de funil.
+    """
+    salvar_log("Consolidando DataFrames...", arquivo_log=LOG_LOADING)
+    
+    try:
+        # Verifica se os DataFrames não estão vazios
+        dfs_info = {
+            'df_mailing': df_mailing,
+            'df_acionamentos': df_acionamentos,
+            'df_pagamentos': df_pagamentos
+        }
+        
+        for nome_df, df in dfs_info.items():
+            if df is None or df.empty:
+                salvar_log(f"⚠ AVISO: {nome_df} está vazio ou é None", arquivo_log=LOG_LOADING)
+        
+        # Log das colunas de cada DataFrame para debug
+        salvar_log("\n--- Estrutura dos DataFrames ---", arquivo_log=LOG_LOADING)
+        for nome_df, df in dfs_info.items():
+            if df is not None and not df.empty:
+                colunas = list(df.columns)
+                salvar_log(f"{nome_df}: {len(df)} registros, {len(colunas)} colunas", arquivo_log=LOG_LOADING)
+                salvar_log(f"  Colunas: {colunas}", arquivo_log=LOG_LOADING)
+            else:
+                salvar_log(f"{nome_df}: Vazio ou None", arquivo_log=LOG_LOADING)
+        salvar_log("--- Fim da estrutura ---\n", arquivo_log=LOG_LOADING)
+        
+        # Preparar df_mailing
+        df_mailing_prep = df_mailing.copy()
+        df_mailing_prep['TIPO_ORIGEM'] = ''
+        # ✅ CORREÇÃO: df_mailing já tem VALORPRIN_FIN, renomear para VALOR
+        if 'VALORPRIN_FIN' in df_mailing_prep.columns:
+            df_mailing_prep = df_mailing_prep.rename(columns={'VALORPRIN_FIN': 'VALOR'})
+        elif 'VALOR' not in df_mailing_prep.columns:
+            salvar_log("⚠️ AVISO: Nenhuma coluna de valor encontrada no mailing", arquivo_log=LOG_LOADING)
+            df_mailing_prep['VALOR'] = 0  # Cria coluna vazia para evitar erro
+        
+        # Preparar df_pagamentos
+        df_pagamentos_prep = df_pagamentos.copy()
+        df_pagamentos_prep = df_pagamentos_prep.rename(columns={
+            'DATA_PAGTO': 'DATA',
+            'ORIGEM': 'TIPO_ORIGEM',
+            'VALOR_PARC': 'VALOR'
+        })
+        
+        # Preparar df_acionamentos
+        df_acionamentos_prep = df_acionamentos.copy()
+        df_acionamentos_prep = df_acionamentos_prep.rename(columns={
+            'ORIGEM': 'TIPO_ORIGEM',
+            'VALORPRIN_FIN': 'VALOR'
+        })
+        
+        # Garantir que todos tenham as mesmas colunas na mesma ordem
+        colunas_padrao = ['DATA', 'Indicador', 'qte', 'FX_ATRASO', 'TIPO_ORIGEM', 
+                          'MesAbreviado', 'nr_dia_util', 'quartil', 'dt_mes', 'VALOR']
+        
+        # ✅ CORREÇÃO: Adicionar verificação e preenchimento de colunas faltantes
+        for nome, df_prep in [('mailing', df_mailing_prep), 
+                               ('pagamentos', df_pagamentos_prep), 
+                               ('acionamentos', df_acionamentos_prep)]:
+            colunas_faltantes = set(colunas_padrao) - set(df_prep.columns)
+            if colunas_faltantes:
+                salvar_log(f"⚠️ Colunas faltantes em {nome}: {colunas_faltantes}", arquivo_log=LOG_LOADING)
+                for col in colunas_faltantes:
+                    df_prep[col] = None if col != 'VALOR' else 0
+        
+        # Selecionar apenas as colunas padrão
+        df_mailing_prep = df_mailing_prep[colunas_padrao]
+        df_pagamentos_prep = df_pagamentos_prep[colunas_padrao]
+        df_acionamentos_prep = df_acionamentos_prep[colunas_padrao]
+        
+        # Log antes da concatenação
+        salvar_log(f"\n📊 Preparação para concatenação:", arquivo_log=LOG_LOADING)
+        salvar_log(f"  - Mailing: {len(df_mailing_prep):,} registros", arquivo_log=LOG_LOADING)
+        salvar_log(f"  - Pagamentos: {len(df_pagamentos_prep):,} registros", arquivo_log=LOG_LOADING)
+        salvar_log(f"  - Acionamentos: {len(df_acionamentos_prep):,} registros", arquivo_log=LOG_LOADING)
+        
+        # Concatenar os três DataFrames
+        df_consolidado = pd.concat(
+            [df_mailing_prep, df_pagamentos_prep, df_acionamentos_prep], 
+            ignore_index=True
+        )
+        
+        # Padronizar coluna DATA
+        df_consolidado['DATA'] = pd.to_datetime(df_consolidado['DATA']).dt.date
+        
+        salvar_log(f"\n✓ Consolidação concluída: {len(df_consolidado):,} registros", arquivo_log=LOG_LOADING)
+        salvar_log(f"  - Do mailing: {len(df_mailing_prep):,}", arquivo_log=LOG_LOADING)
+        salvar_log(f"  - De pagamentos: {len(df_pagamentos_prep):,}", arquivo_log=LOG_LOADING)
+        salvar_log(f"  - De acionamentos: {len(df_acionamentos_prep):,}", arquivo_log=LOG_LOADING)
+        
+        return df_consolidado
+        
+    except Exception as e:
+        salvar_log(f"\n❌ ERRO na consolidação dos DataFrames: {str(e)}", arquivo_log=LOG_LOADING)
+        salvar_log(f"Tipo do erro: {type(e).__name__}", arquivo_log=LOG_LOADING)
+        
+        # Log detalhado das colunas em caso de erro
+        salvar_log("\n--- DIAGNÓSTICO DE ERRO ---", arquivo_log=LOG_LOADING)
+        for nome_df, df in dfs_info.items():
+            if df is not None and not df.empty:
+                salvar_log(f"\n{nome_df}:", arquivo_log=LOG_LOADING)
+                salvar_log(f"  Shape: {df.shape}", arquivo_log=LOG_LOADING)
+                salvar_log(f"  Colunas ({len(df.columns)}): {list(df.columns)}", arquivo_log=LOG_LOADING)
+                salvar_log(f"  Dtypes: {df.dtypes.to_dict()}", arquivo_log=LOG_LOADING)
+        salvar_log("--- FIM DO DIAGNÓSTICO ---\n", arquivo_log=LOG_LOADING)
+        
+        raise
+
+def consolidar_dataframes_funil_(
+    df_mailing,
+    df_acionamentos,
+    df_pagamentos
 ):
     """
     Consolida todos os DataFrames em um único DataFrame de funil.
@@ -249,24 +364,85 @@ def consolidar_dataframes_funil(
         df_mailing (pd.DataFrame): Resultados de mailing
         df_acionamentos (pd.DataFrame): Resultados de acionamentos
         df_pagamentos (pd.DataFrame): Resultados de pagamentos
-        df_expert (pd.DataFrame, optional): Discagens expert
-        df_trestto (pd.DataFrame, optional): Discagens trestto
     
     Returns:
         pd.DataFrame: DataFrame consolidado
     """
     salvar_log("Consolidando DataFrames...", arquivo_log=LOG_LOADING)
     
-    dfs_para_unir = [df_mailing, df_acionamentos, df_pagamentos]
-    
-    if df_expert is not None and not df_expert.empty:
-        dfs_para_unir.append(df_expert)
-    
-    if df_trestto is not None and not df_trestto.empty:
-        dfs_para_unir.append(df_trestto)
-    
-    df_consolidado = unir_dataframes(*dfs_para_unir)
-    
-    salvar_log(f"✓ Consolidação concluída: {len(df_consolidado):,} registros", arquivo_log=LOG_LOADING)
-    
-    return df_consolidado
+    try:
+        # Verifica se os DataFrames não estão vazios
+        dfs_info = {
+            'df_mailing': df_mailing,
+            'df_acionamentos': df_acionamentos,
+            'df_pagamentos': df_pagamentos
+        }
+        
+        for nome_df, df in dfs_info.items():
+            if df is None or df.empty:
+                salvar_log(f"⚠ AVISO: {nome_df} está vazio ou é None", arquivo_log=LOG_LOADING)
+        
+        # Log das colunas de cada DataFrame para debug
+        salvar_log("\n--- Estrutura dos DataFrames ---", arquivo_log=LOG_LOADING)
+        for nome_df, df in dfs_info.items():
+            if df is not None and not df.empty:
+                colunas = list(df.columns)
+                salvar_log(f"{nome_df}: {len(df)} registros, {len(colunas)} colunas", arquivo_log=LOG_LOADING)
+                salvar_log(f"  Colunas: {colunas}", arquivo_log=LOG_LOADING)
+            else:
+                salvar_log(f"{nome_df}: Vazio ou None", arquivo_log=LOG_LOADING)
+        salvar_log("--- Fim da estrutura ---\n", arquivo_log=LOG_LOADING)
+        
+        # Preparar df_mailing
+        df_mailing_prep = df_mailing.copy()
+        df_mailing_prep['TIPO_ORIGEM'] = ''
+        # df_mailing já tem a coluna VALOR, não precisa renomear
+        
+        # Preparar df_pagamentos
+        df_pagamentos_prep = df_pagamentos.copy()
+        df_pagamentos_prep = df_pagamentos_prep.rename(columns={
+            'DATA_PAGTO': 'DATA',
+            'ORIGEM': 'TIPO_ORIGEM',
+            'VALOR_PARC': 'VALOR'
+        })
+        
+        # Preparar df_acionamentos
+        df_acionamentos_prep = df_acionamentos.copy()
+        df_acionamentos_prep = df_acionamentos_prep.rename(columns={
+            'ORIGEM': 'TIPO_ORIGEM',
+            'VALORPRIN_FIN': 'VALOR'
+        })
+        
+        # Garantir que todos tenham as mesmas colunas na mesma ordem
+        colunas_padrao = ['DATA', 'Indicador', 'qte', 'FX_ATRASO', 'TIPO_ORIGEM', 
+                          'MesAbreviado', 'nr_dia_util', 'quartil', 'dt_mes', 'VALOR']
+        
+        df_mailing_prep = df_mailing_prep[colunas_padrao]
+        df_pagamentos_prep = df_pagamentos_prep[colunas_padrao]
+        df_acionamentos_prep = df_acionamentos_prep[colunas_padrao]
+        
+        # Concatenar os três DataFrames
+        df_consolidado = pd.concat([df_mailing_prep, df_pagamentos_prep, df_acionamentos_prep], ignore_index=True)
+        
+        # Padronizar coluna DATA
+        df_consolidado['DATA'] = pd.to_datetime(df_consolidado['DATA']).dt.date
+        
+        salvar_log(f"✓ Consolidação concluída: {len(df_consolidado):,} registros", arquivo_log=LOG_LOADING)
+        
+        return df_consolidado
+        
+    except Exception as e:
+        salvar_log(f"\n❌ ERRO na consolidação dos DataFrames: {str(e)}", arquivo_log=LOG_LOADING)
+        salvar_log(f"Tipo do erro: {type(e).__name__}", arquivo_log=LOG_LOADING)
+        
+        # Log detalhado das colunas em caso de erro
+        salvar_log("\n--- DIAGNÓSTICO DE ERRO ---", arquivo_log=LOG_LOADING)
+        for nome_df, df in dfs_info.items():
+            if df is not None and not df.empty:
+                salvar_log(f"\n{nome_df}:", arquivo_log=LOG_LOADING)
+                salvar_log(f"  Shape: {df.shape}", arquivo_log=LOG_LOADING)
+                salvar_log(f"  Colunas ({len(df.columns)}): {list(df.columns)}", arquivo_log=LOG_LOADING)
+                salvar_log(f"  Dtypes: {df.dtypes.to_dict()}", arquivo_log=LOG_LOADING)
+        salvar_log("--- FIM DO DIAGNÓSTICO ---\n", arquivo_log=LOG_LOADING)
+        
+        raise
