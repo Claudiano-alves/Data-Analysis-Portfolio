@@ -1,0 +1,16 @@
+[2026-01-19 16:24:58] ================================================================================
+[2026-01-19 16:24:58] INICIANDO PROCESSO - Will Bank - Tempos
+[2026-01-19 16:24:58] ✓ Credenciais carregadas com sucesso
+[2026-01-19 16:24:58]    Servidor: TRC-DC-BD
+[2026-01-19 16:24:58]    Database: SRC
+[2026-01-19 16:24:58]    Autenticação: Windows (Trusted Connection)
+[2026-01-19 16:24:58] Testando conexão com o banco de dados...
+[2026-01-19 16:24:59] ✓ Conexão testada com sucesso!
+[2026-01-19 16:24:59] Iniciando geração da base ativa...
+[2026-01-19 16:27:58] ✓ Arquivo gerado com sucesso!
+[2026-01-19 16:27:58]    Localização: \\trc-dc-ad\OperacionalEstacio\PA provida\base_ativa\2026\01\base_ativa_19-01.xlsx
+[2026-01-19 16:27:58] 
+[2026-01-19 16:27:58] --------------------------------------------------------------------------------
+[2026-01-19 16:27:58] RESUMO DO PROCESSO:
+[2026-01-19 16:27:58] ✓ Sucesso - Will Bank - tempos
+[2026-01-19 16:27:58] ================================================================================
