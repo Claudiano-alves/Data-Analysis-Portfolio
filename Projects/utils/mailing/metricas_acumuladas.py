@@ -5,7 +5,7 @@ Contém funções para gerar métricas acumuladas (mensais) de mailing.
 
 import pandas as pd
 from utils.utils import registrar_tempo, unir_dataframes, salvar_log
-from ..config import LOG_MAILING
+from utils.config import LOG_MAILING
 
 
 @registrar_tempo("Acumulado mailing hist por faixa de atraso", arquivo_log=LOG_MAILING)

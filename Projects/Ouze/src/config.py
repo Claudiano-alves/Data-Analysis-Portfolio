@@ -69,7 +69,7 @@ DATASETS_TO_LOAD = {
     'email': True,             
     'telefone': True,          
     'blacklist_expert': True,  
-    'discagens_trestto': True  
+    'discagens_trestto': False  
 }
 
 # ============================================
@@ -78,7 +78,7 @@ DATASETS_TO_LOAD = {
 
 WHERE_CLAUSES = {
     'campanhas': "A.GrupoPrincipal IN (SELECT G.id_grupo FROM grupo G WHERE G.ID_CAMPANHA = 141)",
-    'clientes_mailing': "COD_CLI = 253",
+    'clientes_mailing': "WHERE COD_CLI = 253",
     'acionamentos': """
         WHERE C.COD_CLI = 253
         AND C.COD_CAR = 1
@@ -108,4 +108,15 @@ LOGS = {
     'mailing': LOG_MAILING,
     'pagamentos': LOG_PAGAMENTOS,
     'loading': LOG_LOADING,
+}
+
+# ============================================
+# MAPEAMENTO DE GRUPOS PRINCIPAIS
+# ============================================
+
+GRUPO_PRINCIPAL_MAP = {
+    (4712, 4713): "ATIVO",
+    4717: "MANUAL",
+    (4702, 4714, 4716): "RECEPTIVO",
+    4715: "AGV NEGOCIADORA"
 }

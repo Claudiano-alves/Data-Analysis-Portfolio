@@ -4,7 +4,7 @@ Orquestra as funções de tratamento e geração de métricas de mailing.
 """
 
 from utils.utils import unir_dataframes
-from .data_processing import tratar_base_mailing_hist
+from .data_processing import adicionar_faixa_atraso
 from .metricas_acumuladas import (
     gerar_acumulado_maling_hist_fxAtraso,
     gerar_acumulado_maling_hist_unique
@@ -30,7 +30,7 @@ def processar_mailing_completo(df_mailing_hist, df_dw_calendario):
     # ============================================
     # ETAPA 1: TRATAMENTO
     # ============================================
-    df_mailing_tratado = tratar_base_mailing_hist(df_mailing_hist)
+    df_mailing_tratado = adicionar_faixa_atraso(df_mailing_hist)
     
     # ============================================
     # ETAPA 2: MÉTRICAS ACUMULADAS

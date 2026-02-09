@@ -8,11 +8,8 @@ Estrutura de módulos:
 """
 
 from .data_processing import (
-    adicionar_produto,
     adicionar_faixa_atraso,
-    adicionar_valor_principal,
-    tratar_base_mailing_hist,
-    criar_faixa_customizada
+    adicionar_valor_principal
 )
 
 from .metricas_acumuladas import (
@@ -27,11 +24,8 @@ from .pipelines import (
 
 __all__ = [
     # Tratamentos
-    'adicionar_produto',
     'adicionar_faixa_atraso',
     'adicionar_valor_principal',
-    'tratar_base_mailing_hist',
-    'criar_faixa_customizada',
     
     # Métricas acumuladas
     'gerar_acumulado_maling_hist_fxAtraso',
