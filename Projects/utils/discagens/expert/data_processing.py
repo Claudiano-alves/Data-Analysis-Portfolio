@@ -11,33 +11,12 @@ Responsável por:
 import numpy as np
 import pandas as pd
 from utils.utils import salvar_log, registrar_tempo
-from utils.config import LOG_DISCAGENS
-# ============================================
-# CONSTANTES
-# ============================================
-
-DDD_ESTADO = {
-    '11': 'SP', '12': 'SP', '13': 'SP', '14': 'SP', '15': 'SP', '16': 'SP', '17': 'SP', '18': 'SP', '19': 'SP',
-    '21': 'RJ', '22': 'RJ', '24': 'RJ',
-    '27': 'ES', '28': 'ES',
-    '31': 'MG', '32': 'MG', '33': 'MG', '34': 'MG', '35': 'MG', '37': 'MG', '38': 'MG',
-    '41': 'PR', '42': 'PR', '43': 'PR', '44': 'PR', '45': 'PR', '46': 'PR',
-    '47': 'SC', '48': 'SC', '49': 'SC',
-    '51': 'RS', '53': 'RS', '54': 'RS', '55': 'RS',
-    '61': 'DF', '62': 'GO', '63': 'TO', '64': 'GO', '65': 'MT', '66': 'MT', '67': 'MS',
-    '68': 'AC', '69': 'RO',
-    '71': 'BA', '73': 'BA', '74': 'BA', '75': 'BA', '77': 'BA',
-    '79': 'SE',
-    '81': 'PE', '82': 'AL', '83': 'PB', '84': 'RN', '85': 'CE', '86': 'PI', '87': 'PE', '88': 'CE', '89': 'PI',
-    '91': 'PA', '92': 'AM', '93': 'PA', '94': 'PA', '95': 'RR', '96': 'AP', '97': 'AM', '98': 'MA', '99': 'MA'
-}
-
+from utils.config import LOG_DISCAGENS, DDD_ESTADO
+from typing import Any, Dict, Optional, Union, Tuple
 
 # ============================================
 # FUNÇÕES DE TRATAMENTO - DISCAGENS EXPERT
 # ============================================
-from typing import Dict, Union, Tuple
-
 
 def adicionar_operacao(
     df: pd.DataFrame,
@@ -118,25 +97,101 @@ def adicionar_origem(df_discagens_expert):
 
 
 @registrar_tempo("Tratamento base discagens expert", arquivo_log=LOG_DISCAGENS)
-def tratar_base_discagens_expert(df):
+# utils/transformations.py
+def aplicar_transformacoes_discagens(
+    df: pd.DataFrame,
+    config: Dict[str, Any],
+    df_tabulacoes: Optional[pd.DataFrame] = None,
+    df_mailing: Optional[pd.DataFrame] = None,
+    df_calendario: Optional[pd.DataFrame] = None,
+    log_file: str = LOG_DISCAGENS
+) -> Tuple[pd.DataFrame, Optional[pd.DataFrame]]:
     """
-    Aplica todos os tratamentos padrão para base de discagens expert:
-    - Adiciona OPERACAO
-    - Adiciona ESTADO por DDD
-    - Adiciona ORIGEM
+    Aplica transformações baseadas em configuração.
     
     Args:
-        df (pd.DataFrame): DataFrame de discagens expert
+        df: DataFrame de discagens
+        config: Dicionário de configuração
+        df_tabulacoes: DataFrame de tabulações robô (obrigatório se config solicitar)
+        df_mailing: DataFrame de mailing (obrigatório se config solicitar)
+        df_calendario: DataFrame de calendário (obrigatório se config solicitar)
+        log_file: Arquivo de log
     
     Returns:
-        pd.DataFrame: DataFrame tratado
+        Tuple[DataFrame transformado, DataFrame sem FX_ATRASO (se aplicável)]
     """
-    df = adicionar_operacao(df)
-    df = adicionar_estado_por_ddd(df)
-    df = adicionar_origem(df)
-    salvar_log(f"✅ Tratamento de discagens expert concluído", arquivo_log=LOG_DISCAGENS)
-    return df
-
+    # Validar dependências
+    #validar_dependencias_config(config, df_tabulacoes, df_mailing, df_calendario)
+    
+    df = df.copy()
+    df_sem_fx_atraso = None
+    
+    # ============================================
+    # TRANSFORMAÇÕES SIMPLES
+    # ============================================
+    
+    # OPERACAO
+    if config.get('grupo_map') is not None:
+        salvar_log("   🔄 Adicionando OPERACAO...", arquivo_log=log_file)
+        df = adicionar_operacao(df=df, grupo_map=config['grupo_map'])
+    
+    # ESTADO
+    if config.get('adicionar_estado', False):
+        salvar_log("   🔄 Adicionando ESTADO...", arquivo_log=log_file)
+        df = adicionar_estado_por_ddd(df=df)
+    
+    # ORIGEM
+    if config.get('origem_map') is not None:
+        salvar_log("   🔄 Adicionando ORIGEM...", arquivo_log=log_file)
+        df = adicionar_origem(
+            df=df,
+            origem_map=config['origem_map'],
+            default_value=config.get('origem_default', 'Padrão')
+        )
+    
+    # ============================================
+    # ENRIQUECIMENTOS
+    # ============================================
+    
+    # TABULAÇÕES ROBÔ
+    if config.get('enriquecer_tabulacoes_robo', False):
+        salvar_log("   🔄 Enriquecendo com tabulações robô...", arquivo_log=log_file)
+        df = enriquecer_com_tabulacoes_robo(df, df_tabulacoes)
+    
+    # MAILING + CALENDÁRIO
+    if config.get('enriquecer_mailing_calendario', False):
+        salvar_log("   🔄 Enriquecendo com mailing e calendário...", arquivo_log=log_file)
+        df, df_sem_fx_atraso = enriquecer_com_mailing_calendario(
+            df, df_mailing, df_calendario
+        )
+    
+    # ============================================
+    # GARANTIR COLUNAS OBRIGATÓRIAS COM VALORES ESPECÍFICOS
+    # ============================================
+    colunas_obrigatorias = config.get('colunas_obrigatorias', {})
+    
+    # Suportar tanto dicionário quanto lista (retrocompatibilidade)
+    if isinstance(colunas_obrigatorias, dict):
+        # Formato novo: {'TRABALHADO': 1, 'CPC': 0}
+        for coluna, valor_padrao in colunas_obrigatorias.items():
+            if coluna not in df.columns:
+                salvar_log(
+                    f"   ➕ Criando coluna obrigatória '{coluna}' = {valor_padrao}",
+                    arquivo_log=log_file
+                )
+                df[coluna] = valor_padrao
+    else:
+        # Formato antigo: ['TRABALHADO', 'CPC'] → valor padrão = 0
+        for coluna in colunas_obrigatorias:
+            if coluna not in df.columns:
+                salvar_log(
+                    f"   ➕ Criando coluna obrigatória '{coluna}' = 0",
+                    arquivo_log=log_file
+                )
+                df[coluna] = 0
+    
+    salvar_log("   ✅ Transformações concluídas", arquivo_log=log_file)
+    return df, df_sem_fx_atraso
 
 @registrar_tempo("Criação DF tabulações robô", arquivo_log=LOG_DISCAGENS)
 def criar_df_tabulacoes_robo():
@@ -301,5 +356,5 @@ __all__ = [
     'enriquecer_com_tabulacoes_robo',
     'enriquecer_com_mailing_calendario',
     'segmentar_discagens_expert',
-    'DDD_ESTADO'
+    'aplicar_transformacoes_discagens'
 ]

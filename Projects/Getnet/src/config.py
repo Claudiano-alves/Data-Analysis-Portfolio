@@ -101,3 +101,12 @@ DATASETS_TO_LOAD = {
     'blacklist_expert': False,  
     'discagens_trestto': False  
 }
+
+# Dimensões de agrupamento para acumulados
+DIMENSOES_ACUMULADO = ['FX_ATRASO', 'ORIGEM']
+
+# Mapeamento de origem (para adicionar_origem)
+ORIGEM_MAP = {
+    'AGV NEGOCIADORA': 'Robô'
+}
+ORIGEM_DEFAULT = 'Humano'

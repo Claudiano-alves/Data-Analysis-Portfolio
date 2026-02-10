@@ -118,5 +118,35 @@ GRUPO_PRINCIPAL_MAP = {
     (4712, 4713): "ATIVO",
     4717: "MANUAL",
     (4702, 4714, 4716): "RECEPTIVO",
-    4715: "AGV NEGOCIADORA"
+    4715: "AGV"
+}
+
+# Dimensões de agrupamento para acumulados
+DIMENSOES_ACUMULADO = ['FX_ATRASO']
+
+# Mapeamento de origem (para adicionar_origem)
+ORIGEM_MAP = None
+ORIGEM_DEFAULT = None
+
+# Ouze/src/config.py
+
+# Configuração de transformações
+# Ouze/src/config.py
+
+# Ouze/src/config.py
+
+TRANSFORMACOES_DISCAGENS = {
+    'grupo_map': GRUPO_PRINCIPAL_MAP,
+    'origem_map': ORIGEM_MAP,
+    'origem_default': ORIGEM_DEFAULT,
+    'adicionar_estado': True,
+    'enriquecer_tabulacoes_robo': False,
+    'enriquecer_mailing_calendario': True,
+    'colunas_obrigatorias': {
+        'TRABALHADO': 1,      # ← Sempre 1 (CPF foi trabalhado)
+        'ACIONAMENTOS': 0,    # ← 0 porque não tem tabulação robô
+        'CPC': 0,
+        'CPCA': 0,
+        'PROMESSA': 0
+    }
 }

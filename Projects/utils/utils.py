@@ -1,6 +1,6 @@
 import pandas as pd
 from datetime import datetime, timedelta
-from typing import Tuple, Optional
+from typing import List, Tuple, Optional
 import os
 from pathlib import Path
 import logging
@@ -276,7 +276,7 @@ def get_default_date_range() -> Tuple[str, str]:
     data_fim = (hoje - timedelta(days=1)).strftime('%Y-%m-%d')
     return data_inicio, data_fim
 
-def transformar_funil_formato_long(df_acionamentos_funil):
+def transformar_funil_formato_long_(df_acionamentos_funil):
     """
     Transforma o DataFrame de acionamentos do formato wide para long.
     
@@ -340,6 +340,132 @@ def transformar_funil_formato_long(df_acionamentos_funil):
     
     # Ordenar por DATA, FX_ATRASO e Indicador
     df_final = df_final.sort_values(['DATA', 'FX_ATRASO', 'Indicador']).reset_index(drop=True)
+    
+    return df_final
+
+def transformar_funil_formato_long(
+    df_acionamentos_funil: pd.DataFrame,
+    dimensoes_manter: Optional[List[str]] = None
+) -> pd.DataFrame:
+    """
+    Transforma o DataFrame de acionamentos do formato wide para long.
+    
+    De: DATA | FX_ATRASO | [ORIGEM] | TRABALHADO | ACIONAMENTOS | CPC | CPCA | PROMESSA | ...
+    Para: DATA | Indicador | qte | FX_ATRASO | [ORIGEM] | MesAbreviado | nr_dia_util | quartil | dt_mes | VALORPRIN_FIN
+    
+    Args:
+        df_acionamentos_funil: DataFrame no formato wide
+        dimensoes_manter: Lista de dimensões adicionais para manter (ex: ['ORIGEM', 'CANAL'])
+                         Se None, detecta automaticamente colunas disponíveis
+    
+    Returns:
+        DataFrame transformado para formato long
+    
+    Example:
+        # Carteira com ORIGEM
+        df_long = transformar_funil_formato_long(df, dimensoes_manter=['ORIGEM'])
+        
+        # Carteira sem ORIGEM
+        df_long = transformar_funil_formato_long(df, dimensoes_manter=[])
+        
+        # Auto-detectar
+        df_long = transformar_funil_formato_long(df)
+    """
+    
+    # ============================================
+    # DETECTAR DIMENSÕES DISPONÍVEIS
+    # ============================================
+    if dimensoes_manter is None:
+        # Auto-detectar dimensões além de FX_ATRASO
+        dimensoes_possiveis = ['ORIGEM', 'CANAL', 'REGIAO', 'PARCEIRO', 'OPERACAO']
+        dimensoes_manter = [dim for dim in dimensoes_possiveis if dim in df_acionamentos_funil.columns]
+    
+    # Validar dimensões solicitadas
+    dimensoes_validas = [dim for dim in dimensoes_manter if dim in df_acionamentos_funil.columns]
+    
+    # ============================================
+    # DEFINIR INDICADORES E COLUNAS BASE
+    # ============================================
+    indicadores = {
+        'TRABALHADO': 'VALORPRIN_FIN_TRABALHADO',
+        'ACIONAMENTOS': 'VALORPRIN_FIN_ACIONAMENTOS',
+        'CPC': 'VALORPRIN_FIN_CPC',
+        'CPCA': 'VALORPRIN_FIN_CPCA',
+        'PROMESSA': 'VALORPRIN_FIN_PROMESSA'
+    }
+    
+    # Colunas fixas sempre presentes
+    colunas_fixas = ['DATA', 'FX_ATRASO']
+    
+    # Colunas de calendário
+    colunas_calendario = ['mes_abreviado', 'nr_dia_util', 'quartil', 'dt_mes']
+    
+    # ============================================
+    # TRANSFORMAR CADA INDICADOR
+    # ============================================
+    resultados = []
+    
+    for indicador, col_valor in indicadores.items():
+        # Verificar se as colunas do indicador existem
+        if indicador not in df_acionamentos_funil.columns:
+            continue  # Pula indicadores ausentes
+        
+        if col_valor not in df_acionamentos_funil.columns:
+            col_valor_temp = None  # Sem coluna de valor
+        else:
+            col_valor_temp = col_valor
+        
+        # Montar lista de colunas para este indicador
+        colunas_selecionar = (
+            colunas_fixas +
+            dimensoes_validas +
+            [indicador] +
+            ([col_valor_temp] if col_valor_temp else []) +
+            colunas_calendario
+        )
+        
+        # Criar DataFrame temporário
+        df_temp = df_acionamentos_funil[colunas_selecionar].copy()
+        
+        # Renomear colunas
+        renomear = {
+            indicador: 'qte',
+            'mes_abreviado': 'MesAbreviado'
+        }
+        if col_valor_temp:
+            renomear[col_valor_temp] = 'VALORPRIN_FIN'
+        
+        df_temp = df_temp.rename(columns=renomear)
+        
+        # Se não havia coluna de valor, criar com 0
+        if not col_valor_temp:
+            df_temp['VALORPRIN_FIN'] = 0
+        
+        # Adicionar coluna Indicador
+        df_temp['Indicador'] = indicador.upper()
+        
+        resultados.append(df_temp)
+    
+    # ============================================
+    # CONCATENAR E ORDENAR
+    # ============================================
+    if not resultados:
+        raise ValueError("Nenhum indicador válido encontrado no DataFrame")
+    
+    df_final = pd.concat(resultados, ignore_index=True)
+    
+    # Reordenar colunas dinamicamente
+    colunas_ordenadas = (
+        ['DATA', 'Indicador', 'qte', 'FX_ATRASO'] +
+        dimensoes_validas +
+        ['MesAbreviado', 'nr_dia_util', 'quartil', 'dt_mes', 'VALORPRIN_FIN']
+    )
+    
+    df_final = df_final[colunas_ordenadas]
+    
+    # Ordenar por DATA, FX_ATRASO, dimensões e Indicador
+    colunas_ordenacao = ['DATA', 'FX_ATRASO'] + dimensoes_validas + ['Indicador']
+    df_final = df_final.sort_values(colunas_ordenacao).reset_index(drop=True)
     
     return df_final
 

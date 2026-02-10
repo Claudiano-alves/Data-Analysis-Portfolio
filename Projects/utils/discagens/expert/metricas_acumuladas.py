@@ -7,6 +7,7 @@ Responsável por calcular:
 - Acumulado mensal de acionamentos únicos por CPF + FX_ATRASO (fxAtraso_origem)
 """
 
+from typing import List, Optional
 import pandas as pd
 from utils.utils import salvar_log, registrar_tempo
 from ...config import LOG_DISCAGENS
@@ -270,9 +271,153 @@ def acionamentos_fxAtraso_origem_expert(df_com_fx_atraso, df_dw_calendario):
     salvar_log(f"   ✓ Registros finais: {len(df_final):,}", arquivo_log=LOG_DISCAGENS)
     return df_final
 
+def acionamentos_fxAtraso_dinamico(
+    df_com_fx_atraso: pd.DataFrame,
+    df_dw_calendario: pd.DataFrame,
+    dimensoes_agrupamento: Optional[List[str]] = None,
+    log_file: str = LOG_DISCAGENS
+) -> pd.DataFrame:
+    """
+    Motor genérico de cálculo de métricas acumuladas por faixa de atraso.
+    
+    Args:
+        df_com_fx_atraso: DataFrame com FX_ATRASO e métricas de tabulação
+        df_dw_calendario: DataFrame com dados de calendário
+        dimensoes_agrupamento: Lista de dimensões para agrupamento.
+                               Default: ['FX_ATRASO']
+                               Exemplos:
+                               - ['FX_ATRASO'] → agregação simples
+                               - ['FX_ATRASO', 'ORIGEM'] → expert com robô
+                               - ['FX_ATRASO', 'CANAL'] → futura segmentação
+        log_file: Arquivo de log
+    
+    Returns:
+        DataFrame com contagens acumuladas mensais
+        
+    Note:
+        Dimensões inexistentes no DataFrame são ignoradas automaticamente.
+        A função se adapta ao modelo de dados disponível.
+    """
+    df = df_com_fx_atraso.copy()
+    df['DATA'] = pd.to_datetime(df['DATA'])
+    
+    # ============================================
+    # VALIDAÇÃO DE DIMENSÕES
+    # ============================================
+    if dimensoes_agrupamento is None:
+        dimensoes_agrupamento = ['FX_ATRASO']
+    
+    # Manter apenas dimensões que existem no DataFrame
+    dimensoes_validas = [
+        dim for dim in dimensoes_agrupamento 
+        if dim in df.columns
+    ]
+    
+    if 'FX_ATRASO' not in dimensoes_validas:
+        raise ValueError("FX_ATRASO é obrigatório e não foi encontrado no DataFrame")
+    
+    # Log das dimensões efetivamente usadas
+    salvar_log(
+        f"📊 Dimensões de agrupamento: {dimensoes_validas}",
+        arquivo_log=log_file
+    )
+    
+    # ============================================
+    # PROCESSAMENTO ACUMULADO
+    # ============================================
+    datas_unicas = sorted(df['DATA'].unique())
+    resultados = []
+    
+    salvar_log(
+        f"📊 Processando acumulado (melhor score por CPF+FX_ATRASO) para {len(datas_unicas)} datas...",
+        arquivo_log=log_file
+    )
+    
+    for i, data in enumerate(datas_unicas, 1):
+        if i % 10 == 0 or i == len(datas_unicas):
+            salvar_log(f"   Processando {i}/{len(datas_unicas)} datas...", arquivo_log=log_file)
+        
+        inicio_mes = pd.Timestamp(data.year, data.month, 1)
+        df_intervalo = df[(df['DATA'] >= inicio_mes) & (df['DATA'] <= data)].copy()
+        
+        # Calcular score de tabulação
+        df_intervalo['TABULACAO_SCORE'] = (
+            df_intervalo['PROMESSA'].astype(int) * 4 +
+            df_intervalo['CPCA'].astype(int) * 3 +
+            df_intervalo['CPC'].astype(int) * 2 +
+            df_intervalo['ACIONAMENTOS'].astype(int) * 1
+        )
+        
+        # Ordenar e manter melhor score por CPF + FX_ATRASO
+        df_intervalo = df_intervalo.sort_values(
+            ['CPF', 'FX_ATRASO', 'TABULACAO_SCORE'],
+            ascending=[True, True, False]
+        )
+        df_unique = df_intervalo.drop_duplicates(
+            subset=['CPF', 'FX_ATRASO'], 
+            keep='first'
+        ).copy()
+        
+        # ============================================
+        # AGRUPAMENTO DINÂMICO
+        # ============================================
+        agrupado = df_unique.groupby(dimensoes_validas).apply(lambda g: pd.Series({
+            'TRABALHADO': g['TRABALHADO'].sum(),
+            'VALORPRIN_FIN_TRABALHADO': g.loc[g['TRABALHADO'] == 1, 'VALOR'].sum(),
+            'ACIONAMENTOS': g['ACIONAMENTOS'].sum(),
+            'VALORPRIN_FIN_ACIONAMENTOS': g.loc[g['ACIONAMENTOS'] == 1, 'VALOR'].sum(),
+            'CPC': g['CPC'].sum(),
+            'VALORPRIN_FIN_CPC': g.loc[g['CPC'] == 1, 'VALOR'].sum(),
+            'CPCA': g['CPCA'].sum(),
+            'VALORPRIN_FIN_CPCA': g.loc[g['CPCA'] == 1, 'VALOR'].sum(),
+            'PROMESSA': g['PROMESSA'].sum(),
+            'VALORPRIN_FIN_PROMESSA': g.loc[g['PROMESSA'] == 1, 'VALOR'].sum()
+        })).reset_index()
+        
+        agrupado['DATA'] = data
+        resultados.append(agrupado)
+    
+    df_final = pd.concat(resultados, ignore_index=True)
+    
+    # ============================================
+    # MERGE COM CALENDÁRIO
+    # ============================================
+    df_dw_calendario_temp = df_dw_calendario.copy()
+    df_dw_calendario_temp['dt_data'] = pd.to_datetime(df_dw_calendario_temp['dt_data'])
+    
+    df_final = df_final.merge(
+        df_dw_calendario_temp[['dt_data', 'nr_dia_util', 'quartil', 'dt_mes', 'mes_abreviado']],
+        left_on='DATA', right_on='dt_data', how='inner'
+    ).drop(columns=['dt_data'])
+    
+    # Preencher NaN com 0
+    colunas_numericas = df_final.select_dtypes(include=['number']).columns
+    df_final[colunas_numericas] = df_final[colunas_numericas].fillna(0)
+    
+    # ============================================
+    # REORDENAÇÃO DINÂMICA DE COLUNAS
+    # ============================================
+    colunas_ordenadas = (
+        ['DATA'] +
+        dimensoes_validas +
+        [
+            'TRABALHADO', 'VALORPRIN_FIN_TRABALHADO',
+            'ACIONAMENTOS', 'VALORPRIN_FIN_ACIONAMENTOS',
+            'CPC', 'VALORPRIN_FIN_CPC',
+            'CPCA', 'VALORPRIN_FIN_CPCA',
+            'PROMESSA', 'VALORPRIN_FIN_PROMESSA',
+            'nr_dia_util', 'quartil', 'dt_mes', 'mes_abreviado'
+        ]
+    )
+    
+    df_final = df_final[colunas_ordenadas]
+    
+    salvar_log(f"   ✓ Registros finais: {len(df_final):,}", arquivo_log=log_file)
+    return df_final
 
 __all__ = [
     'acionamentos_esforco_expert',
     'acionamentos_unique_expert',
-    'acionamentos_fxAtraso_origem_expert'
+    'acionamentos_fxAtraso_origem_expert',
+    'acionamentos_fxAtraso_dinamico'
 ]
