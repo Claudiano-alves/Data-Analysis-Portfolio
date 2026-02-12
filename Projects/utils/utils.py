@@ -11,6 +11,7 @@ from functools import wraps
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+
 def salvar_dataframes_csv(
     caminho_base: Path | str,
     **dataframes
@@ -23,46 +24,10 @@ def salvar_dataframes_csv(
     
     Args:
         caminho_base (Path | str): Caminho do diretório onde os arquivos serão salvos
-            Ex: Path(r"\\servidor\Planejamento\MIS\CARTEIRAS\GetNet\Analíticos\acionamentos")
-            Ex: r"C:\Projetos\Carteira_XYZ\Analíticos\discagens"
         **dataframes: DataFrames nomeados para salvar
-            Ex: df_enriquecido=df1, df_sem_faixa=df2, df_principal=df3
     
     Returns:
         dict: Dicionário com status de cada arquivo salvo
-            {
-                'nome_df': {
-                    'status': 'success'|'error'|'warning',
-                    'caminho': 'caminho_completo' ou None,
-                    'mensagem': 'mensagem de status',
-                    'linhas': quantidade de linhas (se success)
-                }
-            }
-    
-    Exemplos de uso:
-        # Exemplo 1: GetNet - Acionamentos
-        >>> caminho_getnet_acion = Path(r"\\servidor\MIS\CARTEIRAS\GetNet\Analíticos\acionamentos")
-        >>> resultados = salvar_dataframes_csv(
-        ...     caminho_getnet_acion,
-        ...     df_enriquecido=df_acionamentos_enriquecido,
-        ...     df_sem_faixa=df_acion_semFaixa,
-        ...     df_sem_descricao=df_acion_semDescricao
-        ... )
-        
-        # Exemplo 2: Carteira ABC - Discagens
-        >>> caminho_abc_disc = Path(r"\\servidor\MIS\CARTEIRAS\ABC\Analíticos\discagens")
-        >>> resultados = salvar_dataframes_csv(
-        ...     caminho_abc_disc,
-        ...     df_principal=df_discagens_principal
-        ... )
-        
-        # Exemplo 3: Carteira XYZ - SMS
-        >>> caminho_xyz_sms = r"C:\Projetos\XYZ\Analíticos\sms"
-        >>> resultados = salvar_dataframes_csv(
-        ...     caminho_xyz_sms,
-        ...     df_enviados=df_sms_enviados,
-        ...     df_recebidos=df_sms_recebidos
-        ... )
     """
     resultados = {}
     
@@ -71,7 +36,8 @@ def salvar_dataframes_csv(
     
     # Obter timestamp atual
     data_atual = datetime.now()
-    timestamp = data_atual.strftime("%Y%m%d_%H%M%S")  # Ex: 20250211_143025
+    #timestamp = data_atual.strftime("%Y%m%d_%H%M%S")
+    timestamp = data_atual.strftime("%Y%m%d") 
     
     # Criar diretório se não existir
     try:
@@ -80,7 +46,6 @@ def salvar_dataframes_csv(
     except Exception as e:
         erro_msg = f"Erro ao criar diretório: {e}"
         logger.error(f"{erro_msg} - {caminho_completo}")
-        # Se falhar ao criar diretório, todos os DataFrames falham
         for nome_df in dataframes.keys():
             resultados[nome_df] = {
                 'status': 'error',
@@ -111,8 +76,7 @@ def salvar_dataframes_csv(
                 }
                 continue
             
-            # Remover TODOS os arquivos antigos com o mesmo nome base
-            # Padrão: {nome_df}_*.csv (qualquer timestamp)
+            # Remover arquivos antigos com o mesmo nome base
             padrao_antigo = f"{nome_df}_*.csv"
             arquivos_antigos = list(caminho_completo.glob(padrao_antigo))
             
@@ -136,8 +100,8 @@ def salvar_dataframes_csv(
             df.to_csv(
                 caminho_arquivo,
                 index=False,
-                encoding='utf-8-sig',  # Compatibilidade com Excel
-                sep=';'  # Separador padrão brasileiro
+                encoding='utf-8-sig',
+                sep=';'
             )
             
             resultados[nome_df] = {
@@ -172,6 +136,126 @@ def salvar_dataframes_csv(
     logger.info(f"{'='*60}")
     
     return resultados
+
+def salvar_dataframes_digital(
+    caminho_digital_base: Path | str,
+    **dataframes
+) -> dict:
+    """
+    Salva DataFrames de canais digitais automaticamente nas pastas corretas.
+    
+    Detecta o canal (sms, email, rcs) pelo prefixo do nome do DataFrame e
+    salva na subpasta correspondente dentro de analytical_digital.
+    
+    Args:
+        caminho_digital_base (Path | str): Caminho da pasta analytical_digital
+            Ex: Path(r"C:\...\Ouze\Data\data_analytcs\analytical_digital")
+        **dataframes: DataFrames com prefixos identificadores
+            Prefixos suportados:
+            - sms_*     -> salva em data_sms/
+            - email_*   -> salva em data_email/
+            - rcs_*     -> salva em data_rcs/
+    
+    Returns:
+        dict: Status agrupado por canal
+            {
+                'sms': {resultados dos DFs de SMS},
+                'email': {resultados dos DFs de email},
+                'rcs': {resultados dos DFs de RCS}
+            }
+    
+    Exemplo:
+        >>> resultados = salvar_dataframes_digital(
+        ...     OUZE_PATHS["digital"],
+        ...     sms_enr=df_sms_enriquecido,
+        ...     sms_sf=df_sms_sem_faixa,
+        ...     email_enr=df_email_enriquecido,
+        ...     email_sf=df_email_sem_faixa,
+        ...     rcs_enr=df_rcs_enriquecido,
+        ...     rcs_sf=df_rcs_sem_faixa
+        ... )
+        >>> # Resultado:
+        >>> # {
+        >>> #   'sms': {'sms_enr': {...}, 'sms_sf': {...}},
+        >>> #   'email': {'email_enr': {...}, 'email_sf': {...}},
+        >>> #   'rcs': {'rcs_enr': {...}, 'rcs_sf': {...}}
+        >>> # }
+    """
+    
+    # Mapeamento de prefixos para subpastas
+    CANAL_MAPPING = {
+        'sms': 'data_sms',
+        'email': 'data_email',
+        'rcs': 'data_rcs'
+    }
+    
+    caminho_digital = Path(caminho_digital_base)
+    resultados_por_canal = {}
+    
+    # Agrupar DataFrames por canal
+    dfs_por_canal = {canal: {} for canal in CANAL_MAPPING.keys()}
+    dfs_sem_canal = {}
+    
+    for nome_df, df in dataframes.items():
+        # Detectar canal pelo prefixo
+        canal_detectado = None
+        nome_lower = nome_df.lower()
+        
+        for canal in CANAL_MAPPING.keys():
+            if nome_lower.startswith(f"{canal}_"):
+                canal_detectado = canal
+                break
+        
+        if canal_detectado:
+            dfs_por_canal[canal_detectado][nome_df] = df
+        else:
+            dfs_sem_canal[nome_df] = df
+            logger.warning(
+                f"DataFrame '{nome_df}' não tem prefixo reconhecido (sms_, email_, rcs_). "
+                f"Será ignorado."
+            )
+    
+    # Salvar cada canal em sua pasta
+    for canal, dfs_canal in dfs_por_canal.items():
+        if not dfs_canal:  # Se não há DFs deste canal, pular
+            continue
+        
+        caminho_canal = caminho_digital / CANAL_MAPPING[canal]
+        
+        logger.info(f"\n{'='*60}")
+        logger.info(f"Salvando DataFrames do canal: {canal.upper()}")
+        logger.info(f"Destino: {caminho_canal}")
+        logger.info(f"{'='*60}")
+        
+        resultados_canal = salvar_dataframes_csv(
+            caminho_canal,
+            **dfs_canal
+        )
+        
+        resultados_por_canal[canal] = resultados_canal
+    
+    # Log de DataFrames sem canal reconhecido
+    if dfs_sem_canal:
+        logger.warning(f"\n⚠ {len(dfs_sem_canal)} DataFrame(s) ignorado(s) por falta de prefixo:")
+        for nome_df in dfs_sem_canal.keys():
+            logger.warning(f"  - {nome_df}")
+        logger.warning("Prefixos válidos: sms_, email_, rcs_")
+    
+    # Resumo geral
+    total_canais = len([c for c in resultados_por_canal.values() if c])
+    total_arquivos = sum(len(canal) for canal in resultados_por_canal.values())
+    total_sucessos = sum(
+        sum(1 for r in canal.values() if r['status'] == 'success')
+        for canal in resultados_por_canal.values()
+    )
+    
+    logger.info(f"\n{'='*60}")
+    logger.info(f"RESUMO GERAL - DIGITAL")
+    logger.info(f"  Canais processados: {total_canais}")
+    logger.info(f"  Arquivos salvos: {total_sucessos}/{total_arquivos}")
+    logger.info(f"{'='*60}\n")
+    
+    return resultados_por_canal
 
 def get_date_range_from_csv(csv_path: Optional[str] = None) -> Tuple[str, str]:
     """

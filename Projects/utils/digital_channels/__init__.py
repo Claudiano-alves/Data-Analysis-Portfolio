@@ -9,6 +9,7 @@ Estrutura de módulos:
 """
 
 from .data_processing import data_channels
+from .metricas_acumuladas import acumulado_unique, acumulado_por_faixa_atraso, acumulado_esforco
 
 # from .metricas_acumuladas import gerar_acumulado_por_dia_util
 
@@ -19,5 +20,8 @@ from .data_processing import data_channels
 
 __all__ = [
     # Tratamentos
-    'data_channels'
+    'data_channels',
+    'acumulado_unique', 
+    'acumulado_por_faixa_atraso', 
+    'acumulado_esforco'
 ]

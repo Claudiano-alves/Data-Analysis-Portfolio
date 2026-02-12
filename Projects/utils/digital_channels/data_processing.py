@@ -1,5 +1,5 @@
 import pandas as pd
-from utils.utils import salvar_log
+from utils.utils import salvar_log, salvar_dataframes_digital
 from ..config import LOG_CHANNELS
 
 
@@ -9,6 +9,7 @@ def data_channels(
     df_sms: pd.DataFrame = None,
     df_email: pd.DataFrame = None,
     df_rcs: pd.DataFrame = None,
+    output_path: str = None,
     log_file: str = LOG_CHANNELS
 ):
     """
@@ -22,6 +23,7 @@ def data_channels(
     3. Cruza o resultado com df_dw_calendario pela DATA (dt_data),
        adicionando as colunas nr_dia_util, quartil, dt_mes e mes_abreviado
     4. Separa registros sem faixa de atraso (trabalhados fora da base mailing)
+    5. Salva os dataframes processados (se output_path fornecido)
     
     Parâmetros:
     -----------
@@ -36,17 +38,20 @@ def data_channels(
         DataFrame com colunas: DATA, CPF
     df_rcs : pd.DataFrame, optional
         DataFrame com colunas: DATA, CPF
+    output_path : str, optional
+        Caminho do diretório onde os dataframes serão salvos
     log_file : str, optional
         Caminho do arquivo de log (padrão: LOG_CHANNELS)
     
     Retorna:
     --------
     dict
-        Dicionário com os resultados de cada canal:
+        Dicionário com os resultados de cada canal e paths dos arquivos salvos:
         {
             'sms': (df_sms_enriquecido, df_sms_sem_faixa) ou (None, None),
             'email': (df_email_enriquecido, df_email_sem_faixa) ou (None, None),
-            'rcs': (df_rcs_enriquecido, df_rcs_sem_faixa) ou (None, None)
+            'rcs': (df_rcs_enriquecido, df_rcs_sem_faixa) ou (None, None),
+            'saved_files': {...} (se output_path fornecido)
         }
     """
     
@@ -205,6 +210,36 @@ def data_channels(
             salvar_log(f"\n{canal.upper()}: Não processado", arquivo_log=log_file)
     
     salvar_log(f"\n✅ PROCESSAMENTO COMPLETO!", arquivo_log=log_file)
+    
+    # ========== SALVAR DATAFRAMES (SE output_path FORNECIDO) ==========
+    
+    if output_path is not None:
+        salvar_log(f"\n{'#'*60}", arquivo_log=log_file)
+        salvar_log(f"💾 SALVANDO DATAFRAMES", arquivo_log=log_file)
+        salvar_log(f"{'#'*60}", arquivo_log=log_file)
+        salvar_log(f"📁 Diretório de saída: {output_path}", arquivo_log=log_file)
+        
+        # Desempacotar resultados
+        sms_enr, sms_sf = resultados['sms']
+        email_enr, email_sf = resultados['email']
+        rcs_enr, rcs_sf = resultados['rcs']
+        
+        # Salvar usando a função utilitária
+        saved_files = salvar_dataframes_digital(
+            output_path,
+            sms_enr=sms_enr,
+            sms_sf=sms_sf,
+            email_enr=email_enr,
+            email_sf=email_sf,
+            rcs_enr=rcs_enr,
+            rcs_sf=rcs_sf
+        )
+        
+        resultados['saved_files'] = saved_files
+        salvar_log(f"✅ Dataframes salvos com sucesso!", arquivo_log=log_file)
+    else:
+        salvar_log(f"\n⚠️ output_path não fornecido - dataframes não foram salvos", arquivo_log=log_file)
+    
     salvar_log(f"{'#'*60}\n", arquivo_log=log_file)
     
     return resultados
