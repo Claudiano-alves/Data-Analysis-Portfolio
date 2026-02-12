@@ -150,3 +150,30 @@ TRANSFORMACOES_DISCAGENS = {
         'PROMESSA': 0
     }
 }
+
+# OutraCarteira/src/config.py
+
+# Sem segmentação
+DIMENSOES_PAGAMENTOS = []  # Ou None
+
+from pathlib import Path
+
+# Caminho base para os analíticos da Ouze
+CAMINHO_BASE_OUZE = Path(r"C:\Users\claudiano.alves\Documents\Claudiano\repository\Data-Analysis-Portfolio\Projects\Ouze\Data\data_analytcs")
+
+# Configuração dos caminhos da Ouze
+OUZE_PATHS = {
+    # Canais principais
+    "acionamentos": CAMINHO_BASE_OUZE / "analytical_acionamentos",  # Mantive o typo "anaytical" como está na sua estrutura
+    "acordos": CAMINHO_BASE_OUZE / "analytical_acordos",
+    "discagens": CAMINHO_BASE_OUZE / "analytical_discagens",
+    "pagamentos": CAMINHO_BASE_OUZE / "analytical_pagamentos",
+    
+    # Digital - Canais específicos
+    "digital_email": CAMINHO_BASE_OUZE / "analytical_digital" / "data_email",
+    "digital_sms": CAMINHO_BASE_OUZE / "analytical_digital" / "data_sms",
+    "digital_rcs": CAMINHO_BASE_OUZE / "analytical_digital" / "data_rcs",
+    
+    # Atalho para digital (pasta raiz, se precisar)
+    "digital": CAMINHO_BASE_OUZE / "analytical_digital",
+}

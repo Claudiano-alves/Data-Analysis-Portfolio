@@ -13,6 +13,7 @@ LOG_DISCAGENS = os.path.join(LOGS_DIR, 'discagens.txt')
 LOG_MAILING = os.path.join(LOGS_DIR, 'mailing.txt')
 LOG_PAGAMENTOS = os.path.join(LOGS_DIR, 'pagamentos.txt')
 LOG_LOADING = os.path.join(LOGS_DIR, 'loading.txt')
+LOG_CHANNELS = os.path.join(LOGS_DIR, 'channels.txt')
 
 # Dicionário de logs (útil para acesso dinâmico)
 LOGS = {
@@ -21,6 +22,7 @@ LOGS = {
     'mailing': LOG_MAILING,
     'pagamentos': LOG_PAGAMENTOS,
     'loading': LOG_LOADING,
+    'channels': LOG_CHANNELS,
 }
 
 # ============================================

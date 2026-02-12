@@ -5,7 +5,6 @@ Exports principais para importação simplificada
 """
 
 from .data_processing import (
-    tratar_base_discagens_expert,
     criar_df_tabulacoes_robo,
     enriquecer_com_tabulacoes_robo,
     enriquecer_com_mailing_calendario,
@@ -25,7 +24,6 @@ from .pipelines import (
 )
 
 __all__ = [
-    'tratar_base_discagens_expert',
     'criar_df_tabulacoes_robo',
     'enriquecer_com_tabulacoes_robo',
     'enriquecer_com_mailing_calendario',

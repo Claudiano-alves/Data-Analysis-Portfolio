@@ -11,51 +11,76 @@ from functools import wraps
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-
 def salvar_dataframes_csv(
-    processo: str,
+    caminho_base: Path | str,
     **dataframes
 ) -> dict:
     """
     Salva múltiplos DataFrames como arquivos CSV em um diretório especificado.
     
-    Adiciona timestamp aos nomes dos arquivos e substitui arquivos existentes
-    do mesmo mês/tipo se necessário.
+    Substitui automaticamente arquivos existentes com o mesmo nome base na pasta.
+    Cada arquivo recebe um timestamp único no formato: {nome_df}_{YYYYMMDD_HHMMSS}.csv
     
     Args:
-        processo (str): Nome do processo no dicionário PROCESS_PATHS
-            Ex: "acionamentos", "pagamentos", "acordos", "discagens"
+        caminho_base (Path | str): Caminho do diretório onde os arquivos serão salvos
+            Ex: Path(r"\\servidor\Planejamento\MIS\CARTEIRAS\GetNet\Analíticos\acionamentos")
+            Ex: r"C:\Projetos\Carteira_XYZ\Analíticos\discagens"
         **dataframes: DataFrames nomeados para salvar
-            Ex: df_enriquecido=df1, df_sem_faixa=df2
+            Ex: df_enriquecido=df1, df_sem_faixa=df2, df_principal=df3
     
     Returns:
         dict: Dicionário com status de cada arquivo salvo
             {
                 'nome_df': {
-                    'status': 'success'|'error',
-                    'caminho': 'caminho_completo',
-                    'mensagem': 'mensagem de status'
+                    'status': 'success'|'error'|'warning',
+                    'caminho': 'caminho_completo' ou None,
+                    'mensagem': 'mensagem de status',
+                    'linhas': quantidade de linhas (se success)
                 }
             }
     
-    Exemplo de uso:
-        >>> from config import PROCESS_PATHS
+    Exemplos de uso:
+        # Exemplo 1: GetNet - Acionamentos
+        >>> caminho_getnet_acion = Path(r"\\servidor\MIS\CARTEIRAS\GetNet\Analíticos\acionamentos")
         >>> resultados = salvar_dataframes_csv(
-        ...     processo="acionamentos",
-        ...     df_enriquecido=df_acionamentos_enriquecido_limpo,
-        ...     df_sem_faixa=df_acion_semFaixa_humano,
-        ...     df_sem_descricao=df_acion_semDescricao_humano,
-        ...     df_sem_origem=df_acion_semOrigem_humano
+        ...     caminho_getnet_acion,
+        ...     df_enriquecido=df_acionamentos_enriquecido,
+        ...     df_sem_faixa=df_acion_semFaixa,
+        ...     df_sem_descricao=df_acion_semDescricao
+        ... )
+        
+        # Exemplo 2: Carteira ABC - Discagens
+        >>> caminho_abc_disc = Path(r"\\servidor\MIS\CARTEIRAS\ABC\Analíticos\discagens")
+        >>> resultados = salvar_dataframes_csv(
+        ...     caminho_abc_disc,
+        ...     df_principal=df_discagens_principal
+        ... )
+        
+        # Exemplo 3: Carteira XYZ - SMS
+        >>> caminho_xyz_sms = r"C:\Projetos\XYZ\Analíticos\sms"
+        >>> resultados = salvar_dataframes_csv(
+        ...     caminho_xyz_sms,
+        ...     df_enviados=df_sms_enviados,
+        ...     df_recebidos=df_sms_recebidos
         ... )
     """
-    from Projects.Getnet.src.config import PROCESS_PATHS  # Importar o dicionário de caminhos
-    
     resultados = {}
     
-    # Validar processo
-    if processo not in PROCESS_PATHS:
-        erro_msg = f"Processo '{processo}' não encontrado. Processos disponíveis: {list(PROCESS_PATHS.keys())}"
-        logger.error(erro_msg)
+    # Converter caminho para Path se necessário
+    caminho_completo = Path(caminho_base)
+    
+    # Obter timestamp atual
+    data_atual = datetime.now()
+    timestamp = data_atual.strftime("%Y%m%d_%H%M%S")  # Ex: 20250211_143025
+    
+    # Criar diretório se não existir
+    try:
+        caminho_completo.mkdir(parents=True, exist_ok=True)
+        logger.info(f"Diretório verificado/criado: {caminho_completo}")
+    except Exception as e:
+        erro_msg = f"Erro ao criar diretório: {e}"
+        logger.error(f"{erro_msg} - {caminho_completo}")
+        # Se falhar ao criar diretório, todos os DataFrames falham
         for nome_df in dataframes.keys():
             resultados[nome_df] = {
                 'status': 'error',
@@ -64,68 +89,62 @@ def salvar_dataframes_csv(
             }
         return resultados
     
-    # Obter data atual
-    data_atual = datetime.now()
-    mes_ano = data_atual.strftime("%Y%m")  # Ex: 202501
-    data_completa = data_atual.strftime("%Y%m%d_%H%M%S")  # Ex: 20250122_143025
-    
-    # Obter caminho do processo
-    caminho_completo = PROCESS_PATHS[processo]
-    
-    # Criar diretório se não existir
-    try:
-        caminho_completo.mkdir(parents=True, exist_ok=True)
-        logger.info(f"Diretório verificado/criado: {caminho_completo}")
-    except Exception as e:
-        logger.error(f"Erro ao criar diretório {caminho_completo}: {e}")
-        for nome_df in dataframes.keys():
-            resultados[nome_df] = {
-                'status': 'error',
-                'caminho': None,
-                'mensagem': f"Erro ao criar diretório: {e}"
-            }
-        return resultados
-    
     # Salvar cada DataFrame
     for nome_df, df in dataframes.items():
         try:
             # Validar DataFrame
-            if df is None or df.empty:
-                logger.warning(f"DataFrame '{nome_df}' está vazio ou None. Pulando...")
+            if df is None:
+                logger.warning(f"DataFrame '{nome_df}' é None. Pulando...")
                 resultados[nome_df] = {
                     'status': 'warning',
                     'caminho': None,
-                    'mensagem': 'DataFrame vazio ou None'
+                    'mensagem': 'DataFrame é None'
                 }
                 continue
             
-            # Remover arquivos antigos do mesmo mês e tipo
-            padrao_antigo = f"{nome_df}_{mes_ano}_*.csv"
+            if df.empty:
+                logger.warning(f"DataFrame '{nome_df}' está vazio (0 linhas). Pulando...")
+                resultados[nome_df] = {
+                    'status': 'warning',
+                    'caminho': None,
+                    'mensagem': 'DataFrame vazio (0 linhas)'
+                }
+                continue
+            
+            # Remover TODOS os arquivos antigos com o mesmo nome base
+            # Padrão: {nome_df}_*.csv (qualquer timestamp)
+            padrao_antigo = f"{nome_df}_*.csv"
             arquivos_antigos = list(caminho_completo.glob(padrao_antigo))
             
+            arquivos_removidos = 0
             for arquivo_antigo in arquivos_antigos:
                 try:
                     arquivo_antigo.unlink()
+                    arquivos_removidos += 1
                     logger.info(f"Arquivo antigo removido: {arquivo_antigo.name}")
                 except Exception as e:
                     logger.warning(f"Não foi possível remover {arquivo_antigo.name}: {e}")
             
+            if arquivos_removidos > 0:
+                logger.info(f"Total de arquivos antigos removidos para '{nome_df}': {arquivos_removidos}")
+            
             # Gerar nome do arquivo com timestamp
-            nome_arquivo = f"{nome_df}_{mes_ano}_{data_completa}.csv"
+            nome_arquivo = f"{nome_df}_{timestamp}.csv"
             caminho_arquivo = caminho_completo / nome_arquivo
             
             # Salvar CSV
             df.to_csv(
                 caminho_arquivo,
                 index=False,
-                encoding='utf-8-sig',  # Para compatibilidade com Excel
+                encoding='utf-8-sig',  # Compatibilidade com Excel
                 sep=';'  # Separador padrão brasileiro
             )
             
             resultados[nome_df] = {
                 'status': 'success',
                 'caminho': str(caminho_arquivo),
-                'mensagem': f'Arquivo salvo com sucesso ({len(df)} linhas)'
+                'mensagem': 'Arquivo salvo com sucesso',
+                'linhas': len(df)
             }
             logger.info(f"✓ Salvo: {nome_arquivo} ({len(df)} linhas)")
             
@@ -133,14 +152,23 @@ def salvar_dataframes_csv(
             resultados[nome_df] = {
                 'status': 'error',
                 'caminho': None,
-                'mensagem': f'Erro ao salvar: {e}'
+                'mensagem': f'Erro ao salvar: {str(e)}'
             }
             logger.error(f"✗ Erro ao salvar '{nome_df}': {e}")
     
-    # Resumo
+    # Resumo final
+    total_dfs = len(dataframes)
     sucessos = sum(1 for r in resultados.values() if r['status'] == 'success')
+    warnings = sum(1 for r in resultados.values() if r['status'] == 'warning')
+    erros = sum(1 for r in resultados.values() if r['status'] == 'error')
+    
     logger.info(f"\n{'='*60}")
-    logger.info(f"Resumo: {sucessos}/{len(dataframes)} arquivos salvos com sucesso")
+    logger.info(f"Resumo do salvamento em: {caminho_completo.name}")
+    logger.info(f"  ✓ Sucessos: {sucessos}/{total_dfs}")
+    if warnings > 0:
+        logger.info(f"  ⚠ Avisos: {warnings}/{total_dfs}")
+    if erros > 0:
+        logger.info(f"  ✗ Erros: {erros}/{total_dfs}")
     logger.info(f"{'='*60}")
     
     return resultados
