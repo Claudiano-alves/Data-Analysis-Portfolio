@@ -278,7 +278,7 @@ def get_query_acordos(dt_ini, dt_fim, where_clause=""):
     """
     return query
 
-def get_query_sms(dt_ini, dt_fim, where_clause=""):
+def get_query_sms(dt_ini, dt_fim, where_clause="", columns="*"):
     """
     Retorna a query SQL para buscar massivos_sms com período parametrizado e filtros customizados
     
@@ -286,8 +286,7 @@ def get_query_sms(dt_ini, dt_fim, where_clause=""):
         dt_ini (str): Data inicial no formato 'YYYY-MM-DD'
         dt_fim (str): Data final no formato 'YYYY-MM-DD'
         where_clause (str): Cláusula WHERE adicional customizada (opcional)
-                           Ex: "COD_CLI IN(198, 196, 228)"
-                           Nota: O filtro de DATA_ENVIO BETWEEN é sempre aplicado
+        columns (str): Colunas a serem selecionadas (padrão: '*')
     
     Returns:
         str: Query SQL formatada com as datas e filtros
@@ -299,18 +298,18 @@ def get_query_sms(dt_ini, dt_fim, where_clause=""):
     if where_clause:
         where_completo = f"{where_clause} AND {where_data}"
     else:
-        where_completo = where_data
+        where_completo = f"WHERE {where_data}"
     
     query = f"""
         SELECT 
-            DATA,
-            CPF
+            {columns}
         FROM SMS
         {where_completo}
     """
     return query
 
-def get_query_rcs(dt_ini, dt_fim, where_clause=""):
+
+def get_query_rcs(dt_ini, dt_fim, where_clause="", columns="*"):
     """
     Retorna a query SQL para buscar massivos_rcs com período parametrizado e filtros customizados
     
@@ -318,8 +317,7 @@ def get_query_rcs(dt_ini, dt_fim, where_clause=""):
         dt_ini (str): Data inicial no formato 'YYYY-MM-DD'
         dt_fim (str): Data final no formato 'YYYY-MM-DD'
         where_clause (str): Cláusula WHERE adicional customizada (opcional)
-                           Ex: "COD_CLI IN(198, 196, 228)"
-                           Nota: O filtro de DATA_ENVIO BETWEEN é sempre aplicado
+        columns (str): Colunas a serem selecionadas (padrão: '*')
     
     Returns:
         str: Query SQL formatada com as datas e filtros
@@ -331,18 +329,18 @@ def get_query_rcs(dt_ini, dt_fim, where_clause=""):
     if where_clause:
         where_completo = f"{where_clause} AND {where_data}"
     else:
-        where_completo = where_data
+        where_completo = f"WHERE {where_data}"
     
     query = f"""
         SELECT 
-            DATA,
-            CPF
-        FROM SMS
+            {columns}
+        FROM RCS
         {where_completo}
     """
     return query
 
-def get_query_email(dt_ini, dt_fim, where_clause=""):
+
+def get_query_email(dt_ini, dt_fim, where_clause="", columns="*"):
     """
     Retorna a query SQL para buscar massivos_email com período parametrizado e filtros customizados
     
@@ -350,8 +348,7 @@ def get_query_email(dt_ini, dt_fim, where_clause=""):
         dt_ini (str): Data inicial no formato 'YYYY-MM-DD'
         dt_fim (str): Data final no formato 'YYYY-MM-DD'
         where_clause (str): Cláusula WHERE adicional customizada (opcional)
-                           Ex: "COD_CLI IN(198, 196, 228)"
-                           Nota: O filtro de DATA_ENVIO BETWEEN é sempre aplicado
+        columns (str): Colunas a serem selecionadas (padrão: '*')
     
     Returns:
         str: Query SQL formatada com as datas e filtros
@@ -363,13 +360,43 @@ def get_query_email(dt_ini, dt_fim, where_clause=""):
     if where_clause:
         where_completo = f"{where_clause} AND {where_data}"
     else:
-        where_completo = where_data
+        where_completo = f"WHERE {where_data}"
     
     query = f"""
         SELECT 
-            DATA,
-            CPF
+            {columns}
         FROM EMAIL
+        {where_completo}
+    """
+    return query
+
+
+def get_query_whats(dt_ini, dt_fim, where_clause="", columns="*"):
+    """
+    Retorna a query SQL para buscar massivos_whatsapp com período parametrizado e filtros customizados
+    
+    Args:
+        dt_ini (str): Data inicial no formato 'YYYY-MM-DD'
+        dt_fim (str): Data final no formato 'YYYY-MM-DD'
+        where_clause (str): Cláusula WHERE adicional customizada (opcional)
+        columns (str): Colunas a serem selecionadas (padrão: '*')
+    
+    Returns:
+        str: Query SQL formatada com as datas e filtros
+    """
+    # Filtro de data é obrigatório
+    where_data = f"DATA BETWEEN '{dt_ini}' AND '{dt_fim}'"
+    
+    # Adicionar filtro customizado se houver
+    if where_clause:
+        where_completo = f"{where_clause} AND {where_data}"
+    else:
+        where_completo = f"WHERE {where_data}"
+    
+    query = f"""
+        SELECT 
+            {columns}
+        FROM WHATSAPP
         {where_completo}
     """
     return query

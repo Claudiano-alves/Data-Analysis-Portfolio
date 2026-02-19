@@ -91,6 +91,28 @@ WHERE_CLAUSES = {
     'massivos': "WHERE ID_CAR = 100",
     'telefones': "WHERE COD_CLI = 253"
 }
+
+
+# Colunas para cada tipo de massivo
+COLUMNS_MASSIVOS = {
+    'sms': """
+        CAST(DATA AS DATE) AS DATA_DISPARO,
+        CPF
+    """,
+    'rcs': """
+        CAST(DATA AS DATE) AS DATA_DISPARO,
+        CPF
+    """,
+    'whats': """
+        CAST(DATA AS DATE) AS DATA_DISPARO,
+        CPF
+    """,
+    'email': """
+        DATA,
+        CPF
+    """
+}
+
 # Diretório base de logs (criado automaticamente se não existir)
 LOGS_DIR = os.path.join(os.path.dirname(__file__), 'logs')
 
