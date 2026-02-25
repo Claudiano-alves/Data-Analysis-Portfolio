@@ -396,7 +396,7 @@ def get_query_whats(dt_ini, dt_fim, where_clause="", columns="*"):
     query = f"""
         SELECT 
             {columns}
-        FROM WHATSAPP
+        FROM WHATS
         {where_completo}
     """
     return query

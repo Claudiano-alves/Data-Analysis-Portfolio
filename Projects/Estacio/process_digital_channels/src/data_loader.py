@@ -2,7 +2,7 @@ import pandas as pd
 from typing import Dict
 from utils.data_loader import data_loader
 from utils.db_connection import get_db_connections
-from Estácio.process_digital_channels.src.config import WHERE_CLAUSES, DATASETS_TO_LOAD, COLUMNS_MASSIVOS
+from Estacio.process_digital_channels.src.config import WHERE_CLAUSES, DATASETS_TO_LOAD, COLUMNS_MASSIVOS
 
 
 def load_data_estacio(

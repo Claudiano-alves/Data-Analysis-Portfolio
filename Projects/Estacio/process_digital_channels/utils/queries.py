@@ -42,7 +42,7 @@ def get_query_mailing_hist(dt_ini, dt_fim, where_clause=""):
             ELSE 'OUTROS'
         END AS GRUPO_SEGMENTADO,
         CASE 
-            WHEN Y.COD_PRODUT = 2 THEN 'RENOVAÇÃO'
+            WHEN Y.COD_PRODUT = 2 THEN 'RENOVACAO'
             WHEN Y.COD_PRODUT = 1 THEN 'BASE LIQUIDA'
             ELSE 'OUTROS'
         END AS PRODUTO_SEGMENTADO,

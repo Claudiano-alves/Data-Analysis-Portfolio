@@ -55,7 +55,7 @@ def atualizar_arquivo_funil_completo(caminho_destino=None, datasets_to_load=None
         datasets_to_load = DATASETS_TO_LOAD
 
     if caminho_destino is None:
-        caminho_destino = r"\\trc-dc-ad\Planejamento\MIS\Pipelines\df_csvBI_padronizado_teste.xlsx"
+        caminho_destino = r"\\trc-dc-ad\Planejamento\MIS\Pipelines\Data\df_csvBI_padronizado_teste.xlsx"
     
     resultado = {
         'sucesso': False,

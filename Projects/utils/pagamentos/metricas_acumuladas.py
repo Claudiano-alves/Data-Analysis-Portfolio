@@ -8,7 +8,6 @@ import pandas as pd
 from utils.utils import registrar_tempo, unir_dataframes, salvar_log
 from ..config import LOG_PAGAMENTOS
 
-
 @registrar_tempo("Gerando acumulado de pagamentos", arquivo_log=LOG_PAGAMENTOS)
 def gerar_acumulado_por_dia_util(
     df_agrupado: pd.DataFrame,
