@@ -2,8 +2,7 @@ import pandas as pd
 from typing import Dict
 from utils.data_loader import data_loader
 from utils.db_connection import get_db_connections
-from Estacio.process_digital_channels.src.config import WHERE_CLAUSES, DATASETS_TO_LOAD, COLUMNS_MASSIVOS
-
+from Estacio.process_digital_channels.src.config import WHERE_CLAUSES, DATASETS_TO_LOAD, COLUMNS_MASSIVOS, DATASETS_EXCLUSIVOS_ESTACIO
 
 def load_data_estacio(
     data_inicio: str,
@@ -26,22 +25,22 @@ def load_data_estacio(
         Carrega apenas: SMS, RCS, Email, WhatsApp
         Filtros SQL: COD_CLI = 252, ID_CAR = 95
         Colunas definidas em config.COLUMNS_MASSIVOS ou via parâmetro
+        Datasets exclusivos da Estácio definidos em DATASETS_EXCLUSIVOS_ESTACIO
     """
-    
-    # Usar colunas padrão se não fornecidas
+
     if columns is None:
         columns = COLUMNS_MASSIVOS
 
-    # 🔌 Conexões gerenciadas pelo context manager
     with get_db_connections() as (conn_trc, conn_bd2, conn_src):
 
-        # 📋 Datasets necessários para Estácio (apenas massivos)
+        # Exclui datasets exclusivos da Estácio — o data_loader não os reconhece
         datasets_estacio = [
-            nome for nome, ativo in DATASETS_TO_LOAD.items() if ativo
+            nome for nome, ativo in DATASETS_TO_LOAD.items()
+            if ativo and nome not in DATASETS_EXCLUSIVOS_ESTACIO
         ]
 
-        # 🔄 Carregamento efetivo usando configurações centralizadas
-        return data_loader(
+        # 🔄 Carregamento padrão via função utilitária
+        dados = data_loader(
             conn_trc=conn_trc,
             conn_bd2=conn_bd2,
             conn_src=conn_src,
@@ -58,3 +57,12 @@ def load_data_estacio(
             datasets_to_load=datasets_estacio,
             columns=columns
         )
+
+        # 🔄 Carregamentos exclusivos da Estácio
+        for dataset, get_query in DATASETS_EXCLUSIVOS_ESTACIO.items():
+            if DATASETS_TO_LOAD.get(dataset):
+                print(f"🔍 Carregando {dataset} (Estácio)...")
+                dados[dataset] = pd.read_sql(get_query(), conn_src)
+                print(f"✅ {dataset} carregado — {len(dados[dataset]):,} linhas")
+
+    return dados

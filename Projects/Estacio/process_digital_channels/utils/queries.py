@@ -102,3 +102,42 @@ def get_query_mailing_hist(dt_ini, dt_fim, where_clause=""):
     {where_completo}
     """
     return query
+
+def get_query_indicadores():
+    """
+    Retorna a query SQL para buscar os indicadores pivotados por contrato/produto/cliente.
+
+    Returns:
+        str: Query SQL formatada.
+    """
+    query = """
+        SELECT
+            A.CONTRATO_FIN,
+            A.COD_PRODUT,
+            A.ID_CLIENTE,
+            MAX(CASE WHEN A.COD_INDICADOR = 'REGIONAL' THEN A.VL_INDICADOR       ELSE NULL END) AS REGIONAL,
+            MAX(CASE WHEN A.COD_INDICADOR = 'GRUPO'    THEN A.VL_INDICADOR       ELSE NULL END) AS GRUPO,
+            MAX(CASE WHEN A.COD_INDICADOR = 'SPD'      THEN A.VL_INDICADOR       ELSE NULL END) AS SPD,
+            MAX(CASE WHEN A.COD_INDICADOR = 'BU'       THEN A.VL_INDICADOR       ELSE NULL END) AS BU,
+            MAX(CASE WHEN A.COD_INDICADOR = 'MODALIDE' THEN A.VL_INDICADOR       ELSE NULL END) AS MODALIDE,
+            MAX(CASE WHEN A.COD_INDICADOR = 'STDEBITO' THEN A.VL_INDICADOR       ELSE NULL END) AS STDEBITO,
+            MAX(CASE WHEN A.COD_INDICADOR = 'STALUNO'  THEN STA.SITUACAO_FINAL   ELSE NULL END) AS STALUNO,
+            MAX(CASE WHEN A.COD_INDICADOR = 'APROACAD' THEN A.VL_INDICADOR       ELSE NULL END) AS APROACAD,
+            MAX(CASE WHEN A.COD_INDICADOR = 'CURSO'    THEN A.DESC_INDICADOR     ELSE NULL END) AS CURSO,
+            MAX(CASE WHEN B.CONTRATO_FIN IS NOT NULL THEN 'RENOVACAO' ELSE 'MENSALIDADE' END)   AS PRODUTO,
+            MAX(CASE WHEN A.COD_INDICADOR = 'ULTRENOV' THEN A.VL_INDICADOR       ELSE NULL END) AS ULTRENOV,
+            MAX(CASE WHEN A.COD_INDICADOR = 'LTCOMER'  THEN A.VL_INDICADOR       ELSE NULL END) AS LTCOMER
+        FROM AUX_SYSOPENINDICADOR_YDUQS A
+        LEFT JOIN AUX_SYSOPENSTATUSALUNO_YDUQS STA
+            ON A.COD_INDICADOR = 'STALUNO'
+           AND TRY_CAST(A.VL_INDICADOR AS INT) = STA.COD_SITUACAO
+        LEFT JOIN AUX_SYSOPENINDICADOR_YDUQS B
+            ON A.ID_CLIENTE = B.ID_CLIENTE
+           AND A.COD_PRODUT = 1
+           AND B.COD_PRODUT = 2
+        GROUP BY
+            A.CONTRATO_FIN,
+            A.COD_PRODUT,
+            A.ID_CLIENTE
+    """
+    return query

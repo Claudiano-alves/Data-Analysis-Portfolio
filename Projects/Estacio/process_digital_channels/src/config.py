@@ -1,6 +1,9 @@
 # config.py
 
 # WHERE clauses para Estácio
+from Estacio.process_digital_channels.utils.queries import get_query_indicadores
+
+
 WHERE_CLAUSES = {
     'campanhas': "A.GrupoPrincipal IN (SELECT G.id_grupo FROM grupo G WHERE G.ID_CAMPANHA = 141)",
     'clientes_mailing': "WHERE COD_CLI = 252",
@@ -20,7 +23,7 @@ WHERE_CLAUSES = {
 # Datasets a serem carregados para Estácio
 DATASETS_TO_LOAD = {
     'discagens_expert': False,    
-    'mailing_hist': False,        
+    'mailing_hist': True,        
     'tab_acionamentos': False,    
     'tabulacao_aciona': False,    
     'dw_calendario': False,       
@@ -32,7 +35,12 @@ DATASETS_TO_LOAD = {
     'whats': True,             
     'telefone': False,          
     'blacklist_expert': False,  
-    'discagens_trestto': False  
+    'discagens_trestto': False,
+    'base_auxiliar': True       # ← exclusivo Estácio, não entra na função utilitária
+}
+
+DATASETS_EXCLUSIVOS_ESTACIO = {
+    'base_auxiliar': get_query_indicadores,
 }
 
 # Colunas para cada tipo de massivo
@@ -79,3 +87,49 @@ COLUMNS_MASSIVOS = {
         NOME
     """
 }
+
+
+# ==============================================================================
+# REGRAS DE NEGÓCIO - MAILING
+# ==============================================================================
+
+# Definição de Faixas de Atraso (Bins para pd.cut)
+# Estrutura baseada na segmentação de 30 dias solicitada.
+# Ajustado para evitar sobreposições (ex: 31-60 vs 31-65 presentes na solicitação).
+FAIXAS_ATRASO_BINS = [
+    float('-inf'), 
+    1, 
+    7, 
+    15, 
+    30, 
+    60, 
+    90, 
+    180, 
+    270, 
+    360, 
+    540, 
+    720, 
+    1080, 
+    1440, 
+    1800, 
+    float('inf')
+]
+
+# Labels correspondentes aos Bins
+FAIXAS_ATRASO_LABELS = [
+    'Preventivo',
+    'A - 01 - 07',    
+    'B - 08 - 15',     
+    'C - 16 - 30',     
+    'D - 31 - 60',      
+    'E - 61 - 90', 
+    'F - 91 - 180', 
+    'G - 181 - 270', 
+    'H - 271 - 360', 
+    'I - 361 - 540', 
+    'J - 541 - 720', 
+    'K - 721 - 1080', 
+    'L - 1081 - 1440',
+    'M - 1441 - 1800',
+    'N - Maior 1800'
+]

@@ -6,6 +6,10 @@ from pathlib import Path
 import logging
 import time
 from functools import wraps
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+from IPython.display import display
 
 # Configurar logging
 logging.basicConfig(level=logging.INFO)
@@ -787,3 +791,266 @@ def formatar_tempo(segundos):
         return f"{minutos:02d}:{segs:02d}"
     else:  # Menos de 1 minuto
         return f"{segundos:.2f}s"
+
+"""
+========================================================
+  EDA Function — Análise Exploratória Reutilizável
+  Uso: eda_report = analisar_df(df)
+========================================================
+"""
+
+def analisar_df(
+    df: pd.DataFrame,
+    nome: str = "DataFrame",
+    corr_threshold: float = 0.7,
+    top_categorias: int = 10,
+    plot: bool = True,
+) -> dict:
+    """
+    Realiza uma análise exploratória completa em qualquer DataFrame.
+
+    Parâmetros
+    ----------
+    df              : pd.DataFrame — O DataFrame a ser analisado.
+    nome            : str          — Nome descritivo (aparece nos títulos). Default: "DataFrame".
+    corr_threshold  : float        — Limiar para destacar correlações fortes. Default: 0.7.
+    top_categorias  : int          — Quantas categorias exibir por coluna categórica. Default: 10.
+    plot            : bool         — Se False, pula todas as visualizações. Default: True.
+
+    Retorno
+    -------
+    dict com as seguintes chaves:
+        shape               → (linhas, colunas)
+        tipos               → dict {coluna: dtype}
+        qualidade           → DataFrame com nulos, únicos e dtype por coluna
+        duplicatas          → int com total de linhas duplicadas
+        chaves_candidatas   → list de colunas sem nulos e com valores únicos
+        cols_numericas      → list
+        cols_categoricas    → list
+        cols_datas          → list
+        desc_numericas      → DataFrame com estatísticas das colunas numéricas
+        desc_categoricas    → dict {coluna: DataFrame de frequências}
+        desc_datas          → dict {coluna: dict com min, max, range, nulos}
+        outliers            → dict {coluna: {"qtd": int, "pct": float}}
+        correlacao          → DataFrame com matriz de correlação
+        correlacao_forte    → dict {(col1, col2): valor_r}
+    """
+
+    # ── Validação básica ───────────────────────────────────────────
+    if not isinstance(df, pd.DataFrame):
+        raise TypeError("O parâmetro `df` deve ser um pd.DataFrame.")
+    if df.empty:
+        raise ValueError("O DataFrame está vazio.")
+
+    df = df.copy()
+    report = {}
+
+    _sep = lambda titulo: print(f"\n{'=' * 60}\n{titulo}\n{'=' * 60}")
+
+    # ─────────────────────────────────────────────────
+    # 1. VISÃO GERAL
+    # ─────────────────────────────────────────────────
+    _sep(f"1. VISÃO GERAL — {nome}")
+    print(f"\n→ Shape: {df.shape[0]} linhas × {df.shape[1]} colunas")
+    print("\n→ Tipos de dados:")
+    print(df.dtypes.to_string())
+    print("\n→ Amostra (5 linhas):")
+    display(df.head())
+
+    report["shape"] = df.shape
+    report["tipos"] = df.dtypes.to_dict()
+
+    # ─────────────────────────────────────────────────
+    # 2. QUALIDADE DOS DADOS
+    # ─────────────────────────────────────────────────
+    _sep("2. QUALIDADE DOS DADOS")
+
+    nulos     = df.isnull().sum()
+    nulos_pct = (nulos / len(df) * 100).round(2)
+    qualidade = pd.DataFrame({
+        "nulos_qtd" : nulos,
+        "nulos_%"   : nulos_pct,
+        "únicos"    : df.nunique(),
+        "dtype"     : df.dtypes,
+    }).sort_values("nulos_%", ascending=False)
+
+    display(qualidade)
+
+    dup = int(df.duplicated().sum())
+    print(f"\n→ Linhas duplicadas: {dup} ({dup / len(df) * 100:.2f}%)")
+
+    chaves = qualidade[
+        (qualidade["nulos_qtd"] == 0) &
+        (qualidade["únicos"]    == len(df))
+    ].index.tolist()
+    print(f"\n→ Candidatas a chave primária: {chaves if chaves else 'Nenhuma'}")
+
+    report["qualidade"]          = qualidade
+    report["duplicatas"]         = dup
+    report["chaves_candidatas"]  = chaves
+
+    # ─────────────────────────────────────────────────
+    # 3. SEPARAR TIPOS DE COLUNAS
+    # ─────────────────────────────────────────────────
+    cols_num = df.select_dtypes(include=np.number).columns.tolist()
+    cols_cat = df.select_dtypes(include=["object", "category"]).columns.tolist()
+    cols_dt  = df.select_dtypes(include=["datetime64"]).columns.tolist()
+
+    _sep("3. COLUNAS POR TIPO")
+    print(f"\n→ Numéricas   ({len(cols_num)}): {cols_num}")
+    print(f"→ Categóricas ({len(cols_cat)}): {cols_cat}")
+    print(f"→ Datas       ({len(cols_dt)}):  {cols_dt}")
+
+    report["cols_numericas"]   = cols_num
+    report["cols_categoricas"] = cols_cat
+    report["cols_datas"]       = cols_dt
+
+    # ─────────────────────────────────────────────────
+    # 4. NUMÉRICAS — ESTATÍSTICAS
+    # ─────────────────────────────────────────────────
+    desc_num = None
+    outliers_report = {}
+
+    if cols_num:
+        _sep("4. ESTATÍSTICAS — NUMÉRICAS")
+        desc_num = df[cols_num].describe().T
+        desc_num["cv_%"]     = (desc_num["std"] / desc_num["mean"] * 100).round(2)
+        desc_num["skewness"] = df[cols_num].skew().round(3)
+        desc_num["kurtosis"] = df[cols_num].kurt().round(3)
+        display(desc_num)
+
+        print("\n→ Outliers via IQR:")
+        for col in cols_num:
+            Q1, Q3 = df[col].quantile(0.25), df[col].quantile(0.75)
+            IQR = Q3 - Q1
+            mask = (df[col] < Q1 - 1.5 * IQR) | (df[col] > Q3 + 1.5 * IQR)
+            qtd = int(mask.sum())
+            pct = round(qtd / len(df) * 100, 2)
+            outliers_report[col] = {"qtd": qtd, "pct": pct}
+            print(f"  {col}: {qtd} outliers ({pct}%)")
+
+    report["desc_numericas"] = desc_num
+    report["outliers"]       = outliers_report
+
+    # ─────────────────────────────────────────────────
+    # 5. CATEGÓRICAS — FREQUÊNCIAS
+    # ─────────────────────────────────────────────────
+    desc_cat = {}
+
+    if cols_cat:
+        _sep("5. ESTATÍSTICAS — CATEGÓRICAS")
+        for col in cols_cat:
+            print(f"\n→ '{col}'  |  {df[col].nunique()} categorias únicas")
+            freq = df[col].value_counts(dropna=False).head(top_categorias)
+            pct  = df[col].value_counts(normalize=True, dropna=False).head(top_categorias) * 100
+            resumo = pd.DataFrame({"contagem": freq, "%": pct.round(2)})
+            display(resumo)
+            desc_cat[col] = resumo
+
+    report["desc_categoricas"] = desc_cat
+
+    # ─────────────────────────────────────────────────
+    # 6. DATAS
+    # ─────────────────────────────────────────────────
+    desc_dt = {}
+
+    if cols_dt:
+        _sep("6. ESTATÍSTICAS — DATAS")
+        for col in cols_dt:
+            info = {
+                "min"   : df[col].min(),
+                "max"   : df[col].max(),
+                "range" : df[col].max() - df[col].min(),
+                "nulos" : int(df[col].isnull().sum()),
+            }
+            desc_dt[col] = info
+            print(f"\n→ '{col}'")
+            for k, v in info.items():
+                print(f"  {k}: {v}")
+
+    report["desc_datas"] = desc_dt
+
+    # ─────────────────────────────────────────────────
+    # 7. CORRELAÇÃO
+    # ─────────────────────────────────────────────────
+    corr_matrix = pd.DataFrame()
+    corr_forte  = {}
+
+    if len(cols_num) >= 2:
+        _sep("7. CORRELAÇÃO")
+        corr_matrix = df[cols_num].corr()
+
+        if plot:
+            fig, ax = plt.subplots(figsize=(max(6, len(cols_num)), max(5, len(cols_num) - 1)))
+            sns.heatmap(corr_matrix, annot=True, fmt=".2f", cmap="coolwarm",
+                        center=0, square=True, linewidths=0.5, ax=ax)
+            ax.set_title(f"Matriz de Correlação — {nome}", fontsize=13, pad=12)
+            plt.tight_layout()
+            plt.show()
+
+        pairs = (corr_matrix.abs()
+                 .where(np.triu(np.ones(corr_matrix.shape), k=1).astype(bool))
+                 .stack()
+                 .sort_values(ascending=False))
+        pares_fortes = pairs[pairs > corr_threshold]
+        print(f"\n→ Pares com |r| > {corr_threshold}:")
+        if len(pares_fortes):
+            for (c1, c2), _ in pares_fortes.items():
+                v = corr_matrix.loc[c1, c2]
+                corr_forte[(c1, c2)] = round(v, 4)
+                print(f"  {c1}  ↔  {c2}  →  r = {v:.3f}")
+        else:
+            print("  Nenhum par acima do limiar.")
+
+    report["correlacao"]       = corr_matrix
+    report["correlacao_forte"] = corr_forte
+
+    # ─────────────────────────────────────────────────
+    # 8. VISUALIZAÇÕES
+    # ─────────────────────────────────────────────────
+    if plot:
+        _sep("8. VISUALIZAÇÕES")
+
+        if cols_num:
+            n = len(cols_num)
+            ncols = min(3, n)
+            nrows = (n + ncols - 1) // ncols
+            fig, axes = plt.subplots(nrows, ncols, figsize=(6 * ncols, 4 * nrows))
+            axes = np.array(axes).flatten()
+            for i, col in enumerate(cols_num):
+                df[col].dropna().hist(ax=axes[i], bins=30, edgecolor="white", color="#4C72B0")
+                axes[i].set_title(col, fontsize=11)
+            for j in range(i + 1, len(axes)):
+                axes[j].set_visible(False)
+            fig.suptitle(f"Distribuições Numéricas — {nome}", fontsize=13, y=1.01)
+            plt.tight_layout()
+            plt.show()
+
+        if cols_cat:
+            top_cols = cols_cat[:3]
+            fig, axes = plt.subplots(1, len(top_cols), figsize=(6 * len(top_cols), 4))
+            if len(top_cols) == 1:
+                axes = [axes]
+            for ax, col in zip(axes, top_cols):
+                order = df[col].value_counts().head(15).index
+                sns.countplot(data=df, y=col, order=order, ax=ax, palette="Blues_r")
+                ax.set_title(f"'{col}'", fontsize=11)
+                ax.set_xlabel("Contagem")
+            plt.tight_layout()
+            plt.show()
+
+    # ─────────────────────────────────────────────────
+    # 9. RESUMO FINAL
+    # ─────────────────────────────────────────────────
+    _sep("✅ ANÁLISE CONCLUÍDA")
+    print(f"\n  DataFrame  : {nome}")
+    print(f"  Shape      : {df.shape[0]} linhas × {df.shape[1]} colunas")
+    print(f"  Numéricas  : {len(cols_num)} colunas")
+    print(f"  Categóricas: {len(cols_cat)} colunas")
+    print(f"  Datas      : {len(cols_dt)} colunas")
+    print(f"  Nulos      : {int(nulos.sum())} células ({nulos.sum() / df.size * 100:.2f}% do total)")
+    print(f"  Duplicatas : {dup}")
+    print(f"  Chaves     : {chaves if chaves else 'Nenhuma candidata encontrada'}")
+    print(f"\n  → Acesse os dados via `report['<chave>']`")
+
+    return report
