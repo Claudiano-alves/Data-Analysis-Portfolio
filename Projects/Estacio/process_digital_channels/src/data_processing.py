@@ -19,31 +19,22 @@ def preparar_canal(df: pd.DataFrame, canal: str) -> pd.DataFrame:
     df['CANAL'] = canal
     return df
 
-
 def cruzar_mailing_canal(df_mailing: pd.DataFrame, df_canal: pd.DataFrame, nome_canal: str, conn) -> bool:
-    """
-    Cruza o mailing com o canal, aplica a flag CORRESPONDENCIA
-    e dispara o insert imediatamente após o cruzamento.
-    Retorna True se o processo completo foi bem-sucedido.
-    """
+
     inicio = time.time()
     print(f"\n{'='*55}")
     print(f"  [{nome_canal}] Iniciando cruzamento...")
 
     try:
-        # 1. Prepara o canal
         df_canal_prep = preparar_canal(df_canal, nome_canal)
 
-        # 2. Remove espaços do mailing
         df_mailing = df_mailing.copy()
         df_mailing['CPF'] = df_mailing['CPF'].str.strip()
 
-        # 3. Filtra mailing pelos CPFs do canal
         cpfs_canal = df_canal_prep['CPF'].unique()
         df_mailing_filtrado = df_mailing[df_mailing['CPF'].isin(cpfs_canal)]
         print(f"  [{nome_canal}] Mailing filtrado: {df_mailing_filtrado.shape[0]:,} linhas")
 
-        # 4. Deduplica o mailing
         df_mailing_dedup = (
             df_mailing_filtrado
             .assign(prioridade_grupo=df_mailing_filtrado['GRUPO'].apply(lambda x: 1 if x == 'ESTACIO' else 2))
@@ -54,7 +45,6 @@ def cruzar_mailing_canal(df_mailing: pd.DataFrame, df_canal: pd.DataFrame, nome_
         )
         print(f"  [{nome_canal}] Mailing deduplicado: {df_mailing_dedup.shape[0]:,} linhas")
 
-        # 5. Merge com indicador
         df_merge = df_canal_prep.merge(
             df_mailing_dedup,
             left_on=['CPF', 'DATA_DISPARO'],
@@ -63,22 +53,38 @@ def cruzar_mailing_canal(df_mailing: pd.DataFrame, df_canal: pd.DataFrame, nome_
             indicator=True
         )
 
-        # 6. Separa e aplica a flag de correspondência
-        df_com = df_merge[df_merge['_merge'] == 'both'].drop(columns='_merge')
-        df_sem = df_merge[df_merge['_merge'] == 'left_only'][['DATA_DISPARO', 'CPF', 'CUSTO', 'CONTATO', 'CANAL']]
+        df_com = df_merge[df_merge['_merge'] == 'both'].drop(columns='_merge').reset_index(drop=True)
+        df_sem = df_merge[df_merge['_merge'] == 'left_only'].drop(columns='_merge').reset_index(drop=True)
 
         df_com['CORRESPONDENCIA'] = 1
         df_sem['CORRESPONDENCIA'] = 0
 
-        # 7. Consolida para inserir de uma vez
         df_final = pd.concat([df_com, df_sem], ignore_index=True)
+
+        # 1. Converte colunas category para str
+        cols_category = df_final.select_dtypes(include='category').columns.tolist()
+        if cols_category:
+            print(f"  [{nome_canal}] ⚠️  Convertendo category para str: {cols_category}")
+            df_final[cols_category] = df_final[cols_category].astype(str)
+
+        # 2. Filtra apenas as colunas que existem na tabela do banco
+        from Estacio.process_digital_channels.src.repositories import COLUNAS_INSERT
+        colunas_presentes = list(dict.fromkeys([c for c in COLUNAS_INSERT if c in df_final.columns]))
+        colunas_ausentes  = [c for c in COLUNAS_INSERT if c not in df_final.columns]
+
+        if colunas_ausentes:
+            print(f"  [{nome_canal}] ⚠️  Colunas ausentes no df (serão NULL): {colunas_ausentes}")
+            for col in colunas_ausentes:
+                df_final[col] = None
+
+        # Usa .loc para seleção segura e reindexe as colunas
+        df_final = df_final.loc[:, colunas_presentes].copy()
 
         tempo_cruz = time.time() - inicio
         print(f"  [{nome_canal}] Com correspondência : {df_com.shape[0]:,} linhas")
         print(f"  [{nome_canal}] Sem correspondência : {df_sem.shape[0]:,} linhas — custo fora: R$ {df_sem['CUSTO'].sum():,.2f}")
         print(f"  [{nome_canal}] Cruzamento concluído em {tempo_cruz:.1f}s")
 
-        # 8. Insert imediato
         print(f"  [{nome_canal}] Iniciando insert no banco...")
         return inserir_analitico(df_final, conn, nome_canal)
 
