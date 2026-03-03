@@ -167,44 +167,48 @@ def enriquecer_com_mailing_calendario(df_discagens, df_mailing_hist, df_dw_calen
     
     Args:
         df_discagens (pd.DataFrame): DataFrame com discagens enriquecidas
-        df_mailing_hist (pd.DataFrame): DataFrame com histórico de mailing
+        df_mailing_hist (pd.DataFrame): DataFrame com histórico de mailing — todas as
+                                        colunas presentes serão trazidas para as discagens,
+                                        incluindo segmentações específicas da carteira (ex: FAIXA)
         df_dw_calendario (pd.DataFrame): DataFrame com dados de calendário
     
     Returns:
         tuple: (df_com_fx_atraso, df_sem_fx_atraso)
     """
     df_resultado = df_discagens.copy()
-    
-    # Padronizar CONTRATO
+
     df_resultado['CONTRATO'] = df_resultado['CONTRATO'].astype(str).str.upper().str.strip()
-    
-    # Enriquecer com mailing_hist
-    df_mailing_temp = df_mailing_hist[['CONTRATO', 'DATA', 'FX_ATRASO', 'VALOR']].copy()
+
+    df_mailing_temp = df_mailing_hist.copy()
     df_mailing_temp['CONTRATO'] = df_mailing_temp['CONTRATO'].astype(str).str.upper().str.strip()
-    
+
     df_resultado['DATA'] = pd.to_datetime(df_resultado['DATA']).dt.date
     df_mailing_temp['DATA'] = pd.to_datetime(df_mailing_temp['DATA']).dt.date
-    
+
     salvar_log(f"📊 Merge com mailing_hist... ({len(df_resultado):,} registros)", arquivo_log=LOG_DISCAGENS)
     df_resultado = df_resultado.merge(df_mailing_temp, on=['CONTRATO', 'DATA'], how='left')
     registros_sem_fx = df_resultado['FX_ATRASO'].isna().sum()
     salvar_log(f"   ⚠️  Registros sem FX_ATRASO: {registros_sem_fx:,}", arquivo_log=LOG_DISCAGENS)
-    
-    # Enriquecer com calendário
+
+    # CPF_x = discagens, CPF_y = mailing
+    # Para quem cruzou: usa CPF do mailing (CPF_y)
+    # Para quem não cruzou: usa CPF das discagens (CPF_x)
+    df_resultado['CPF'] = df_resultado['CPF_y'].fillna(df_resultado['CPF_x'])
+    df_resultado = df_resultado.drop(columns=['CPF_x', 'CPF_y'])
+
     df_resultado['DATA'] = pd.to_datetime(df_resultado['DATA']).dt.date
     df_dw_calendario_temp = df_dw_calendario.copy()
     df_dw_calendario_temp['dt_data'] = pd.to_datetime(df_dw_calendario_temp['dt_data']).dt.date
-    
+
     salvar_log(f"📅 Merge com dw_calendario...", arquivo_log=LOG_DISCAGENS)
     df_resultado = df_resultado.merge(
         df_dw_calendario_temp[['dt_data', 'nr_dia_util', 'quartil', 'dt_mes', 'mes_abreviado']],
         left_on='DATA', right_on='dt_data', how='left'
     ).drop(columns=['dt_data'])
-    
-    # Separar em dois DataFrames
+
     df_com_fx_atraso = df_resultado[df_resultado['FX_ATRASO'].notna()].copy()
     df_sem_fx_atraso = df_resultado[df_resultado['FX_ATRASO'].isna()].copy()
-    
+
     salvar_log(f"📦 COM FX_ATRASO: {len(df_com_fx_atraso):,} | SEM FX_ATRASO: {len(df_sem_fx_atraso):,}", arquivo_log=LOG_DISCAGENS)
     return df_com_fx_atraso, df_sem_fx_atraso
 

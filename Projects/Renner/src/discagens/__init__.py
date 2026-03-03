@@ -8,11 +8,11 @@ from .expert import (
     processar_discagens_expert_completo
 )
 
-from .trestto import (
-    processar_discagens_trestto_completo
+from .olos import (
+    enriquecer_olos_com_mailing_calendario
 )
 
 __all__ = [
     'processar_discagens_expert_completo',
-    'processar_discagens_trestto_completo'
+    'enriquecer_olos_com_mailing_calendario'
 ]
