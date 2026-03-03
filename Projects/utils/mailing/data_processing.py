@@ -22,7 +22,8 @@ def adicionar_faixa_atraso(df, bins, labels, coluna_atraso='ATRASO', log_path=No
     """
     if log_path:
         salvar_log(f"Categorizando faixas de atraso para {len(df)} registros...", arquivo_log=log_path)
-
+    
+    df = df.copy()
     df['FX_ATRASO'] = pd.cut(
         df[coluna_atraso], 
         bins=bins, 

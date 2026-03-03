@@ -141,12 +141,12 @@ def get_query_base_acionamentos(dt_ini, dt_fim, where_clause=""):
 def get_query_tabulacao_aciona(where_completo):
     query = f"""
         SELECT 
-            COD_ACIONA,
-            DESC_ACIONA,
+            IDTABCRM,
+            DESCR,
             CPC,
             CPCA,
             PROMESSA
-        FROM ACIONAMENTO_CARTEIRA
+        FROM ACIONAMENTOSREGRA
         {where_completo}
     """
     return query

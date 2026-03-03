@@ -13,7 +13,9 @@ import pandas as pd
 from utils.utils import unir_dataframes, salvar_log, registrar_tempo
 from ...config import LOG_DISCAGENS
 from .data_processing import (
-    aplicar_transformacoes_discagens,
+    tratar_base_discagens_expert,
+    criar_df_tabulacoes_robo,
+    enriquecer_com_tabulacoes_robo,
     enriquecer_com_mailing_calendario,
     segmentar_discagens_expert
 )
@@ -54,11 +56,15 @@ def processar_discagens_expert_completo(
     salvar_log("📊 INICIANDO PIPELINE DE DISCAGENS EXPERT", arquivo_log=LOG_DISCAGENS)
     salvar_log("="*80, arquivo_log=LOG_DISCAGENS)
 
-    df_tratado = aplicar_transformacoes_discagens(df_discagens_expert)
+    df_tratado = tratar_base_discagens_expert(df_discagens_expert)
+    
+    # 2. Enriquecer com tabulações robô
+    df_tabulacoes_robo = criar_df_tabulacoes_robo()
+    df_enriquecido = enriquecer_com_tabulacoes_robo(df_tratado, df_tabulacoes_robo)
     
     # 3. Enriquecer com mailing e calendário
     df_com_fx_atraso, df_discagens_sem_fx_atraso = enriquecer_com_mailing_calendario(
-        df_tratado, df_mailing_hist, df_dw_calendario
+        df_enriquecido, df_mailing_hist, df_dw_calendario
     )
     
     # 4. Segmentar
