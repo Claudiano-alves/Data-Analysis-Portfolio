@@ -10,9 +10,10 @@ from .data_processing import (
     enriquecer_acionamentos
 )
 from .metricas_acumuladas import (
-    acionamentos_fxAtraso_origem_humano,
-    acionamentos_unique_humano,
-    acionamentos_esforco_humano
+    acionamentos_fxAtraso,
+    acionamentos_unique,
+    acionamentos_esforco,
+    processar_acumulados_acionamentos
 )
 
 
@@ -60,15 +61,15 @@ def acionamentos_humano(df_tab_acionamentos, df_tabulacao_aciona, df_dw_calendar
     # ============================================
     # ETAPA 3: MÉTRICAS ACUMULADAS
     # ============================================
-    df_acionamentos_fxAtraso_origem_humano = acionamentos_fxAtraso_origem_humano(
+    df_acionamentos_fxAtraso_origem_humano = acionamentos_fxAtraso(
         df_acionamentos_enriquecido_limpo, 
         df_dw_calendario
     )
-    df_acionamentos_unique_humano = acionamentos_unique_humano(
+    df_acionamentos_unique_humano = acionamentos_unique(
         df_acionamentos_enriquecido_limpo, 
         df_dw_calendario
     )
-    df_acionamentos_esforco_humano = acionamentos_esforco_humano(
+    df_acionamentos_esforco_humano = acionamentos_esforco(
         df_acionamentos_enriquecido_limpo, 
         df_dw_calendario
     )

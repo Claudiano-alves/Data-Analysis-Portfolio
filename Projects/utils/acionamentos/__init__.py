@@ -17,9 +17,10 @@ from .data_processing import (
 )
 
 from .metricas_acumuladas import (
-    acionamentos_fxAtraso_origem_humano,
-    acionamentos_unique_humano,
-    acionamentos_esforco_humano
+    acionamentos_fxAtraso,
+    acionamentos_unique,
+    acionamentos_esforco,
+    processar_acumulados_acionamentos
 )
 
 from .metricas_diarias import (
@@ -39,9 +40,10 @@ __all__ = [
     'acionamentos_duplicados',
     
     # Métricas acumuladas
-    'acionamentos_fxAtraso_origem_humano',
-    'acionamentos_unique_humano',
-    'acionamentos_esforco_humano',
+    'acionamentos_fxAtraso',
+    'acionamentos_unique',
+    'acionamentos_esforco',
+    'processar_acumulados_acionamentos',
     
     # Métricas diárias
     'acionamentos_unique_origem_fxAtraso',
