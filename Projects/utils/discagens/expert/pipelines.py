@@ -19,8 +19,7 @@ from .data_processing import (
 )
 from .metricas_acumuladas import (
     acionamentos_esforco_expert,
-    acionamentos_unique_expert,
-    acionamentos_fxAtraso_origem_expert
+    acionamentos_unique_expert
 )
 
 

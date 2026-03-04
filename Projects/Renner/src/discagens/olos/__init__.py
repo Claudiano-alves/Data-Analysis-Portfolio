@@ -9,5 +9,6 @@ from .data_processing import (
 )
 
 __all__ = [
-    'enriquecer_olos_com_mailing_calendario'
+    'enriquecer_olos_com_mailing_calendario',
+    'unir_discagens_expert_olos'
 ]

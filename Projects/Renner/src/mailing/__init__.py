@@ -8,16 +8,12 @@ Estrutura de módulos:
 """
 
 from .data_processing import (
-    adicionar_produto,
-    adicionar_faixa_atraso,
-    adicionar_valor_principal,
-    tratar_base_mailing_hist,
-    criar_faixa_customizada
+    add_faixa,
+    merge_mailing_com_base_aux
 )
 
 from .metricas_acumuladas import (
-    gerar_acumulado_maling_hist_fxAtraso,
-    gerar_acumulado_maling_hist_unique
+    gerar_acumulado_mailing_unique_por_faixa
 )
 
 from .pipelines import (
@@ -27,15 +23,11 @@ from .pipelines import (
 
 __all__ = [
     # Tratamentos
-    'adicionar_produto',
-    'adicionar_faixa_atraso',
-    'adicionar_valor_principal',
-    'tratar_base_mailing_hist',
-    'criar_faixa_customizada',
+    'add_faixa',
+    'merge_mailing_com_base_aux',
     
     # Métricas acumuladas
-    'gerar_acumulado_maling_hist_fxAtraso',
-    'gerar_acumulado_maling_hist_unique',
+    'gerar_acumulado_mailing_unique_por_faixa',
     
     # Pipeline
     'processar_mailing_completo',

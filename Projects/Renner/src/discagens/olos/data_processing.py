@@ -64,6 +64,58 @@ def enriquecer_olos_com_mailing_calendario(df_olos, df_mailing_hist, df_dw_calen
     salvar_log(f"📦 COM FX_ATRASO: {len(df_com_fx_atraso):,} | SEM FX_ATRASO: {len(df_sem_fx_atraso):,}", arquivo_log=LOG_DISCAGENS)
     return df_com_fx_atraso, df_sem_fx_atraso
 
+def unir_discagens_expert_olos(df_expert, df_olos):
+    """
+    Une os DataFrames de discagens Expert e OLOS em um único analítico.
+    
+    - CAMPANHA (OLOS) é renomeada para GrupoPrincipal
+    - ROUTE (OLOS) é descartada
+    - Coluna CANAL identifica a origem dos dados ('EXPERT' ou 'OLOS')
+    - Colunas específicas da Expert ficam nulas nos registros OLOS
+    
+    Args:
+        df_expert (pd.DataFrame): DataFrame de discagens Expert tratado
+        df_olos (pd.DataFrame): DataFrame de discagens OLOS enriquecido
+    
+    Returns:
+        pd.DataFrame: DataFrame unificado
+    """
+    # ============================================
+    # EXPERT
+    # ============================================
+    df_expert_temp = df_expert.copy()
+    df_expert_temp['CANAL'] = 'EXPERT'
+
+    # ============================================
+    # OLOS
+    # ============================================
+    df_olos_temp = df_olos.copy()
+    df_olos_temp = df_olos_temp.rename(columns={'CAMPANHA': 'GrupoPrincipal'})
+    df_olos_temp = df_olos_temp.drop(columns=['ROUTE'], errors='ignore')
+    df_olos_temp['CANAL'] = 'OLOS'
+
+    # ============================================
+    # UNIÃO
+    # ============================================
+    df_unido = pd.concat([df_expert_temp, df_olos_temp], ignore_index=True)
+
+    # ============================================
+    # REORDENAR COLUNAS
+    # ============================================
+    colunas_prioritarias = [
+        'DATA', 'CONTRATO', 'CPF', 'GrupoPrincipal', 'CANAL',
+        'ATRASO', 'COD_CLI', 'COD_CAR', 'VALOR',
+        'FX_ATRASO', 'CONTRATO_ORIGINAL', 'PRODUTO', 'FAIXA',
+        'OPERACAO', 'ESTADO',
+        'nr_dia_util', 'quartil', 'dt_mes', 'mes_abreviado'
+    ]
+
+    # Garante apenas colunas que existem + restante não listado ao final
+    colunas_existentes = [c for c in colunas_prioritarias if c in df_unido.columns]
+    colunas_restantes = [c for c in df_unido.columns if c not in colunas_existentes]
+    df_unido = df_unido[colunas_existentes + colunas_restantes]
+
+    return df_unido
 
 __all__ = [
     'enriquecer_olos_com_mailing_calendario'

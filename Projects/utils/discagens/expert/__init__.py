@@ -13,8 +13,8 @@ from .data_processing import (
 from .metricas_acumuladas import (
     acionamentos_esforco_expert,
     acionamentos_unique_expert,
-    acionamentos_fxAtraso_origem_expert,
-    acionamentos_fxAtraso_dinamico
+    acionamentos_fxAtraso_dinamico,
+    discagens_unique
 )
 
 from .pipelines import (
@@ -31,5 +31,6 @@ __all__ = [
     'acionamentos_unique_expert',
     'acionamentos_fxAtraso_origem_expert',
     'acionamentos_fxAtraso_dinamico',
-    'processar_discagens_expert_completo'
+    'processar_discagens_expert_completo',
+    'discagens_unique'
 ]

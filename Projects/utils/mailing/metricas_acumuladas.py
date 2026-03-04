@@ -77,7 +77,7 @@ def gerar_acumulado_maling_hist_fxAtraso_(df_maling_hist, df_dw_calendario):
         }).reset_index()
         
         agrupado_contratos['DATA'] = data
-        agrupado_contratos['Indicador'] = 'Contrato'
+        agrupado_contratos['Indicador'] = 'Contratos'
         agrupado_contratos['MesAbreviado'] = info_data['mes_abreviado']
         agrupado_contratos['nr_dia_util'] = info_data['nr_dia_util']
         agrupado_contratos['quartil'] = info_data['quartil']
@@ -119,7 +119,6 @@ def gerar_acumulado_maling_hist_fxAtraso_(df_maling_hist, df_dw_calendario):
     salvar_log("=" * 60, arquivo_log=LOG_MAILING)
     
     return df_acumulado
-
 
 @registrar_tempo("Acumulado mailing hist por faixa de atraso", arquivo_log=LOG_MAILING)
 def gerar_acumulado_maling_hist_fxAtraso(df_maling_hist, df_dw_calendario, segmentacoes_extras=None):
@@ -196,7 +195,7 @@ def gerar_acumulado_maling_hist_fxAtraso(df_maling_hist, df_dw_calendario, segme
         }).reset_index()
 
         agrupado_contratos['DATA'] = data
-        agrupado_contratos['Indicador'] = 'Contrato'
+        agrupado_contratos['Indicador'] = 'Contratos'
         agrupado_contratos['MesAbreviado'] = info_data['mes_abreviado']
         agrupado_contratos['nr_dia_util'] = info_data['nr_dia_util']
         agrupado_contratos['quartil'] = info_data['quartil']
