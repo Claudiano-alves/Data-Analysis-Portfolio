@@ -7,7 +7,6 @@ import pandas as pd
 from utils.utils import registrar_tempo, salvar_log
 from ..config import LOG_ACIONAMENTOS
 
-
 @registrar_tempo("Substituindo tabulações por 0 e 1", arquivo_log=LOG_ACIONAMENTOS)
 def tratar_acionamentos_tabulacao(df_tabualacao_aciona):
     """
@@ -67,7 +66,7 @@ def confere_tabulacao_acionamentos(df_tab_acionamentos, df_tabulacao_aciona):
     return df_resultado
 
 @registrar_tempo("Enriquecendo acionamentos mailing hist e calendário", arquivo_log=LOG_ACIONAMENTOS)
-def enriquecer_acionamentos(df_acionamentos, df_mailing_hist, df_dw_calendario,
+def enriquecer_acionamentos_(df_acionamentos, df_mailing_hist, df_dw_calendario,
                             separar_inconsistencias_flag=True):
     """
     Enriquece a base de acionamentos com informações de mailing_hist e calendário.
@@ -148,6 +147,96 @@ def enriquecer_acionamentos(df_acionamentos, df_mailing_hist, df_dw_calendario,
     else:
         return df_resultado
 
+@registrar_tempo("Enriquecendo acionamentos mailing hist e calendário", arquivo_log=LOG_ACIONAMENTOS)
+def enriquecer_acionamentos(df_acionamentos, df_mailing_hist, df_dw_calendario,
+                            separar_inconsistencias_flag=True):
+    """
+    Enriquece a base de acionamentos com informações de mailing_hist e calendário.
+    Todas as colunas do mailing_hist serão trazidas para os acionamentos,
+    incluindo segmentações específicas da carteira (ex: FAIXA, PRODUTO).
+    
+    Args:
+        df_acionamentos (pd.DataFrame): DataFrame de acionamentos tabulados
+        df_mailing_hist (pd.DataFrame): DataFrame de mailing_hist tratado
+        df_dw_calendario (pd.DataFrame): DataFrame de calendário
+        separar_inconsistencias_flag (bool): Se True, separa inconsistências
+    
+    Returns:
+        Se separar_inconsistencias_flag=True:
+            tuple: (df_limpo, df_sem_fx_atraso, df_sem_descricao)
+        Se separar_inconsistencias_flag=False:
+            pd.DataFrame: DataFrame enriquecido completo
+    """
+    df_resultado = df_acionamentos.copy()
+    salvar_log("=" * 80, arquivo_log=LOG_ACIONAMENTOS)
+
+    # ============================================
+    # ENRIQUECER COM MAILING_HIST
+    # ============================================
+    df_mailing_temp = df_mailing_hist.copy()
+    df_mailing_temp = df_mailing_temp.rename(columns={
+        'CONTRATO': 'CONTRATO_FIN',
+        'DATA': 'DATA_ACIONA'
+    })
+
+    df_resultado['DATA_ACIONA'] = pd.to_datetime(df_resultado['DATA_ACIONA']).dt.date
+    df_mailing_temp['DATA_ACIONA'] = pd.to_datetime(df_mailing_temp['DATA_ACIONA']).dt.date
+
+    salvar_log(f"📊 Merge com mailing_hist...", arquivo_log=LOG_ACIONAMENTOS)
+    df_resultado = df_resultado.merge(
+        df_mailing_temp,
+        on=['CONTRATO_FIN', 'DATA_ACIONA'],
+        how='left'
+    )
+
+    # ============================================
+    # RESOLVER TODAS AS COLUNAS DUPLICADAS (_x / _y)
+    # geradas pelo merge com mailing_hist
+    # ============================================
+    colunas_x = [c for c in df_resultado.columns if c.endswith('_x')]
+    for col_x in colunas_x:
+        col_base = col_x[:-2]          # nome sem sufixo
+        col_y = col_base + '_y'
+        if col_y in df_resultado.columns:
+            # Prioriza o valor do mailing (_y); se nulo, mantém o original (_x)
+            df_resultado[col_base] = df_resultado[col_y].fillna(df_resultado[col_x])
+            df_resultado = df_resultado.drop(columns=[col_x, col_y])
+            salvar_log(f"   🔧 Coluna duplicada resolvida: {col_base} ({col_x} + {col_y})", arquivo_log=LOG_ACIONAMENTOS)
+
+    salvar_log(f"   ✓ Registros: {len(df_resultado):,}", arquivo_log=LOG_ACIONAMENTOS)
+
+    # ============================================
+    # REMOVER DUPLICATAS GERADAS PELO MERGE
+    # ============================================
+    registros_antes = len(df_resultado)
+    df_resultado = df_resultado.drop_duplicates(keep='first')
+    duplicatas_removidas = registros_antes - len(df_resultado)
+    if duplicatas_removidas > 0:
+        salvar_log(f"   🔧 Removidas {duplicatas_removidas:,} duplicatas do merge", arquivo_log=LOG_ACIONAMENTOS)
+        salvar_log(f"   ✓ Registros únicos: {len(df_resultado):,}", arquivo_log=LOG_ACIONAMENTOS)
+
+    # ============================================
+    # ENRIQUECER COM DW_CALENDARIO
+    # ============================================
+    df_resultado['DATA_ACIONA'] = pd.to_datetime(df_resultado['DATA_ACIONA']).dt.date
+    df_dw_calendario_temp = df_dw_calendario.copy()
+    df_dw_calendario_temp['dt_data'] = pd.to_datetime(df_dw_calendario_temp['dt_data']).dt.date
+
+    df_resultado = df_resultado.merge(
+        df_dw_calendario_temp[['dt_data', 'nr_dia_util', 'quartil', 'dt_mes', 'mes_abreviado']],
+        left_on='DATA_ACIONA',
+        right_on='dt_data',
+        how='left'
+    ).drop(columns='dt_data')
+
+    salvar_log(f"   ✓ Registros finais: {len(df_resultado):,}", arquivo_log=LOG_ACIONAMENTOS)
+    salvar_log(f"   ✓ Com FX_ATRASO: {df_resultado['FX_ATRASO'].notna().sum():,}", arquivo_log=LOG_ACIONAMENTOS)
+    salvar_log("=" * 80, arquivo_log=LOG_ACIONAMENTOS)
+
+    if separar_inconsistencias_flag:
+        return separar_inconsistencias(df_resultado)
+    else:
+        return df_resultado
 
 @registrar_tempo("Separando inconsistências", arquivo_log=LOG_ACIONAMENTOS)
 def separar_inconsistencias(df_acionamentos):
@@ -176,7 +265,6 @@ def separar_inconsistencias(df_acionamentos):
     salvar_log("=" * 80, arquivo_log=LOG_ACIONAMENTOS)
 
     return df_limpo, df_sem_fx_atraso, df_sem_descricao
-
 
 def acionamentos_duplicados(df_acionamentos_enriquecido_limpo):
     """

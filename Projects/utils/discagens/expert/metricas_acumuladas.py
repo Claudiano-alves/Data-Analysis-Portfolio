@@ -9,322 +9,140 @@ Responsável por calcular:
 
 from typing import List, Optional
 import pandas as pd
-from utils.utils import salvar_log, registrar_tempo
+from utils.utils import salvar_log, registrar_tempo, unir_dataframes
 from ...config import LOG_DISCAGENS
 
 import warnings
 warnings.filterwarnings("ignore", category=FutureWarning)
 
-@registrar_tempo("Funil ESFORÇO - Expert", arquivo_log=LOG_DISCAGENS)
-def acionamentos_esforco_expert(df_com_fx_atraso, df_dw_calendario):
+@registrar_tempo("Funil fxAtraso - Discagens", arquivo_log=LOG_DISCAGENS)
+def discagens_fxAtraso_funil(df_discagens, df_dw_calendario, segmentacoes_extras=None):
     """
-    Gera contagem acumulada mensal de acionamentos por FX_ATRASO e ORIGEM (sem deduplicação).
+    Gera contagem acumulada mensal de CPFs únicos por combinação de FX_ATRASO + segmentacoes_extras.
+    
+    Para cada combinação de FX_ATRASO + segmentacoes_extras, um CPF é contado uma única vez.
+    Se o mesmo CPF aparecer em combinações diferentes, é contado em cada uma delas.
     
     Args:
-        df_com_fx_atraso (pd.DataFrame): DataFrame com FX_ATRASO preenchido
+        df_discagens (pd.DataFrame): DataFrame de discagens unificado (expert + olos)
         df_dw_calendario (pd.DataFrame): DataFrame com dados de calendário
+        segmentacoes_extras (list, optional): Colunas adicionais para segmentação.
+                                              Ex: ['FAIXA'] para a carteira Renner
     
     Returns:
-        pd.DataFrame: DataFrame com contagens acumuladas mensais
+        pd.DataFrame: DataFrame com contagens acumuladas mensais por faixa de atraso
+        Colunas: DATA | Indicador | qte | FX_ATRASO | [segmentacoes_extras] | MesAbreviado | nr_dia_util | quartil | dt_mes | VALOR
     """
-    df = df_com_fx_atraso.copy()
-    df['DATA'] = pd.to_datetime(df['DATA'])
-    
-    datas_unicas = sorted(df['DATA'].unique())
-    resultados = []
-    
-    salvar_log(f"📊 Processando ESFORÇO (todas as discagens) para {len(datas_unicas)} datas...", arquivo_log=LOG_DISCAGENS)
-    
-    for i, data in enumerate(datas_unicas, 1):
-        if i % 10 == 0 or i == len(datas_unicas):
-            salvar_log(f"   Processando {i}/{len(datas_unicas)} datas...", arquivo_log=LOG_DISCAGENS)
-        
-        inicio_mes = pd.Timestamp(data.year, data.month, 1)
-        df_intervalo = df[(df['DATA'] >= inicio_mes) & (df['DATA'] <= data)].copy()
-        
-        agrupado = df_intervalo.groupby(['FX_ATRASO', 'ORIGEM']).apply(lambda g: pd.Series({
-            'TRABALHADO': g['TRABALHADO'].sum(),
-            'VALORPRIN_FIN_TRABALHADO': g.loc[g['TRABALHADO'] == 1, 'VALOR'].sum(),
-            'ACIONAMENTOS': g['ACIONAMENTOS'].sum(),
-            'VALORPRIN_FIN_ACIONAMENTOS': g.loc[g['ACIONAMENTOS'] == 1, 'VALOR'].sum(),
-            'CPC': g['CPC'].sum(),
-            'VALORPRIN_FIN_CPC': g.loc[g['CPC'] == 1, 'VALOR'].sum(),
-            'CPCA': g['CPCA'].sum(),
-            'VALORPRIN_FIN_CPCA': g.loc[g['CPCA'] == 1, 'VALOR'].sum(),
-            'PROMESSA': g['PROMESSA'].sum(),
-            'VALORPRIN_FIN_PROMESSA': g.loc[g['PROMESSA'] == 1, 'VALOR'].sum()
-        })).reset_index()
-        
-        agrupado['DATA'] = data
-        resultados.append(agrupado)
-    
-    df_final = pd.concat(resultados, ignore_index=True)
-    
-    # Merge com calendário
-    df_dw_calendario_temp = df_dw_calendario.copy()
-    df_dw_calendario_temp['dt_data'] = pd.to_datetime(df_dw_calendario_temp['dt_data'])
-    
-    df_final = df_final.merge(
-        df_dw_calendario_temp[['dt_data', 'nr_dia_util', 'quartil', 'dt_mes', 'mes_abreviado']],
-        left_on='DATA', right_on='dt_data', how='inner'
-    ).drop(columns=['dt_data'])
-    
-    # Preencher NaN com 0
-    colunas_numericas = df_final.select_dtypes(include=['number']).columns
-    df_final[colunas_numericas] = df_final[colunas_numericas].fillna(0)
-    
-    # Reordenar colunas
-    colunas_ordenadas = [
-        'DATA', 'FX_ATRASO', 'ORIGEM',
-        'TRABALHADO', 'VALORPRIN_FIN_TRABALHADO',
-        'ACIONAMENTOS', 'VALORPRIN_FIN_ACIONAMENTOS',
-        'CPC', 'VALORPRIN_FIN_CPC',
-        'CPCA', 'VALORPRIN_FIN_CPCA',
-        'PROMESSA', 'VALORPRIN_FIN_PROMESSA',
-        'nr_dia_util', 'quartil', 'dt_mes', 'mes_abreviado'
-    ]
-    df_final = df_final[colunas_ordenadas]
-    
-    salvar_log(f"   ✓ Registros finais: {len(df_final):,}", arquivo_log=LOG_DISCAGENS)
-    df_final['FX_ATRASO'] = 'Esforço'
-    return df_final
+    import warnings
+    warnings.filterwarnings("ignore", category=FutureWarning)
 
-@registrar_tempo("Funil UNIQUE - Expert", arquivo_log=LOG_DISCAGENS)
-def acionamentos_unique_expert(df_com_fx_atraso, df_dw_calendario):
-    """
-    Gera contagem acumulada mensal de acionamentos únicos por CPF (melhor score).
-    
-    Args:
-        df_com_fx_atraso (pd.DataFrame): DataFrame com FX_ATRASO preenchido
-        df_dw_calendario (pd.DataFrame): DataFrame com dados de calendário
-    
-    Returns:
-        pd.DataFrame: DataFrame com contagens acumuladas mensais únicas
-    """
-    df = df_com_fx_atraso.copy()
-    df['DATA'] = pd.to_datetime(df['DATA'])
-    
-    datas_unicas = sorted(df['DATA'].unique())
-    resultados = []
-    
-    salvar_log(f"📊 Processando UNIQUE (melhor score por CPF) para {len(datas_unicas)} datas...", arquivo_log=LOG_DISCAGENS)
-    
-    for i, data in enumerate(datas_unicas, 1):
-        if i % 10 == 0 or i == len(datas_unicas):
-            salvar_log(f"   Processando {i}/{len(datas_unicas)} datas...", arquivo_log=LOG_DISCAGENS)
-        
-        inicio_mes = pd.Timestamp(data.year, data.month, 1)
-        df_intervalo = df[(df['DATA'] >= inicio_mes) & (df['DATA'] <= data)].copy()
-        
-        # Calcular score de tabulação
-        df_intervalo['TABULACAO_SCORE'] = (
-            df_intervalo['PROMESSA'].astype(int) * 4 +
-            df_intervalo['CPCA'].astype(int) * 3 +
-            df_intervalo['CPC'].astype(int) * 2 +
-            df_intervalo['ACIONAMENTOS'].astype(int) * 1
-        )
-        
-        # Ordenar e manter melhor score por CPF
-        df_intervalo = df_intervalo.sort_values(
-            ['CPF', 'TABULACAO_SCORE'],
-            ascending=[True, False]
-        )
-        df_unique = df_intervalo.drop_duplicates(subset=['CPF'], keep='first').copy()
-        
-        # Agrupar por FX_ATRASO e ORIGEM
-        agrupado = df_unique.groupby(['FX_ATRASO', 'ORIGEM']).apply(lambda g: pd.Series({
-            'TRABALHADO': g['TRABALHADO'].sum(),
-            'VALORPRIN_FIN_TRABALHADO': g.loc[g['TRABALHADO'] == 1, 'VALOR'].sum(),
-            'ACIONAMENTOS': g['ACIONAMENTOS'].sum(),
-            'VALORPRIN_FIN_ACIONAMENTOS': g.loc[g['ACIONAMENTOS'] == 1, 'VALOR'].sum(),
-            'CPC': g['CPC'].sum(),
-            'VALORPRIN_FIN_CPC': g.loc[g['CPC'] == 1, 'VALOR'].sum(),
-            'CPCA': g['CPCA'].sum(),
-            'VALORPRIN_FIN_CPCA': g.loc[g['CPCA'] == 1, 'VALOR'].sum(),
-            'PROMESSA': g['PROMESSA'].sum(),
-            'VALORPRIN_FIN_PROMESSA': g.loc[g['PROMESSA'] == 1, 'VALOR'].sum()
-        })).reset_index()
-        
-        agrupado['DATA'] = data
-        resultados.append(agrupado)
-    
-    df_final = pd.concat(resultados, ignore_index=True)
-    
-    # Merge com calendário
-    df_dw_calendario_temp = df_dw_calendario.copy()
-    df_dw_calendario_temp['dt_data'] = pd.to_datetime(df_dw_calendario_temp['dt_data'])
-    
-    df_final = df_final.merge(
-        df_dw_calendario_temp[['dt_data', 'nr_dia_util', 'quartil', 'dt_mes', 'mes_abreviado']],
-        left_on='DATA', right_on='dt_data', how='inner'
-    ).drop(columns=['dt_data'])
-    
-    # Preencher NaN com 0
-    colunas_numericas = df_final.select_dtypes(include=['number']).columns
-    df_final[colunas_numericas] = df_final[colunas_numericas].fillna(0)
-    
-    # Reordenar colunas
-    colunas_ordenadas = [
-        'DATA', 'FX_ATRASO', 'ORIGEM',
-        'TRABALHADO', 'VALORPRIN_FIN_TRABALHADO',
-        'ACIONAMENTOS', 'VALORPRIN_FIN_ACIONAMENTOS',
-        'CPC', 'VALORPRIN_FIN_CPC',
-        'CPCA', 'VALORPRIN_FIN_CPCA',
-        'PROMESSA', 'VALORPRIN_FIN_PROMESSA',
-        'nr_dia_util', 'quartil', 'dt_mes', 'mes_abreviado'
-    ]
-    df_final = df_final[colunas_ordenadas]
-    
-    salvar_log(f"   ✓ Registros finais: {len(df_final):,}", arquivo_log=LOG_DISCAGENS)
-    df_final['FX_ATRASO'] = 'Unique'
-    return df_final
+    segmentacoes_extras = segmentacoes_extras or []
+    colunas_agrupamento = ['FX_ATRASO'] + segmentacoes_extras
 
-def acionamentos_fxAtraso_dinamico(
-    df_com_fx_atraso: pd.DataFrame,
-    df_dw_calendario: pd.DataFrame,
-    dimensoes_agrupamento: Optional[List[str]] = None,
-    log_file: str = LOG_DISCAGENS
-) -> pd.DataFrame:
-    """
-    Motor genérico de cálculo de métricas acumuladas por faixa de atraso.
-    
-    Args:
-        df_com_fx_atraso: DataFrame com FX_ATRASO e métricas de tabulação
-        df_dw_calendario: DataFrame com dados de calendário
-        dimensoes_agrupamento: Lista de dimensões para agrupamento.
-                               Default: ['FX_ATRASO']
-                               Exemplos:
-                               - ['FX_ATRASO'] → agregação simples
-                               - ['FX_ATRASO', 'ORIGEM'] → expert com robô
-                               - ['FX_ATRASO', 'CANAL'] → futura segmentação
-        log_file: Arquivo de log
-    
-    Returns:
-        DataFrame com contagens acumuladas mensais
-        
-    Note:
-        Dimensões inexistentes no DataFrame são ignoradas automaticamente.
-        A função se adapta ao modelo de dados disponível.
-    """
-    df = df_com_fx_atraso.copy()
+    df = df_discagens.copy()
     df['DATA'] = pd.to_datetime(df['DATA'])
-    
-    # ============================================
-    # VALIDAÇÃO DE DIMENSÕES
-    # ============================================
-    if dimensoes_agrupamento is None:
-        dimensoes_agrupamento = ['FX_ATRASO']
-    
-    # Manter apenas dimensões que existem no DataFrame
-    dimensoes_validas = [
-        dim for dim in dimensoes_agrupamento 
-        if dim in df.columns
-    ]
-    
-    if 'FX_ATRASO' not in dimensoes_validas:
-        raise ValueError("FX_ATRASO é obrigatório e não foi encontrado no DataFrame")
-    
-    # Log das dimensões efetivamente usadas
-    salvar_log(
-        f"📊 Dimensões de agrupamento: {dimensoes_validas}",
-        arquivo_log=log_file
-    )
-    
-    # ============================================
-    # PROCESSAMENTO ACUMULADO
-    # ============================================
-    datas_unicas = sorted(df['DATA'].unique())
-    resultados = []
-    
-    salvar_log(
-        f"📊 Processando acumulado (melhor score por CPF+FX_ATRASO) para {len(datas_unicas)} datas...",
-        arquivo_log=log_file
-    )
-    
-    for i, data in enumerate(datas_unicas, 1):
-        if i % 10 == 0 or i == len(datas_unicas):
-            salvar_log(f"   Processando {i}/{len(datas_unicas)} datas...", arquivo_log=log_file)
-        
-        inicio_mes = pd.Timestamp(data.year, data.month, 1)
-        df_intervalo = df[(df['DATA'] >= inicio_mes) & (df['DATA'] <= data)].copy()
-        
-        # Calcular score de tabulação
-        df_intervalo['TABULACAO_SCORE'] = (
-            df_intervalo['PROMESSA'].astype(int) * 4 +
-            df_intervalo['CPCA'].astype(int) * 3 +
-            df_intervalo['CPC'].astype(int) * 2 +
-            df_intervalo['ACIONAMENTOS'].astype(int) * 1
-        )
-        
-        # Ordenar e manter melhor score por CPF + FX_ATRASO
-        df_intervalo = df_intervalo.sort_values(
-            ['CPF', 'FX_ATRASO', 'TABULACAO_SCORE'],
-            ascending=[True, True, False]
-        )
-        df_unique = df_intervalo.drop_duplicates(
-            subset=['CPF', 'FX_ATRASO'], 
-            keep='first'
-        ).copy()
-        
-        # ============================================
-        # AGRUPAMENTO DINÂMICO
-        # ============================================
-        agrupado = df_unique.groupby(dimensoes_validas).apply(lambda g: pd.Series({
-            'TRABALHADO': g['TRABALHADO'].sum(),
-            'VALORPRIN_FIN_TRABALHADO': g.loc[g['TRABALHADO'] == 1, 'VALOR'].sum(),
-            'ACIONAMENTOS': g['ACIONAMENTOS'].sum(),
-            'VALORPRIN_FIN_ACIONAMENTOS': g.loc[g['ACIONAMENTOS'] == 1, 'VALOR'].sum(),
-            'CPC': g['CPC'].sum(),
-            'VALORPRIN_FIN_CPC': g.loc[g['CPC'] == 1, 'VALOR'].sum(),
-            'CPCA': g['CPCA'].sum(),
-            'VALORPRIN_FIN_CPCA': g.loc[g['CPCA'] == 1, 'VALOR'].sum(),
-            'PROMESSA': g['PROMESSA'].sum(),
-            'VALORPRIN_FIN_PROMESSA': g.loc[g['PROMESSA'] == 1, 'VALOR'].sum()
-        })).reset_index()
-        
-        agrupado['DATA'] = data
-        resultados.append(agrupado)
-    
-    df_final = pd.concat(resultados, ignore_index=True)
-    
-    # ============================================
-    # MERGE COM CALENDÁRIO
-    # ============================================
+
     df_dw_calendario_temp = df_dw_calendario.copy()
     df_dw_calendario_temp['dt_data'] = pd.to_datetime(df_dw_calendario_temp['dt_data'])
-    
+
+    data_min = df['DATA'].min()
+    data_max = df['DATA'].max()
+
+    df_calendario_periodo = df_dw_calendario_temp[
+        (df_dw_calendario_temp['dt_data'] >= data_min) &
+        (df_dw_calendario_temp['dt_data'] <= data_max)
+    ].sort_values('dt_data').copy()
+
+    datas_calendario = df_calendario_periodo['dt_data'].tolist()
+    resultados = []
+
+    salvar_log("=" * 80, arquivo_log=LOG_DISCAGENS)
+    salvar_log(f"📊 Processando fxAtraso (CPF único por combinação {' + '.join(colunas_agrupamento)}) para {len(datas_calendario)} datas...", arquivo_log=LOG_DISCAGENS)
+
+    ultimo_valor_por_mes = {}
+
+    for i, data in enumerate(datas_calendario, 1):
+        if i % 10 == 0 or i == len(datas_calendario):
+            salvar_log(f"   Processando {i}/{len(datas_calendario)} datas...", arquivo_log=LOG_DISCAGENS)
+
+        inicio_mes = pd.Timestamp(data.year, data.month, 1)
+        chave_mes = (data.year, data.month)
+
+        tem_dados = (df['DATA'] == data).any()
+
+        if tem_dados:
+            df_intervalo = df[
+                (df['DATA'] >= inicio_mes) &
+                (df['DATA'] <= data)
+            ].copy()
+
+            # Unicidade por CPF + combinação de segmentação
+            df_unico = df_intervalo.drop_duplicates(
+                subset=['CPF'] + colunas_agrupamento,
+                keep='first'
+            ).copy()
+
+            agrupado = df_unico.groupby(colunas_agrupamento).agg(
+                qte=('CPF', 'nunique'),
+                VALOR=('VALOR', 'sum')
+            ).reset_index()
+
+            agrupado['DATA'] = data
+            ultimo_valor_por_mes[chave_mes] = agrupado
+            resultados.append(agrupado)
+
+        else:
+            if chave_mes in ultimo_valor_por_mes:
+                agrupado_replicado = ultimo_valor_por_mes[chave_mes].copy()
+                agrupado_replicado['DATA'] = data
+                resultados.append(agrupado_replicado)
+            else:
+                combinacoes = df[colunas_agrupamento].drop_duplicates()
+                if len(combinacoes) > 0:
+                    agrupado_zero = combinacoes.copy()
+                    agrupado_zero['DATA'] = data
+                    agrupado_zero['qte'] = 0
+                    agrupado_zero['VALOR'] = 0.0
+                    ultimo_valor_por_mes[chave_mes] = agrupado_zero
+                    resultados.append(agrupado_zero)
+
+        if i > 0 and inicio_mes.month != datas_calendario[i-1].month:
+            mes_anterior = (datas_calendario[i-1].year, datas_calendario[i-1].month)
+            if mes_anterior in ultimo_valor_por_mes:
+                del ultimo_valor_por_mes[mes_anterior]
+
+    df_final = pd.concat(resultados, ignore_index=True)
+
+    df_final['Indicador'] = 'Trabalhado'
+
+    salvar_log(f"\\n📅 Merge com dw_calendario...", arquivo_log=LOG_DISCAGENS)
     df_final = df_final.merge(
         df_dw_calendario_temp[['dt_data', 'nr_dia_util', 'quartil', 'dt_mes', 'mes_abreviado']],
-        left_on='DATA', right_on='dt_data', how='inner'
+        left_on='DATA',
+        right_on='dt_data',
+        how='inner'
     ).drop(columns=['dt_data'])
-    
-    # Preencher NaN com 0
+
     colunas_numericas = df_final.select_dtypes(include=['number']).columns
     df_final[colunas_numericas] = df_final[colunas_numericas].fillna(0)
-    
-    # ============================================
-    # REORDENAÇÃO DINÂMICA DE COLUNAS
-    # ============================================
+
+    df_final = df_final.rename(columns={'mes_abreviado': 'MesAbreviado'})
+
     colunas_ordenadas = (
-        ['DATA'] +
-        dimensoes_validas +
-        [
-            'TRABALHADO', 'VALORPRIN_FIN_TRABALHADO',
-            'ACIONAMENTOS', 'VALORPRIN_FIN_ACIONAMENTOS',
-            'CPC', 'VALORPRIN_FIN_CPC',
-            'CPCA', 'VALORPRIN_FIN_CPCA',
-            'PROMESSA', 'VALORPRIN_FIN_PROMESSA',
-            'nr_dia_util', 'quartil', 'dt_mes', 'mes_abreviado'
-        ]
+        ['DATA', 'Indicador', 'qte', 'FX_ATRASO'] + segmentacoes_extras +
+        ['MesAbreviado', 'nr_dia_util', 'quartil', 'dt_mes', 'VALOR']
     )
-    
     df_final = df_final[colunas_ordenadas]
-    
-    salvar_log(f"   ✓ Registros finais: {len(df_final):,}", arquivo_log=log_file)
+
+    salvar_log(f"   ✓ Registros finais: {len(df_final):,}", arquivo_log=LOG_DISCAGENS)
+    salvar_log(f"   ✓ Total CPFs (última data): {df_final[df_final['DATA'] == df_final['DATA'].max()]['qte'].sum():,}", arquivo_log=LOG_DISCAGENS)
+    salvar_log(f"   ✓ VALOR total (última data): R$ {df_final[df_final['DATA'] == df_final['DATA'].max()]['VALOR'].sum():,.2f}", arquivo_log=LOG_DISCAGENS)
+    salvar_log("=" * 80, arquivo_log=LOG_DISCAGENS)
+
     return df_final
 
 @registrar_tempo("Funil UNIQUE - Discagens", arquivo_log=LOG_DISCAGENS)
-def discagens_unique(df_discagens, df_dw_calendario, segmentacoes_extras=None):
+def discagens_unique_funil(df_discagens, df_dw_calendario, segmentacoes_extras=None):
     """
     Gera contagem acumulada mensal de CPFs únicos por maior faixa de atraso.
     
@@ -340,6 +158,7 @@ def discagens_unique(df_discagens, df_dw_calendario, segmentacoes_extras=None):
     
     Returns:
         pd.DataFrame: DataFrame com contagens acumuladas mensais únicas
+        Colunas: DATA | Indicador | qte | FX_ATRASO | [segmentacoes_extras] | MesAbreviado | nr_dia_util | quartil | dt_mes | VALOR
     """
     import warnings
     warnings.filterwarnings("ignore", category=FutureWarning)
@@ -348,6 +167,9 @@ def discagens_unique(df_discagens, df_dw_calendario, segmentacoes_extras=None):
 
     df = df_discagens.copy()
     df['DATA'] = pd.to_datetime(df['DATA'])
+
+    # Pré-ordenar o df uma única vez fora do loop
+    df = df.sort_values('FX_ATRASO', ascending=False)
 
     df_dw_calendario_temp = df_dw_calendario.copy()
     df_dw_calendario_temp['dt_data'] = pd.to_datetime(df_dw_calendario_temp['dt_data'])
@@ -383,21 +205,13 @@ def discagens_unique(df_discagens, df_dw_calendario, segmentacoes_extras=None):
                 (df['DATA'] <= data)
             ].copy()
 
-            # Ordenar por FX_ATRASO decrescente — maior faixa primeiro
-            # Ordem alfabética decrescente funciona com as labels definidas (0-9, Preventivo)
-            df_intervalo = df_intervalo.sort_values(
-                ['CPF', 'FX_ATRASO'],
-                ascending=[True, False]
-            )
+            # df já está ordenado por FX_ATRASO desc — drop_duplicates pega maior faixa por CPF
+            df_unique = df_intervalo.drop_duplicates(subset=['CPF'], keep='first')
 
-            # Manter apenas o registro de maior faixa por CPF
-            df_unique = df_intervalo.drop_duplicates(subset=['CPF'], keep='first').copy()
-
-            # Agrupar por segmentações
             colunas_agrupamento = ['FX_ATRASO'] + segmentacoes_extras
 
             agrupado = df_unique.groupby(colunas_agrupamento).agg(
-                CPFs=('CPF', 'nunique'),
+                qte=('CPF', 'nunique'),
                 VALOR=('VALOR', 'sum')
             ).reset_index()
 
@@ -415,7 +229,7 @@ def discagens_unique(df_discagens, df_dw_calendario, segmentacoes_extras=None):
                 if len(combinacoes) > 0:
                     agrupado_zero = combinacoes.copy()
                     agrupado_zero['DATA'] = data
-                    agrupado_zero['CPFs'] = 0
+                    agrupado_zero['qte'] = 0
                     agrupado_zero['VALOR'] = 0.0
                     ultimo_valor_por_mes[chave_mes] = agrupado_zero
                     resultados.append(agrupado_zero)
@@ -427,12 +241,11 @@ def discagens_unique(df_discagens, df_dw_calendario, segmentacoes_extras=None):
 
     df_final = pd.concat(resultados, ignore_index=True)
 
-    # FX_ATRASO = 'Unique' após agrupamento
     df_final['FX_ATRASO'] = 'Unique'
-
-    # Segmentações extras recebem 'Unique'
     for col in segmentacoes_extras:
         df_final[col] = 'Unique'
+
+    df_final['Indicador'] = 'Trabalhado'
 
     salvar_log(f"\\n📅 Merge com dw_calendario...", arquivo_log=LOG_DISCAGENS)
     df_final = df_final.merge(
@@ -445,21 +258,455 @@ def discagens_unique(df_discagens, df_dw_calendario, segmentacoes_extras=None):
     colunas_numericas = df_final.select_dtypes(include=['number']).columns
     df_final[colunas_numericas] = df_final[colunas_numericas].fillna(0)
 
+    df_final = df_final.rename(columns={'mes_abreviado': 'MesAbreviado'})
+
+    colunas_grupo = ['DATA', 'Indicador', 'FX_ATRASO'] + segmentacoes_extras + ['MesAbreviado', 'nr_dia_util', 'quartil', 'dt_mes']
+    df_final = df_final.groupby(colunas_grupo, as_index=False).agg(
+        qte=('qte', 'sum'),
+        VALOR=('VALOR', 'sum')
+    )
+
     colunas_ordenadas = (
-        ['DATA', 'FX_ATRASO'] + segmentacoes_extras +
-        ['CPFs', 'VALOR', 'nr_dia_util', 'quartil', 'dt_mes', 'mes_abreviado']
+        ['DATA', 'Indicador', 'qte', 'FX_ATRASO'] + segmentacoes_extras +
+        ['MesAbreviado', 'nr_dia_util', 'quartil', 'dt_mes', 'VALOR']
     )
     df_final = df_final[colunas_ordenadas]
 
     salvar_log(f"   ✓ Registros finais: {len(df_final):,}", arquivo_log=LOG_DISCAGENS)
-    salvar_log(f"   ✓ CPFs únicos (última data): {df_final[df_final['DATA'] == df_final['DATA'].max()]['CPFs'].sum():,}", arquivo_log=LOG_DISCAGENS)
+    salvar_log(f"   ✓ CPFs únicos (última data): {df_final[df_final['DATA'] == df_final['DATA'].max()]['qte'].sum():,}", arquivo_log=LOG_DISCAGENS)
     salvar_log(f"   ✓ VALOR total (última data): R$ {df_final[df_final['DATA'] == df_final['DATA'].max()]['VALOR'].sum():,.2f}", arquivo_log=LOG_DISCAGENS)
     salvar_log("=" * 80, arquivo_log=LOG_DISCAGENS)
 
     return df_final
 
+@registrar_tempo("Funil ESFORÇO - Discagens", arquivo_log=LOG_DISCAGENS)
+def discagens_esforco_funil(df_discagens, df_dw_calendario, segmentacoes_extras=None):
+    """
+    Gera contagem acumulada mensal do total de discagens por FX_ATRASO (sem deduplicação).
+    Se um CPF apareceu 10 vezes no período, todas as 10 discagens são contadas.
+    
+    Args:
+        df_discagens (pd.DataFrame): DataFrame de discagens unificado (expert + olos)
+        df_dw_calendario (pd.DataFrame): DataFrame com dados de calendário
+        segmentacoes_extras (list, optional): Colunas adicionais para segmentação.
+                                              Ex: ['FAIXA'] para a carteira Renner
+    
+    Returns:
+        pd.DataFrame: DataFrame com contagens acumuladas mensais de esforço
+        Colunas: DATA | Indicador | qte | FX_ATRASO | [segmentacoes_extras] | MesAbreviado | nr_dia_util | quartil | dt_mes | VALOR
+    """
+    import warnings
+    warnings.filterwarnings("ignore", category=FutureWarning)
+
+    segmentacoes_extras = segmentacoes_extras or []
+
+    df = df_discagens.copy()
+    df['DATA'] = pd.to_datetime(df['DATA'])
+
+    df_dw_calendario_temp = df_dw_calendario.copy()
+    df_dw_calendario_temp['dt_data'] = pd.to_datetime(df_dw_calendario_temp['dt_data'])
+
+    data_min = df['DATA'].min()
+    data_max = df['DATA'].max()
+
+    df_calendario_periodo = df_dw_calendario_temp[
+        (df_dw_calendario_temp['dt_data'] >= data_min) &
+        (df_dw_calendario_temp['dt_data'] <= data_max)
+    ].sort_values('dt_data').copy()
+
+    datas_calendario = df_calendario_periodo['dt_data'].tolist()
+    resultados = []
+
+    salvar_log("=" * 80, arquivo_log=LOG_DISCAGENS)
+    salvar_log(f"📊 Processando ESFORÇO (total de discagens) para {len(datas_calendario)} datas...", arquivo_log=LOG_DISCAGENS)
+
+    ultimo_valor_por_mes = {}
+
+    for i, data in enumerate(datas_calendario, 1):
+        if i % 10 == 0 or i == len(datas_calendario):
+            salvar_log(f"   Processando {i}/{len(datas_calendario)} datas...", arquivo_log=LOG_DISCAGENS)
+
+        inicio_mes = pd.Timestamp(data.year, data.month, 1)
+        chave_mes = (data.year, data.month)
+
+        tem_dados = (df['DATA'] == data).any()
+
+        if tem_dados:
+            df_intervalo = df[
+                (df['DATA'] >= inicio_mes) &
+                (df['DATA'] <= data)
+            ].copy()
+
+            colunas_agrupamento = ['FX_ATRASO'] + segmentacoes_extras
+
+            agrupado = df_intervalo.groupby(colunas_agrupamento).agg(
+                qte=('CPF', 'count'),
+                VALOR=('VALOR', 'sum')
+            ).reset_index()
+
+            agrupado['DATA'] = data
+            ultimo_valor_por_mes[chave_mes] = agrupado
+            resultados.append(agrupado)
+
+        else:
+            if chave_mes in ultimo_valor_por_mes:
+                agrupado_replicado = ultimo_valor_por_mes[chave_mes].copy()
+                agrupado_replicado['DATA'] = data
+                resultados.append(agrupado_replicado)
+            else:
+                combinacoes = df[['FX_ATRASO'] + segmentacoes_extras].drop_duplicates()
+                if len(combinacoes) > 0:
+                    agrupado_zero = combinacoes.copy()
+                    agrupado_zero['DATA'] = data
+                    agrupado_zero['qte'] = 0
+                    agrupado_zero['VALOR'] = 0.0
+                    ultimo_valor_por_mes[chave_mes] = agrupado_zero
+                    resultados.append(agrupado_zero)
+
+        if i > 0 and inicio_mes.month != datas_calendario[i-1].month:
+            mes_anterior = (datas_calendario[i-1].year, datas_calendario[i-1].month)
+            if mes_anterior in ultimo_valor_por_mes:
+                del ultimo_valor_por_mes[mes_anterior]
+
+    df_final = pd.concat(resultados, ignore_index=True)
+
+    df_final['FX_ATRASO'] = 'Esforço'
+    for col in segmentacoes_extras:
+        df_final[col] = 'Esforço'
+
+    df_final['Indicador'] = 'Trabalhado'
+
+    salvar_log(f"\\n📅 Merge com dw_calendario...", arquivo_log=LOG_DISCAGENS)
+    df_final = df_final.merge(
+        df_dw_calendario_temp[['dt_data', 'nr_dia_util', 'quartil', 'dt_mes', 'mes_abreviado']],
+        left_on='DATA',
+        right_on='dt_data',
+        how='inner'
+    ).drop(columns=['dt_data'])
+
+    colunas_numericas = df_final.select_dtypes(include=['number']).columns
+    df_final[colunas_numericas] = df_final[colunas_numericas].fillna(0)
+
+    df_final = df_final.rename(columns={'mes_abreviado': 'MesAbreviado'})
+
+    # Consolidar linhas duplicadas após sobrescrita de FX_ATRASO e segmentacoes_extras
+    colunas_grupo = ['DATA', 'Indicador', 'FX_ATRASO'] + segmentacoes_extras + ['MesAbreviado', 'nr_dia_util', 'quartil', 'dt_mes']
+    df_final = df_final.groupby(colunas_grupo, as_index=False).agg(
+        qte=('qte', 'sum'),
+        VALOR=('VALOR', 'sum')
+    )
+
+    colunas_ordenadas = (
+        ['DATA', 'Indicador', 'qte', 'FX_ATRASO'] + segmentacoes_extras +
+        ['MesAbreviado', 'nr_dia_util', 'quartil', 'dt_mes', 'VALOR']
+    )
+    df_final = df_final[colunas_ordenadas]
+
+    salvar_log(f"   ✓ Registros finais: {len(df_final):,}", arquivo_log=LOG_DISCAGENS)
+    salvar_log(f"   ✓ Total discagens (última data): {df_final[df_final['DATA'] == df_final['DATA'].max()]['qte'].sum():,}", arquivo_log=LOG_DISCAGENS)
+    salvar_log(f"   ✓ VALOR total (última data): R$ {df_final[df_final['DATA'] == df_final['DATA'].max()]['VALOR'].sum():,.2f}", arquivo_log=LOG_DISCAGENS)
+    salvar_log("=" * 80, arquivo_log=LOG_DISCAGENS)
+
+    return df_final
+
+@registrar_tempo("Daily UNIQUE - Discagens", arquivo_log=LOG_DISCAGENS)
+def discagens_unique_daily(df_discagens, df_dw_calendario, segmentacoes_extras=None):
+    import warnings
+    warnings.filterwarnings("ignore", category=FutureWarning)
+
+    segmentacoes_extras = segmentacoes_extras or []
+
+    df = df_discagens.copy()
+    df['DATA'] = pd.to_datetime(df['DATA'])
+    df = df.sort_values('FX_ATRASO', ascending=False)
+
+    # Preencher colunas de calendário nulas (sábados/domingos)
+    df['nr_dia_util'] = df['nr_dia_util'].fillna(0)
+    df['quartil'] = df['quartil'].fillna(0)
+    df['dt_mes'] = df['dt_mes'].fillna(pd.NaT)
+    df['mes_abreviado'] = df['mes_abreviado'].fillna('N/A')
+
+    datas_unicas = sorted(df['DATA'].unique())
+    resultados = []
+
+    salvar_log("=" * 80, arquivo_log=LOG_DISCAGENS)
+    salvar_log(f"📊 Processando UNIQUE DAILY (maior FX_ATRASO por CPF) para {len(datas_unicas)} datas...", arquivo_log=LOG_DISCAGENS)
+
+    for i, data in enumerate(datas_unicas, 1):
+        if i % 10 == 0 or i == len(datas_unicas):
+            salvar_log(f"   Processando {i}/{len(datas_unicas)} datas...", arquivo_log=LOG_DISCAGENS)
+
+        df_dia = df[df['DATA'] == data].copy()
+        df_unique = df_dia.drop_duplicates(subset=['CPF'], keep='first')
+
+        colunas_agrupamento = ['FX_ATRASO'] + segmentacoes_extras
+        colunas_calendario = ['nr_dia_util', 'quartil', 'dt_mes', 'mes_abreviado']
+
+        agrupado = df_unique.groupby(colunas_agrupamento + colunas_calendario, dropna=False).agg(
+            qte=('CPF', 'nunique'),
+            VALOR=('VALOR', 'sum')
+        ).reset_index()
+
+        agrupado['DATA'] = data
+        resultados.append(agrupado)
+
+    df_final = pd.concat(resultados, ignore_index=True)
+
+    df_final['FX_ATRASO'] = 'Unique'
+    for col in segmentacoes_extras:
+        df_final[col] = 'Unique'
+    df_final['Indicador'] = 'Trabalhado'
+
+    colunas_numericas = df_final.select_dtypes(include=['number']).columns
+    df_final[colunas_numericas] = df_final[colunas_numericas].fillna(0)
+
+    df_final = df_final.rename(columns={'mes_abreviado': 'MesAbreviado'})
+
+    colunas_grupo = ['DATA', 'Indicador', 'FX_ATRASO'] + segmentacoes_extras + ['MesAbreviado', 'nr_dia_util', 'quartil', 'dt_mes']
+    df_final = df_final.groupby(colunas_grupo, as_index=False, dropna=False).agg(
+        qte=('qte', 'sum'),
+        VALOR=('VALOR', 'sum')
+    )
+
+    colunas_ordenadas = (
+        ['DATA', 'Indicador', 'qte', 'FX_ATRASO'] + segmentacoes_extras +
+        ['MesAbreviado', 'nr_dia_util', 'quartil', 'dt_mes', 'VALOR']
+    )
+    df_final = df_final[colunas_ordenadas]
+
+    salvar_log(f"   ✓ Registros finais: {len(df_final):,}", arquivo_log=LOG_DISCAGENS)
+    salvar_log("=" * 80, arquivo_log=LOG_DISCAGENS)
+
+    return df_final
+
+@registrar_tempo("Daily ESFORÇO - Discagens", arquivo_log=LOG_DISCAGENS)
+def discagens_esforco_daily(df_discagens, df_dw_calendario, segmentacoes_extras=None):
+    import warnings
+    warnings.filterwarnings("ignore", category=FutureWarning)
+
+    segmentacoes_extras = segmentacoes_extras or []
+
+    df = df_discagens.copy()
+    df['DATA'] = pd.to_datetime(df['DATA'])
+
+    # Preencher colunas de calendário nulas (sábados/domingos)
+    df['nr_dia_util'] = df['nr_dia_util'].fillna(0)
+    df['quartil'] = df['quartil'].fillna(0)
+    df['dt_mes'] = df['dt_mes'].fillna(pd.NaT)
+    df['mes_abreviado'] = df['mes_abreviado'].fillna('N/A')
+
+    datas_unicas = sorted(df['DATA'].unique())
+    resultados = []
+
+    salvar_log("=" * 80, arquivo_log=LOG_DISCAGENS)
+    salvar_log(f"📊 Processando ESFORÇO DAILY (total de discagens) para {len(datas_unicas)} datas...", arquivo_log=LOG_DISCAGENS)
+
+    for i, data in enumerate(datas_unicas, 1):
+        if i % 10 == 0 or i == len(datas_unicas):
+            salvar_log(f"   Processando {i}/{len(datas_unicas)} datas...", arquivo_log=LOG_DISCAGENS)
+
+        df_dia = df[df['DATA'] == data].copy()
+
+        colunas_agrupamento = ['FX_ATRASO'] + segmentacoes_extras
+        colunas_calendario = ['nr_dia_util', 'quartil', 'dt_mes', 'mes_abreviado']
+
+        agrupado = df_dia.groupby(colunas_agrupamento + colunas_calendario, dropna=False).agg(
+            qte=('CPF', 'count'),
+            VALOR=('VALOR', 'sum')
+        ).reset_index()
+
+        agrupado['DATA'] = data
+        resultados.append(agrupado)
+
+    df_final = pd.concat(resultados, ignore_index=True)
+
+    df_final['FX_ATRASO'] = 'Esforço'
+    for col in segmentacoes_extras:
+        df_final[col] = 'Esforço'
+    df_final['Indicador'] = 'Trabalhado'
+
+    colunas_numericas = df_final.select_dtypes(include=['number']).columns
+    df_final[colunas_numericas] = df_final[colunas_numericas].fillna(0)
+
+    df_final = df_final.rename(columns={'mes_abreviado': 'MesAbreviado'})
+
+    colunas_grupo = ['DATA', 'Indicador', 'FX_ATRASO'] + segmentacoes_extras + ['MesAbreviado', 'nr_dia_util', 'quartil', 'dt_mes']
+    df_final = df_final.groupby(colunas_grupo, as_index=False, dropna=False).agg(
+        qte=('qte', 'sum'),
+        VALOR=('VALOR', 'sum')
+    )
+
+    colunas_ordenadas = (
+        ['DATA', 'Indicador', 'qte', 'FX_ATRASO'] + segmentacoes_extras +
+        ['MesAbreviado', 'nr_dia_util', 'quartil', 'dt_mes', 'VALOR']
+    )
+    df_final = df_final[colunas_ordenadas]
+
+    salvar_log(f"   ✓ Registros finais: {len(df_final):,}", arquivo_log=LOG_DISCAGENS)
+    salvar_log("=" * 80, arquivo_log=LOG_DISCAGENS)
+
+    return df_final
+
+@registrar_tempo("Daily fxAtraso - Discagens", arquivo_log=LOG_DISCAGENS)
+def discagens_fxAtraso_daily(df_discagens, df_dw_calendario, segmentacoes_extras=None):
+    import warnings
+    warnings.filterwarnings("ignore", category=FutureWarning)
+
+    segmentacoes_extras = segmentacoes_extras or []
+    colunas_agrupamento = ['FX_ATRASO'] + segmentacoes_extras
+
+    df = df_discagens.copy()
+    df['DATA'] = pd.to_datetime(df['DATA'])
+
+    # Preencher colunas de calendário nulas (sábados/domingos)
+    df['nr_dia_util'] = df['nr_dia_util'].fillna(0)
+    df['quartil'] = df['quartil'].fillna(0)
+    df['dt_mes'] = df['dt_mes'].fillna(pd.NaT)
+    df['mes_abreviado'] = df['mes_abreviado'].fillna('N/A')
+
+    datas_unicas = sorted(df['DATA'].unique())
+    resultados = []
+
+    salvar_log("=" * 80, arquivo_log=LOG_DISCAGENS)
+    salvar_log(f"📊 Processando fxAtraso DAILY (CPF único por combinação {' + '.join(colunas_agrupamento)}) para {len(datas_unicas)} datas...", arquivo_log=LOG_DISCAGENS)
+
+    for i, data in enumerate(datas_unicas, 1):
+        if i % 10 == 0 or i == len(datas_unicas):
+            salvar_log(f"   Processando {i}/{len(datas_unicas)} datas...", arquivo_log=LOG_DISCAGENS)
+
+        df_dia = df[df['DATA'] == data].copy()
+
+        colunas_calendario = ['nr_dia_util', 'quartil', 'dt_mes', 'mes_abreviado']
+
+        df_unico = df_dia.drop_duplicates(
+            subset=['CPF'] + colunas_agrupamento,
+            keep='first'
+        )
+
+        agrupado = df_unico.groupby(colunas_agrupamento + colunas_calendario, dropna=False).agg(
+            qte=('CPF', 'nunique'),
+            VALOR=('VALOR', 'sum')
+        ).reset_index()
+
+        agrupado['DATA'] = data
+        resultados.append(agrupado)
+
+    df_final = pd.concat(resultados, ignore_index=True)
+
+    df_final['Indicador'] = 'Trabalhado'
+
+    colunas_numericas = df_final.select_dtypes(include=['number']).columns
+    df_final[colunas_numericas] = df_final[colunas_numericas].fillna(0)
+
+    df_final = df_final.rename(columns={'mes_abreviado': 'MesAbreviado'})
+
+    colunas_ordenadas = (
+        ['DATA', 'Indicador', 'qte', 'FX_ATRASO'] + segmentacoes_extras +
+        ['MesAbreviado', 'nr_dia_util', 'quartil', 'dt_mes', 'VALOR']
+    )
+    df_final = df_final[colunas_ordenadas]
+
+    salvar_log(f"   ✓ Registros finais: {len(df_final):,}", arquivo_log=LOG_DISCAGENS)
+    salvar_log("=" * 80, arquivo_log=LOG_DISCAGENS)
+
+    return df_final
+
+@registrar_tempo("Pipeline acumulados discagens", arquivo_log=LOG_DISCAGENS)
+def processar_acumulados_discagens(
+    df_discagens,
+    df_dw_calendario,
+    segmentacoes_extras=None,
+    calcular_funil=True,
+    calcular_daily=True,
+    retorno='separado'
+):
+    """
+    Orquestra a geração e união de métricas acumuladas de discagens.
+
+    Args:
+        df_discagens (pd.DataFrame): DataFrame de discagens unificado (expert + olos)
+        df_dw_calendario (pd.DataFrame): DataFrame com dados de calendário
+        segmentacoes_extras (list, optional): Colunas adicionais para segmentação.
+                                              Ex: ['FAIXA'] para a carteira Renner
+        calcular_funil (bool): Se True, calcula os acumulados de funil. Default: True
+        calcular_daily (bool): Se True, calcula os acumulados diários. Default: True
+        retorno (str): 'separado' → retorna (df_funil, df_daily)
+                       'consolidado' → retorna um único df com coluna 'TIPO' identificando funil/daily
+
+    Returns:
+        Se retorno='separado':
+            tuple: (df_funil, df_daily) — None para os não calculados
+        Se retorno='consolidado':
+            pd.DataFrame: DataFrame único com coluna TIPO = 'Funil' ou 'Daily'
+    """
+    if not calcular_funil and not calcular_daily:
+        raise ValueError("Ao menos um dos parâmetros calcular_funil ou calcular_daily deve ser True")
+
+    # ============================================
+    # ETAPA 1: FUNIL
+    # ============================================
+    df_funil = None
+    if calcular_funil:
+        df_fxAtraso = discagens_fxAtraso_funil(
+            df_discagens=df_discagens,
+            df_dw_calendario=df_dw_calendario,
+            segmentacoes_extras=segmentacoes_extras
+        )
+        df_unique = discagens_unique_funil(
+            df_discagens=df_discagens,
+            df_dw_calendario=df_dw_calendario,
+            segmentacoes_extras=segmentacoes_extras
+        )
+        df_esforco = discagens_esforco_funil(
+            df_discagens=df_discagens,
+            df_dw_calendario=df_dw_calendario,
+            segmentacoes_extras=segmentacoes_extras
+        )
+        df_funil = unir_dataframes(df_fxAtraso, df_unique, df_esforco)
+
+    # ============================================
+    # ETAPA 2: DAILY
+    # ============================================
+    df_daily = None
+    if calcular_daily:
+        df_fxAtraso_daily = discagens_fxAtraso_daily(
+            df_discagens=df_discagens,
+            df_dw_calendario=df_dw_calendario,
+            segmentacoes_extras=segmentacoes_extras
+        )
+        df_unique_daily = discagens_unique_daily(
+            df_discagens=df_discagens,
+            df_dw_calendario=df_dw_calendario,
+            segmentacoes_extras=segmentacoes_extras
+        )
+        df_esforco_daily = discagens_esforco_daily(
+            df_discagens=df_discagens,
+            df_dw_calendario=df_dw_calendario,
+            segmentacoes_extras=segmentacoes_extras
+        )
+        df_daily = unir_dataframes(df_fxAtraso_daily, df_unique_daily, df_esforco_daily)
+
+    # ============================================
+    # ETAPA 3: RETORNO
+    # ============================================
+    if retorno == 'consolidado':
+        dfs = []
+        if df_funil is not None:
+            df_funil['TIPO'] = 'Funil'
+            dfs.append(df_funil)
+        if df_daily is not None:
+            df_daily['TIPO'] = 'Daily'
+            dfs.append(df_daily)
+        return unir_dataframes(*dfs)
+
+    return df_funil, df_daily
+
 __all__ = [
-    'acionamentos_esforco_expert',
-    'acionamentos_unique_expert',
-    'acionamentos_fxAtraso_dinamico'
+    'discagens_esforco_funil',
+    'discagens_fxAtraso_funil',
+    'discagens_unique_funil',
+    'processar_acumulados_discagens',
+    'discagens_fxAtraso_daily',
+    'discagens_unique_daily',
+    'discagens_esforco_daily'
 ]

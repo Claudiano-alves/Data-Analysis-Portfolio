@@ -11,10 +11,14 @@ from .data_processing import (
 )
 
 from .metricas_acumuladas import (
-    acionamentos_esforco_expert,
-    acionamentos_unique_expert,
-    acionamentos_fxAtraso_dinamico,
-    discagens_unique
+    discagens_esforco_funil,
+    discagens_fxAtraso_funil,
+    discagens_unique_funil,
+    processar_acumulados_discagens,
+    discagens_fxAtraso_daily,
+    discagens_unique_daily,
+    discagens_esforco_daily,
+    processar_acumulados_discagens
 )
 
 from .pipelines import (
@@ -23,14 +27,16 @@ from .pipelines import (
 
 __all__ = [
     'criar_df_tabulacoes_robo',
-    'enriquecer_com_tabulacoes_robo',
     'enriquecer_com_mailing_calendario',
     'segmentar_discagens_expert',
     'aplicar_transformacoes_discagens',
-    'acionamentos_esforco_expert',
-    'acionamentos_unique_expert',
-    'acionamentos_fxAtraso_origem_expert',
-    'acionamentos_fxAtraso_dinamico',
-    'processar_discagens_expert_completo',
-    'discagens_unique'
+    'discagens_esforco_funil',
+    'discagens_fxAtraso_funil',
+    'discagens_unique_funil',
+    'processar_acumulados_discagens',
+    'discagens_fxAtraso_daily',
+    'discagens_unique_daily',
+    'discagens_esforco_daily',
+    'processar_acumulados_discagens',
+    'processar_discagens_expert_completo'
 ]

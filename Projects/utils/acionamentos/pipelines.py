@@ -10,9 +10,12 @@ from .data_processing import (
     enriquecer_acionamentos
 )
 from .metricas_acumuladas import (
-    acionamentos_fxAtraso,
-    acionamentos_unique,
-    acionamentos_esforco,
+    acionamentos_fxAtraso_funil,
+    acionamentos_unique_funil,
+    acionamentos_esforco_funil,
+    acionamentos_fxAtraso_daily,
+    acionamentos_unique_daily,
+    acionamentos_esforco_daily,
     processar_acumulados_acionamentos
 )
 

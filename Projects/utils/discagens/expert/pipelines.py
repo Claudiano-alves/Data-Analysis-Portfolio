@@ -18,7 +18,7 @@ from .data_processing import (
     segmentar_discagens_expert
 )
 from .metricas_acumuladas import (
-    acionamentos_esforco_expert,
+    discagens_esforco,
     acionamentos_unique_expert
 )
 
@@ -67,8 +67,8 @@ def processar_discagens_expert_completo(
     
     # 5. Calcular métricas
     salvar_log("\n📈 Calculando métricas acumuladas...", arquivo_log=LOG_DISCAGENS)
-    df_esforco = acionamentos_esforco_expert(df_enriquecido_discagens_expert_limpo, df_dw_calendario)
-    df_unique = acionamentos_unique_expert(df_enriquecido_discagens_expert_limpo, df_dw_calendario)
+    df_esforco = discagens_esforco(df_enriquecido_discagens_expert_limpo, df_dw_calendario)
+    df_unique = discagens_unique(df_enriquecido_discagens_expert_limpo, df_dw_calendario)
     df_fxAtraso_origem = acionamentos_fxAtraso_origem_expert(df_enriquecido_discagens_expert_limpo, df_dw_calendario)
     
     # 6. Unir resultados

@@ -392,6 +392,31 @@ def get_default_date_range() -> Tuple[str, str]:
     data_fim = (hoje - timedelta(days=1)).strftime('%Y-%m-%d')
     return data_inicio, data_fim
 
+def normalizar_tipos_df(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Normaliza tipos de colunas para garantir compatibilidade na consolidação de DataFrames.
+    """
+    df = df.copy()
+    
+    # Colunas de calendário com tipos fixos
+    if 'nr_dia_util' in df.columns:
+        df['nr_dia_util'] = pd.to_numeric(df['nr_dia_util'], errors='coerce').fillna(0).astype(int)
+    if 'quartil' in df.columns:
+        df['quartil'] = df['quartil'].astype(str)
+    if 'dt_mes' in df.columns:
+        df['dt_mes'] = pd.to_numeric(df['dt_mes'], errors='coerce').fillna(0).astype(int)
+    if 'MesAbreviado' in df.columns:
+        df['MesAbreviado'] = df['MesAbreviado'].astype(str)
+    if 'mes_abreviado' in df.columns:
+        df['mes_abreviado'] = df['mes_abreviado'].astype(str)
+
+    # Colunas numéricas de métricas
+    for col in ['qte', 'VALORPRIN_FIN', 'VALOR']:
+        if col in df.columns:
+            df[col] = pd.to_numeric(df[col], errors='coerce').fillna(0)
+
+    return df
+
 def transformar_funil_formato_long(
     df_acionamentos_funil: pd.DataFrame,
     dimensoes_manter: Optional[List[str]] = None

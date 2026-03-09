@@ -13,13 +13,16 @@ from .data_processing import (
     confere_tabulacao_acionamentos,
     enriquecer_acionamentos,
     separar_inconsistencias,
-    acionamentos_duplicados
+    acionamentos_duplicados,
 )
 
 from .metricas_acumuladas import (
-    acionamentos_fxAtraso,
-    acionamentos_unique,
-    acionamentos_esforco,
+    acionamentos_fxAtraso_funil,
+    acionamentos_unique_funil,
+    acionamentos_esforco_funil,
+    acionamentos_fxAtraso_daily,
+    acionamentos_unique_daily,
+    acionamentos_esforco_daily,
     processar_acumulados_acionamentos
 )
 
@@ -40,9 +43,12 @@ __all__ = [
     'acionamentos_duplicados',
     
     # Métricas acumuladas
-    'acionamentos_fxAtraso',
-    'acionamentos_unique',
-    'acionamentos_esforco',
+    'acionamentos_fxAtraso_funil',
+    'acionamentos_unique_funil',
+    'acionamentos_esforco_funil',
+    'acionamentos_fxAtraso_daily',
+    'acionamentos_unique_daily',
+    'acionamentos_esforco_daily',
     'processar_acumulados_acionamentos',
     
     # Métricas diárias
