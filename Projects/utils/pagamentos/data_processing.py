@@ -9,7 +9,7 @@ from ..config import LOG_PAGAMENTOS
 from typing import List, Optional, Tuple
 
 @registrar_tempo("Dados de pagamentos", arquivo_log=LOG_PAGAMENTOS)
-def data_pagamentos(
+def data_pagamentos_(
     df_pagamentos: pd.DataFrame,
     df_acordos: pd.DataFrame,
     df_mailing_hist: pd.DataFrame,
@@ -219,3 +219,121 @@ def data_pagamentos(
     df_pagamentos_analitico = df_pagamentos_tratado.copy()
 
     return df_agrupado, df_sem_fx_atraso, df_pagamentos_analitico
+
+@registrar_tempo("Dados de pagamentos", arquivo_log=LOG_PAGAMENTOS)
+def data_pagamentos(
+    df_pagamentos: pd.DataFrame,
+    df_acordos: pd.DataFrame,
+    df_mailing_hist: pd.DataFrame,
+    df_dw_calendario: pd.DataFrame,
+    log_file: str = LOG_PAGAMENTOS
+) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+    """
+    Enriquece os dados de pagamentos cruzando com acordos, calendário e mailing.
+
+    Fluxo:
+        1. Acordos: filtra colunas necessárias + distinct
+        2. Pagamentos LEFT JOIN Acordos      (CONTRATO_FIN + NACORDO_ACO)
+        3. Resultado  LEFT JOIN Calendário   (DATA_PAGTO)
+        4. Resultado  LEFT JOIN Mailing      (CONTRATO_FIN + DATA_PAGTO)
+           → FX_ATRASO correta para o dia do pagamento
+           → Qualquer coluna extra da mailing (ex: FAIXA) vem automaticamente
+
+    Returns:
+        tuple: (df_com_fx_atraso, df_sem_fx_atraso, df_pagamentos_analitico)
+    """
+
+    # ============================================
+    # PREPARAÇÃO INICIAL
+    # ============================================
+    df_pagamentos   = df_pagamentos.copy()
+    df_acordos      = df_acordos.copy()
+    df_mailing_hist = df_mailing_hist.copy()
+
+    df_pagamentos['CONTRATO_FIN']  = df_pagamentos['CONTRATO_FIN'].str.strip()
+    df_acordos['CONTRATO_FIN']     = df_acordos['CONTRATO_FIN'].str.strip()
+    df_mailing_hist['CONTRATO']    = df_mailing_hist['CONTRATO'].str.strip()
+    df_mailing_hist['DATA']        = pd.to_datetime(df_mailing_hist['DATA'])
+
+    salvar_log("=" * 60, arquivo_log=log_file)
+    salvar_log("INÍCIO DO PROCESSAMENTO DE PAGAMENTOS", arquivo_log=log_file)
+    salvar_log("=" * 60, arquivo_log=log_file)
+    salvar_log(f"Total de registros em df_pagamentos: {len(df_pagamentos)}", arquivo_log=log_file)
+    salvar_log(f"Total de registros em df_acordos: {len(df_acordos)}", arquivo_log=log_file)
+    salvar_log(f"Total de registros em df_mailing_hist: {len(df_mailing_hist)}", arquivo_log=log_file)
+
+    # ============================================
+    # STEP 1 — ACORDOS: colunas necessárias + distinct
+    # ============================================
+    colunas_acordos_desejadas = ['CONTRATO_FIN', 'NACORDO_ACO', 'DATA_ACORDO', 'RECUP_ACO', 'RECUPERADR']
+    colunas_acordos_disponiveis = [col for col in colunas_acordos_desejadas if col in df_acordos.columns]
+
+    df_acordos_validos = (
+        df_acordos[df_acordos['CANC_ACORDO'].isna()]
+        [colunas_acordos_disponiveis]
+        .drop_duplicates()
+    )
+
+    df_acordos_validos['DATA_ACORDO'] = pd.to_datetime(df_acordos_validos['DATA_ACORDO'])
+    salvar_log(f"Acordos válidos (não cancelados): {len(df_acordos_validos)}", arquivo_log=log_file)
+
+    # ============================================
+    # STEP 2 — PAGAMENTOS LEFT JOIN ACORDOS
+    # Traz DATA_ACORDO e demais colunas do acordo
+    # ============================================
+    df_resultado = df_pagamentos.merge(
+        df_acordos_validos,
+        on=['CONTRATO_FIN', 'NACORDO_ACO'],
+        how='left'
+    )
+    salvar_log(f"Registros após cruzamento com acordos: {len(df_resultado)}", arquivo_log=log_file)
+
+    # ============================================
+    # STEP 3 — LEFT JOIN CALENDÁRIO
+    # ============================================
+    df_resultado['DATA_PAGTO'] = pd.to_datetime(df_resultado['DATA_PAGTO']).dt.date
+
+    df_dw_calendario_temp = df_dw_calendario.copy()
+    df_dw_calendario_temp['dt_data'] = pd.to_datetime(df_dw_calendario_temp['dt_data']).dt.date
+
+    df_resultado = df_resultado.merge(
+        df_dw_calendario_temp[['dt_data', 'nr_dia_util', 'quartil', 'dt_mes', 'mes_abreviado']],
+        left_on='DATA_PAGTO',
+        right_on='dt_data',
+        how='left'
+    ).drop(columns=['dt_data'])
+
+    salvar_log(f"Registros após cruzamento com calendário: {len(df_resultado)}", arquivo_log=log_file)
+
+    # ============================================
+    # STEP 4 — LEFT JOIN MAILING
+    # Cruzamento por CONTRATO_FIN + DATA_PAGTO
+    # Garante FX_ATRASO vigente no dia do pagamento
+    # Qualquer coluna extra da mailing (ex: FAIXA) vem automaticamente
+    # ============================================
+    df_mailing_hist_unique = df_mailing_hist.drop_duplicates(subset=['CONTRATO', 'DATA'])
+    df_mailing_hist_unique['DATA'] = pd.to_datetime(df_mailing_hist_unique['DATA']).dt.date
+    
+    df_pagamentos_tratado = df_resultado.merge(
+        df_mailing_hist_unique,
+        left_on=['CONTRATO_FIN', 'DATA_PAGTO'],
+        right_on=['CONTRATO', 'DATA'],
+        how='left'
+    ).drop(columns=['CONTRATO', 'DATA'])
+
+    salvar_log(f"Registros após cruzamento com mailing: {len(df_pagamentos_tratado)}", arquivo_log=log_file)
+
+    # ============================================
+    # SEPARAR POR FX_ATRASO
+    # Sem FX_ATRASO = contrato não estava na mailing no dia do pagamento
+    # ============================================
+    df_com_fx_atraso = df_pagamentos_tratado[df_pagamentos_tratado['FX_ATRASO'].notna()].copy()
+    df_sem_fx_atraso = df_pagamentos_tratado[df_pagamentos_tratado['FX_ATRASO'].isna()].copy()
+
+    salvar_log("=" * 60, arquivo_log=log_file)
+    salvar_log("SEPARAÇÃO POR FX_ATRASO", arquivo_log=log_file)
+    salvar_log(f"COM FX_ATRASO: {len(df_com_fx_atraso)}", arquivo_log=log_file)
+    salvar_log(f"SEM FX_ATRASO: {len(df_sem_fx_atraso)}", arquivo_log=log_file)
+    salvar_log("=" * 60, arquivo_log=log_file)
+
+    return df_com_fx_atraso, df_sem_fx_atraso, df_pagamentos_tratado

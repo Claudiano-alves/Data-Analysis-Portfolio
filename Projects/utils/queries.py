@@ -308,7 +308,6 @@ def get_query_sms(dt_ini, dt_fim, where_clause="", columns="*"):
     """
     return query
 
-
 def get_query_rcs(dt_ini, dt_fim, where_clause="", columns="*"):
     """
     Retorna a query SQL para buscar massivos_rcs com período parametrizado e filtros customizados
@@ -339,7 +338,6 @@ def get_query_rcs(dt_ini, dt_fim, where_clause="", columns="*"):
     """
     return query
 
-
 def get_query_email(dt_ini, dt_fim, where_clause="", columns="*"):
     """
     Retorna a query SQL para buscar massivos_email com período parametrizado e filtros customizados
@@ -369,7 +367,6 @@ def get_query_email(dt_ini, dt_fim, where_clause="", columns="*"):
         {where_completo}
     """
     return query
-
 
 def get_query_whats(dt_ini, dt_fim, where_clause="", columns="*"):
     """

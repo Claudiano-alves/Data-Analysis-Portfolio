@@ -9,7 +9,13 @@ Estrutura de módulos:
 
 from .data_processing import data_pagamentos
 
-from .metricas_acumuladas import gerar_acumulado_por_dia_util
+from .metricas_acumuladas import (
+    pagamentos_funil, 
+    total_pagamentos_funil,
+    pagamentos_daily,
+    total_pagamentos_daily,
+    processar_acumulados_pagamentos
+)
 
 from .pipelines import (
     processar_pagamentos_completo,
@@ -21,7 +27,11 @@ __all__ = [
     'data_pagamentos',
     
     # Métricas acumuladas
-    'gerar_acumulado_por_dia_util',
+    'pagamentos_funil', 
+    'total_pagamentos_funil',
+    'pagamentos_daily',
+    'total_pagamentos_daily',
+    'processar_acumulados_pagamentos',
     
     # Pipeline
     'processar_pagamentos_completo',
