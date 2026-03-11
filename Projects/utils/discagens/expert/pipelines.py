@@ -18,8 +18,13 @@ from .data_processing import (
     segmentar_discagens_expert
 )
 from .metricas_acumuladas import (
-    discagens_esforco,
-    acionamentos_unique_expert
+    discagens_esforco_funil,
+    discagens_fxAtraso_funil,
+    discagens_unique_funil,
+    processar_acumulados_discagens,
+    discagens_fxAtraso_daily,
+    discagens_unique_daily,
+    discagens_esforco_daily
 )
 
 
@@ -101,5 +106,14 @@ def processar_discagens_expert_completo(
 
 
 __all__ = [
-    'processar_discagens_expert_completo'
+    'processar_discagens_expert_completo',
+
+    # Metricas
+    'discagens_esforco_funil',
+    'discagens_fxAtraso_funil',
+    'discagens_unique_funil',
+    'processar_acumulados_discagens',
+    'discagens_fxAtraso_daily',
+    'discagens_unique_daily',
+    'discagens_esforco_daily'
 ]
