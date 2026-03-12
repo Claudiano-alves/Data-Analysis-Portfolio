@@ -136,7 +136,7 @@ LOGS = {
 # ============================================
 
 GRUPO_PRINCIPAL_MAP = {
-    ('4638', '4543', '4525', '4522', '4709', '4710', '4792'): "ATIVO",
+    (4638, 4543, 4525, 4522, 4709, 4710, 4792): "ATIVO",
     4529: "MANUAL",
     4528: "RECEPTIVO",
     (4549, 4527, 4791): "URA"
@@ -173,7 +173,7 @@ TRANSFORMACOES_DISCAGENS = {
 # OutraCarteira/src/config.py
 
 # Sem segmentação
-DIMENSOES_PAGAMENTOS = []  # Ou None
+DIMENSOES_PAGAMENTOS = ['FAIXA']  # Ou None
 
 from pathlib import Path
 

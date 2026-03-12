@@ -85,7 +85,7 @@ WHERE_CLAUSES = {
         AND A.COD_RECUP NOT IN (15721)
         AND B.CLASSIFICACAO_ACIONAMENTO = 1
     """,
-    'tabulacao': "WHERE COD_CLI = 253",
+    'tabulacao': "WHERE IDCRM = 1",
     'clientes_pagamentos': "WHERE B.COD_CLI = 253",
     'clientes_acordos': "WHERE B.COD_CLI = 253 AND B.COD_CAR = 1",
     'massivos': "WHERE ID_CAR = 100",
