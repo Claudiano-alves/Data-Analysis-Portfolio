@@ -13,13 +13,12 @@ from .data_processing import (
 )
 
 from .metricas_acumuladas import (
-    gerar_acumulado_maling_hist_fxAtraso,
-    gerar_acumulado_maling_hist_unique
+    gerar_acumulado_mailing_hist_segmentacoes,
+    gerar_acumulado_mailing_hist_unique
 )
 
 from .pipelines import (
-    processar_mailing_completo,
-    gerar_acumulado_mailing_hist
+    processar_mailing_completo
 )
 
 __all__ = [
@@ -28,10 +27,9 @@ __all__ = [
     'adicionar_valor_principal',
     
     # Métricas acumuladas
-    'gerar_acumulado_maling_hist_fxAtraso',
-    'gerar_acumulado_maling_hist_unique',
+    'gerar_acumulado_mailing_hist_segmentacoes',
+    'gerar_acumulado_mailing_hist_unique',
     
     # Pipeline
-    'processar_mailing_completo',
-    'gerar_acumulado_mailing_hist'
+    'processar_mailing_completo'
 ]

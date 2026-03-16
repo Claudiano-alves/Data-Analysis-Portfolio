@@ -68,7 +68,6 @@ def adicionar_operacao(df):
     df['OPERACAO'] = np.select(conditions, choices, default='Outros')
     return df
 
-
 def adicionar_estado_por_ddd(df, coluna_ddd='ddd'):
     """
     Adiciona a coluna ESTADO baseada no DDD
@@ -82,7 +81,6 @@ def adicionar_estado_por_ddd(df, coluna_ddd='ddd'):
     """
     df['ESTADO'] = df[coluna_ddd].astype(str).str.zfill(2).map(DDD_ESTADO)
     return df
-
 
 def adicionar_origem(df_discagens_expert):
     """
@@ -99,7 +97,6 @@ def adicionar_origem(df_discagens_expert):
         lambda x: 'Robô' if x == 'AGV NEGOCIADORA' else 'Humano'
     )
     return df_discagens_expert
-
 
 @registrar_tempo("Tratamento base discagens expert", arquivo_log=LOG_DISCAGENS)
 def tratar_base_discagens_expert(df):
@@ -120,7 +117,6 @@ def tratar_base_discagens_expert(df):
     df = adicionar_origem(df)
     salvar_log(f"✅ Tratamento de discagens expert concluído", arquivo_log=LOG_DISCAGENS)
     return df
-
 
 @registrar_tempo("Criação DF tabulações robô", arquivo_log=LOG_DISCAGENS)
 def criar_df_tabulacoes_robo():
@@ -162,7 +158,6 @@ def criar_df_tabulacoes_robo():
     salvar_log(f"✅ DataFrame de classificação de tabulações criado! ({len(df_tabulacoes)} códigos)", arquivo_log=LOG_DISCAGENS)
     return df_tabulacoes
 
-
 @registrar_tempo("Enriquecimento com tabulações robô", arquivo_log=LOG_DISCAGENS)
 def enriquecer_com_tabulacoes_robo(df_discagens_expert, df_tabulacoes_robo):
     """
@@ -192,7 +187,6 @@ def enriquecer_com_tabulacoes_robo(df_discagens_expert, df_tabulacoes_robo):
     
     salvar_log(f"✓ Enriquecimento concluído! ({len(df_resultado):,} registros)", arquivo_log=LOG_DISCAGENS)
     return df_resultado
-
 
 @registrar_tempo("Enriquecimento com mailing e calendário", arquivo_log=LOG_DISCAGENS)
 def enriquecer_com_mailing_calendario(df_discagens, df_mailing_hist, df_dw_calendario):
@@ -243,7 +237,6 @@ def enriquecer_com_mailing_calendario(df_discagens, df_mailing_hist, df_dw_calen
     salvar_log(f"📦 COM FX_ATRASO: {len(df_com_fx_atraso):,} | SEM FX_ATRASO: {len(df_sem_fx_atraso):,}", arquivo_log=LOG_DISCAGENS)
     return df_com_fx_atraso, df_sem_fx_atraso
 
-
 @registrar_tempo("Segmentação de discagens expert", arquivo_log=LOG_DISCAGENS)
 def segmentar_discagens_expert(df):
     """
@@ -274,7 +267,6 @@ def segmentar_discagens_expert(df):
     salvar_log(f"   • Restante: {len(df_restante):,} ({len(df_restante)/len(df)*100:.1f}%)", arquivo_log=LOG_DISCAGENS)
 
     return df_restante, df_humano_primeiro, df_operacao_outros
-
 
 __all__ = [
     'adicionar_operacao',

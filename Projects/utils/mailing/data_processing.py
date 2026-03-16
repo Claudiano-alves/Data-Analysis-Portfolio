@@ -32,7 +32,6 @@ def adicionar_faixa_atraso(df, bins, labels, coluna_atraso='ATRASO', log_path=No
     )
     return df
 
-
 def adicionar_valor_principal(df_mailing_hist, df_cad_devf, col_contrato_mailing='CONTRATO', col_contrato_devf='CONTRATO_FIN', log_path=None):
     """
     Adiciona a coluna VALORPRIN_FIN ao DataFrame de mailing através de join com CAD_DEVF.

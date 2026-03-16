@@ -18,10 +18,10 @@ from .metricas_acumuladas import (
     ,discagens_fxAtraso_daily
     ,discagens_unique_daily
     ,discagens_esforco_daily
-    ,discagens_operacao_fxAtraso_funil
+    ,discagens_operacao_segmentacoes_funil
     ,discagens_operacao_unique_funil
     ,discagens_operacao_esforco_funil
-    ,discagens_operacao_fxAtraso_daily
+    ,discagens_operacao_segmentacoes_daily
     ,discagens_operacao_unique_daily
     ,discagens_operacao_esforco_daily
 )
@@ -46,10 +46,10 @@ __all__ = [
     'discagens_fxAtraso_daily',
     'discagens_unique_daily',
     'discagens_esforco_daily',
-    'discagens_operacao_fxAtraso_funil',
+    'discagens_operacao_segmentacoes_funil',
     'discagens_operacao_unique_funil',
     'discagens_operacao_esforco_funil',
-    'discagens_operacao_fxAtraso_daily',
+    'discagens_operacao_segmentacoes_daily',
     'discagens_operacao_unique_daily',
     'discagens_operacao_esforco_daily',
     'processar_acumulados_discagens_operacao',

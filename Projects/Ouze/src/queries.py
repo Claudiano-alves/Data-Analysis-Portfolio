@@ -183,3 +183,60 @@ def get_query_rsc(dt_ini, dt_fim):
         WHERE ID_CAR = 100 AND DATA_ENVIO BETWEEN '{dt_ini}' AND '{dt_fim}'
     """
     return query
+
+
+def get_query_telefone(where_clause=""):
+    """
+    Retorna a query SQL para buscar telefones com filtros customizados
+    
+    Args:
+        where_clause (str): Cláusula WHERE customizada (opcional)
+                           Ex: "COD_CLI IN(198, 196, 228)"
+                           Ex: "CPF_DEV IN ('12345678900', '98765432100')"
+    
+    Returns:
+        str: Query SQL formatada com os filtros
+    """
+    # Adicionar WHERE se houver cláusula
+    where_sql = f"{where_clause}" if where_clause else ""
+    
+    query = f"""
+        SELECT 
+            CPF_DEV,
+            DDD_TEL,
+            TEL_TEL,
+            PERC_TEL,
+            COD_TIPO,
+            POSSUIWHATSAPP_TEL
+        FROM CAD_DEVT WITH (NOLOCK)
+        {where_sql}
+    """
+    return query
+
+def get_query_blacklist_expert(where_clause=""):
+    """
+    Retorna a query SQL para buscar telefones da blacklist com filtros customizados
+    
+    Args:
+        where_clause (str): Cláusula WHERE customizada (opcional)
+                           Ex: "DDD = '16'"
+                           Ex: "DDD IN ('11', '16', '19')"
+    
+    Returns:
+        str: Query SQL formatada com os filtros
+    """
+    # Adicionar WHERE se houver cláusula
+    # where_sql = f"WHERE {where_clause}" if where_clause else ""
+    
+    query = f"""
+        SELECT 
+            DDD, 
+            TELEFONE
+        FROM OPENQUERY(EXPERT, '
+            SELECT 
+                A.DDD, 
+                A.TELEFONE
+            FROM blacklist A
+        ')
+    """
+    return query

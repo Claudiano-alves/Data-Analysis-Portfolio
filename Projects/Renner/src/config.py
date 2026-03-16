@@ -72,6 +72,24 @@ DATASETS_TO_LOAD = {
     'discagens_olos': True
 }
 
+DATASETS_TO_LOAD = {
+    'discagens_expert':      {'active': True,  'query': None},
+    'mailing_hist':          {'active': True,  'query': None},
+    'tab_acionamentos':      {'active': True,  'query': None},
+    'tabulacao_aciona':      {'active': True,  'query': None},
+    'dw_calendario':         {'active': True,  'query': None},
+    'pagamentos':            {'active': True,  'query': None},
+    'acordos':               {'active': True,  'query': None},
+    'sms':                   {'active': True,  'query': None},
+    'rcs':                   {'active': True,  'query': None},
+    'email':                 {'active': True,  'query': None},
+    'whats':                 {'active': True,  'query': None},
+    # Exclusivos da Renner — query própria, carregados manualmente
+    'base_auxiliar_renner':  {'active': True,  'query': get_query_base_aux_renner},
+    'discagens_olos':        {'active': True,  'query': get_query_discagens_olos},
+}
+ 
+
 # ============================================
 # FILTROS SQL (WHERE CLAUSES)
 # ============================================
