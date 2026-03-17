@@ -6,212 +6,198 @@ Contém funções para gerar métricas acumuladas (mensais) de acionamentos.
 import pandas as pd
 from functools import reduce
 from utils.utils import registrar_tempo, salvar_log, transformar_funil_formato_long, unir_dataframes, normalizar_tipos_df
-from ..config import LOG_ACIONAMENTOS
+import warnings
+warnings.filterwarnings("ignore", category=FutureWarning)
 
-@registrar_tempo("Funil de acionamentos fxAtraso", arquivo_log=LOG_ACIONAMENTOS)
-def acionamentos_fxAtraso_funil(df_acionamentos_enriquecido_limpo, df_dw_calendario, segmentacoes_extras=None):
-    import warnings
-    warnings.filterwarnings("ignore", category=FutureWarning)
+def acionamentos_segmentacoes_funil(df_acionamentos, segmentacoes, arquivo_log=None):
+    """
+    Contagem acumulada mensal de acionamentos por segmentacoes.
 
-    segmentacoes_extras = segmentacoes_extras or []
-    colunas_segmentacao = ['FX_ATRASO'] + segmentacoes_extras
+    Função dinâmica — não assume nenhuma segmentação padrão.
+    As segmentações são definidas pela carteira na chamada da função.
 
-    df = df_acionamentos_enriquecido_limpo.copy()
-    df['DATA_ACIONA'] = pd.to_datetime(df['DATA_ACIONA'])
+    Exemplos:
+        Renner:  segmentacoes=['FX_ATRASO', 'FAIXA']
+        Ouze:    segmentacoes=['FX_ATRASO']
 
-    df_dw_calendario_temp = df_dw_calendario.copy()
-    df_dw_calendario_temp['dt_data'] = pd.to_datetime(df_dw_calendario_temp['dt_data'])
+    - Para cada CPF acumulado no mês, mantém o registro de maior TABULACAO_SCORE
+      por combinação de segmentacoes.
+    - Indicadores: Acionamentos, CPC, CPCA, Promessa.
+    - Apenas dias úteis (nr_dia_util > 0) geram registros no funil.
+      Dados de fins de semana são incorporados no próximo dia útil.
 
-    data_min = df['DATA_ACIONA'].min()
-    data_max = df['DATA_ACIONA'].max()
+    Args:
+        df_acionamentos (pd.DataFrame): DataFrame já com colunas de calendário.
+            Colunas obrigatórias: CPF_DEV, DATA_ACIONA, VALORPRIN_FIN,
+                                  ACIONAMENTOS, CPC, CPCA, PROMESSA,
+                                  nr_dia_util, quartil, dt_mes, mes_abreviado
+        segmentacoes (list): Colunas de segmentação. Ex: ['FX_ATRASO'] ou ['FX_ATRASO', 'FAIXA']
+        arquivo_log (str): Caminho do arquivo de log. Ex: LOG_ACIONAMENTOS
 
-    df_calendario_periodo = df_dw_calendario_temp[
-        (df_dw_calendario_temp['dt_data'] >= data_min) &
-        (df_dw_calendario_temp['dt_data'] <= data_max)
-    ].sort_values('dt_data').copy()
+    Returns:
+        pd.DataFrame:
+            DATA_ACIONA | Indicador | qte | [segmentacoes] |
+            MesAbreviado | nr_dia_util | quartil | dt_mes | VALORPRIN_FIN
+    """
+    @registrar_tempo("Funil Segmentações - Acionamentos", arquivo_log=arquivo_log)
+    def _executar():
+        warnings.filterwarnings("ignore", category=FutureWarning)
 
-    datas_calendario = df_calendario_periodo['dt_data'].tolist()
-    resultados = []
-    ultimo_valor_por_mes = {}
+        colunas_calendario = ['nr_dia_util', 'quartil', 'dt_mes', 'mes_abreviado']
 
-    indicadores = [
-        ('Acionamentos', 'ACIONAMENTOS'),
-        ('CPC', 'CPC'),
-        ('CPCA', 'CPCA'),
-        ('Promessa', 'PROMESSA'),
-    ]
+        indicadores = [
+            ('Acionamentos', 'ACIONAMENTOS'),
+            ('CPC',          'CPC'),
+            ('CPCA',         'CPCA'),
+            ('Promessa',     'PROMESSA'),
+        ]
 
-    salvar_log("=" * 80, arquivo_log=LOG_ACIONAMENTOS)
-    salvar_log(f"📊 Processando acumulado mensal por {' + '.join(colunas_segmentacao)} para {len(datas_calendario)} datas...", arquivo_log=LOG_ACIONAMENTOS)
+        df = df_acionamentos.copy()
+        df['DATA_ACIONA'] = pd.to_datetime(df['DATA_ACIONA'])
 
-    for i, data in enumerate(datas_calendario, 1):
-        if i % 10 == 0 or i == len(datas_calendario):
-            salvar_log(f"   Processando {i}/{len(datas_calendario)} datas...", arquivo_log=LOG_ACIONAMENTOS)
+        # Apenas dias úteis definem os pontos de corte do funil
+        datas_calendario = sorted(
+            df.loc[df['nr_dia_util'] > 0, 'DATA_ACIONA'].unique()
+        )
+        resultados = []
+        ultimo_valor_por_mes = {}
 
-        inicio_mes = pd.Timestamp(data.year, data.month, 1)
-        chave_mes = (data.year, data.month)
-        tem_dados = (df['DATA_ACIONA'] == data).any()
+        for i, data in enumerate(datas_calendario, 1):
+            inicio_mes = pd.Timestamp(data.year, data.month, 1)
+            chave_mes  = (data.year, data.month)
 
-        if tem_dados:
-            df_intervalo = df[(df['DATA_ACIONA'] >= inicio_mes) & (df['DATA_ACIONA'] <= data)].copy()
+            # Acumula do início do mês até a data atual (inclui fins de semana nos dados)
+            df_intervalo = df[
+                (df['DATA_ACIONA'] >= inicio_mes) &
+                (df['DATA_ACIONA'] <= data)
+            ].copy()
 
             df_intervalo['TABULACAO_SCORE'] = (
                 df_intervalo['PROMESSA'].astype(int) * 3 +
-                df_intervalo['CPCA'].astype(int) * 2 +
-                df_intervalo['CPC'].astype(int) * 1
+                df_intervalo['CPCA'].astype(int)     * 2 +
+                df_intervalo['CPC'].astype(int)      * 1
             )
 
             df_intervalo = df_intervalo.sort_values(
-                ['CPF_DEV'] + colunas_segmentacao + ['TABULACAO_SCORE'],
-                ascending=[True] * (len(colunas_segmentacao) + 1) + [False]
+                ['CPF_DEV'] + segmentacoes + ['TABULACAO_SCORE'],
+                ascending=[True] * (len(segmentacoes) + 1) + [False]
             )
 
             df_filtrado = df_intervalo.drop_duplicates(
-                subset=['CPF_DEV'] + colunas_segmentacao, keep='first'
+                subset=['CPF_DEV'] + segmentacoes, keep='first'
             ).copy()
+
+            cal = df.loc[df['DATA_ACIONA'] == data, colunas_calendario].iloc[0].to_dict()
 
             agrupados_data = []
             for indicador, col_flag in indicadores:
                 df_flag = df_filtrado[df_filtrado[col_flag] == 1]
 
-                agrupado = df_filtrado.groupby(colunas_segmentacao).agg(
+                agrupado = df_filtrado.groupby(segmentacoes).agg(
                     qte=(col_flag, 'sum')
                 ).reset_index()
 
-                agrupado_valor = df_flag.groupby(colunas_segmentacao).agg(
-                    VALORPRIN_FIN=('VALORPRIN_FIN', 'sum')
-                ).reset_index() if len(df_flag) > 0 else pd.DataFrame(columns=colunas_segmentacao + ['VALORPRIN_FIN'])
+                agrupado_valor = (
+                    df_flag.groupby(segmentacoes).agg(
+                        VALORPRIN_FIN=('VALORPRIN_FIN', 'sum')
+                    ).reset_index()
+                    if len(df_flag) > 0
+                    else pd.DataFrame(columns=segmentacoes + ['VALORPRIN_FIN'])
+                )
 
-                agrupado = agrupado.merge(agrupado_valor, on=colunas_segmentacao, how='left')
+                agrupado = agrupado.merge(agrupado_valor, on=segmentacoes, how='left')
                 agrupado['VALORPRIN_FIN'] = agrupado['VALORPRIN_FIN'].fillna(0)
-                agrupado['Indicador'] = indicador
-                agrupado['DATA_ACIONA'] = data
+                agrupado['Indicador']     = indicador
+                agrupado['DATA_ACIONA']   = data
+                for col, val in cal.items():
+                    agrupado[col] = val
                 agrupados_data.append(agrupado)
 
             agrupado_concat = pd.concat(agrupados_data, ignore_index=True)
             ultimo_valor_por_mes[chave_mes] = agrupado_concat
             resultados.append(agrupado_concat)
 
-        else:
-            if chave_mes in ultimo_valor_por_mes:
-                agrupado_replicado = ultimo_valor_por_mes[chave_mes].copy()
-                agrupado_replicado['DATA_ACIONA'] = data
-                resultados.append(agrupado_replicado)
-            else:
-                combinacoes = df[colunas_segmentacao].drop_duplicates()
-                if len(combinacoes) > 0:
-                    agrupados_zero = []
-                    for indicador, _ in indicadores:
-                        agrupado_zero = combinacoes.copy()
-                        agrupado_zero['DATA_ACIONA'] = data
-                        agrupado_zero['Indicador'] = indicador
-                        agrupado_zero['qte'] = 0
-                        agrupado_zero['VALORPRIN_FIN'] = 0.0
-                        agrupados_zero.append(agrupado_zero)
-                    agrupado_concat = pd.concat(agrupados_zero, ignore_index=True)
-                    ultimo_valor_por_mes[chave_mes] = agrupado_concat
-                    resultados.append(agrupado_concat)
+            if i < len(datas_calendario):
+                proxima = datas_calendario[i]
+                if proxima.month != data.month or proxima.year != data.year:
+                    ultimo_valor_por_mes.pop(chave_mes, None)
 
-        if i > 0 and inicio_mes.month != datas_calendario[i-1].month:
-            mes_anterior = (datas_calendario[i-1].year, datas_calendario[i-1].month)
-            if mes_anterior in ultimo_valor_por_mes:
-                del ultimo_valor_por_mes[mes_anterior]
+        df_final = pd.concat(resultados, ignore_index=True)
+        df_final = df_final.rename(columns={'mes_abreviado': 'MesAbreviado'})
 
-    df_final = pd.concat(resultados, ignore_index=True)
-    salvar_log(f"\n📅 Merge com dw_calendario...", arquivo_log=LOG_ACIONAMENTOS)
-    df_final = df_final.merge(
-        df_dw_calendario_temp[['dt_data', 'nr_dia_util', 'quartil', 'dt_mes', 'mes_abreviado']],
-        left_on='DATA_ACIONA', right_on='dt_data', how='inner'
-    ).drop(columns=['dt_data'])
+        colunas_num = df_final.select_dtypes(include=['number']).columns
+        df_final[colunas_num] = df_final[colunas_num].fillna(0)
 
-    for col in df_final.select_dtypes(include=['number']).columns:
-        df_final[col] = df_final[col].fillna(0)
-    df_final = df_final.rename(columns={'mes_abreviado': 'MesAbreviado'})
+        colunas_ordenadas = (
+            ['DATA_ACIONA', 'Indicador', 'qte'] + segmentacoes +
+            ['MesAbreviado', 'nr_dia_util', 'quartil', 'dt_mes', 'VALORPRIN_FIN']
+        )
+        df_final = df_final[colunas_ordenadas]
 
-    df_final = pd.concat(resultados, ignore_index=True)
+        salvar_log(f"   ✓ Registros finais: {len(df_final):,}", arquivo_log=arquivo_log)
+        salvar_log(f"   ✓ Total qte (última data): {df_final[df_final['DATA_ACIONA'] == df_final['DATA_ACIONA'].max()]['qte'].sum():,}", arquivo_log=arquivo_log)
+        salvar_log(f"   ✓ VALORPRIN_FIN total (última data): R$ {df_final[df_final['DATA_ACIONA'] == df_final['DATA_ACIONA'].max()]['VALORPRIN_FIN'].sum():,.2f}", arquivo_log=arquivo_log)
+        salvar_log("=" * 80, arquivo_log=arquivo_log)
 
-    df_final = df_final.merge(
-        df_dw_calendario_temp[['dt_data', 'nr_dia_util', 'quartil', 'dt_mes', 'mes_abreviado']],
-        left_on='DATA_ACIONA', right_on='dt_data', how='inner'
-    ).drop(columns=['dt_data']).reset_index(drop=True)
+        return df_final
 
-    df_final = df_final.copy().reset_index(drop=True)
+    return _executar()
 
-    for col in df_final.select_dtypes(include=['number']).columns:
-        df_final[col] = df_final[col].fillna(0)
+def acionamentos_unique_funil(df_acionamentos, segmentacoes, arquivo_log=None):
+    """
+    Contagem acumulada mensal de acionamentos por maior TABULACAO_SCORE por CPF.
 
-    colunas_grupo = ['DATA_ACIONA', 'Indicador', 'FX_ATRASO'] + segmentacoes_extras + ['mes_abreviado', 'nr_dia_util', 'quartil', 'dt_mes']
+    - Para cada CPF acumulado no mês, considera apenas um registro
+      (maior TABULACAO_SCORE, sem segmentação detalhada).
+    - Todas as colunas de segmentacoes recebem label 'Unique' no output.
+    - Apenas dias úteis (nr_dia_util > 0) geram registros no funil.
+      Dados de fins de semana são incorporados no próximo dia útil.
 
-    # df_final = df_final.groupby(colunas_grupo, as_index=False).agg(
-    #     qte=('qte', 'sum'),
-    #     VALORPRIN_FIN=('VALORPRIN_FIN', 'sum')
-    # )
-    
-    # df_final = df_final.groupby(colunas_grupo, as_index=False).agg(
-    #     qte=('qte', 'sum'),
-    #     VALORPRIN_FIN=('VALORPRIN_FIN', 'sum')
-    # )
+    Args:
+        df_acionamentos (pd.DataFrame): DataFrame já com colunas de calendário.
+        segmentacoes (list): Colunas de segmentação. Ex: ['FX_ATRASO'] ou ['FX_ATRASO', 'FAIXA']
+        arquivo_log (str): Caminho do arquivo de log. Ex: LOG_ACIONAMENTOS
 
-    df_final = df_final.rename(columns={'mes_abreviado': 'MesAbreviado'})
+    Returns:
+        pd.DataFrame: segmentacoes = 'Unique'.
+    """
+    @registrar_tempo("Funil Unique - Acionamentos", arquivo_log=arquivo_log)
+    def _executar():
+        warnings.filterwarnings("ignore", category=FutureWarning)
 
-    colunas_ordenadas = (
-        ['DATA_ACIONA', 'Indicador', 'qte', 'FX_ATRASO'] + segmentacoes_extras +
-        ['MesAbreviado', 'nr_dia_util', 'quartil', 'dt_mes', 'VALORPRIN_FIN']
-    )
-    df_final = df_final[colunas_ordenadas]
-    
-    return df_final
+        colunas_calendario = ['nr_dia_util', 'quartil', 'dt_mes', 'mes_abreviado']
 
-@registrar_tempo("Funil de acionamentos unique", arquivo_log=LOG_ACIONAMENTOS)
-def acionamentos_unique_funil(df_acionamentos_enriquecido_limpo, df_dw_calendario, segmentacoes_extras=None):
-    import warnings
-    warnings.filterwarnings("ignore", category=FutureWarning)
+        indicadores = [
+            ('Acionamentos', 'ACIONAMENTOS'),
+            ('CPC',          'CPC'),
+            ('CPCA',         'CPCA'),
+            ('Promessa',     'PROMESSA'),
+        ]
 
-    segmentacoes_extras = segmentacoes_extras or []
+        df = df_acionamentos.copy()
+        df['DATA_ACIONA'] = pd.to_datetime(df['DATA_ACIONA'])
 
-    df = df_acionamentos_enriquecido_limpo.copy()
-    df['DATA_ACIONA'] = pd.to_datetime(df['DATA_ACIONA'])
+        # Apenas dias úteis definem os pontos de corte do funil
+        datas_calendario = sorted(
+            df.loc[df['nr_dia_util'] > 0, 'DATA_ACIONA'].unique()
+        )
+        resultados = []
+        ultimo_valor_por_mes = {}
 
-    df_dw_calendario_temp = df_dw_calendario.copy()
-    df_dw_calendario_temp['dt_data'] = pd.to_datetime(df_dw_calendario_temp['dt_data'])
+        for i, data in enumerate(datas_calendario, 1):
+            inicio_mes = pd.Timestamp(data.year, data.month, 1)
+            chave_mes  = (data.year, data.month)
 
-    data_min = df['DATA_ACIONA'].min()
-    data_max = df['DATA_ACIONA'].max()
-
-    df_calendario_periodo = df_dw_calendario_temp[
-        (df_dw_calendario_temp['dt_data'] >= data_min) &
-        (df_dw_calendario_temp['dt_data'] <= data_max)
-    ].sort_values('dt_data').copy()
-
-    datas_calendario = df_calendario_periodo['dt_data'].tolist()
-    resultados = []
-    ultimo_valor_por_mes = {}
-
-    indicadores = [
-        ('Acionamentos', 'ACIONAMENTOS'),
-        ('CPC', 'CPC'),
-        ('CPCA', 'CPCA'),
-        ('Promessa', 'PROMESSA'),
-    ]
-
-    salvar_log("=" * 80, arquivo_log=LOG_ACIONAMENTOS)
-    salvar_log(f"📊 Processando acumulado mensal ÚNICO para {len(datas_calendario)} datas...", arquivo_log=LOG_ACIONAMENTOS)
-
-    for i, data in enumerate(datas_calendario, 1):
-        if i % 10 == 0 or i == len(datas_calendario):
-            salvar_log(f"   Processando {i}/{len(datas_calendario)} datas...", arquivo_log=LOG_ACIONAMENTOS)
-
-        inicio_mes = pd.Timestamp(data.year, data.month, 1)
-        chave_mes = (data.year, data.month)
-        tem_dados = (df['DATA_ACIONA'] == data).any()
-
-        if tem_dados:
-            df_intervalo = df[(df['DATA_ACIONA'] >= inicio_mes) & (df['DATA_ACIONA'] <= data)].copy()
+            # Acumula do início do mês até a data atual (inclui fins de semana nos dados)
+            df_intervalo = df[
+                (df['DATA_ACIONA'] >= inicio_mes) &
+                (df['DATA_ACIONA'] <= data)
+            ].copy()
 
             df_intervalo['TABULACAO_SCORE'] = (
                 df_intervalo['PROMESSA'].astype(int) * 3 +
-                df_intervalo['CPCA'].astype(int) * 2 +
-                df_intervalo['CPC'].astype(int) * 1
+                df_intervalo['CPCA'].astype(int)     * 2 +
+                df_intervalo['CPC'].astype(int)      * 1
             )
 
             df_intervalo = df_intervalo.sort_values(
@@ -220,474 +206,517 @@ def acionamentos_unique_funil(df_acionamentos_enriquecido_limpo, df_dw_calendari
 
             df_unique = df_intervalo.drop_duplicates(subset=['CPF_DEV'], keep='first').copy()
 
+            cal = df.loc[df['DATA_ACIONA'] == data, colunas_calendario].iloc[0].to_dict()
+
             agrupados_data = []
             for indicador, col_flag in indicadores:
                 df_flag = df_unique[df_unique[col_flag] == 1]
 
-                agrupado = df_unique.groupby(['FX_ATRASO']).agg(
+                agrupado = df_unique.groupby(segmentacoes).agg(
                     qte=(col_flag, 'sum')
                 ).reset_index()
 
-                agrupado_valor = df_flag.groupby(['FX_ATRASO']).agg(
-                    VALORPRIN_FIN=('VALORPRIN_FIN', 'sum')
-                ).reset_index() if len(df_flag) > 0 else pd.DataFrame(columns=['FX_ATRASO', 'VALORPRIN_FIN'])
+                agrupado_valor = (
+                    df_flag.groupby(segmentacoes).agg(
+                        VALORPRIN_FIN=('VALORPRIN_FIN', 'sum')
+                    ).reset_index()
+                    if len(df_flag) > 0
+                    else pd.DataFrame(columns=segmentacoes + ['VALORPRIN_FIN'])
+                )
 
-                agrupado = agrupado.merge(agrupado_valor, on='FX_ATRASO', how='left')
+                agrupado = agrupado.merge(agrupado_valor, on=segmentacoes, how='left')
                 agrupado['VALORPRIN_FIN'] = agrupado['VALORPRIN_FIN'].fillna(0)
-                agrupado['FX_ATRASO'] = 'Unique'
-                for col in segmentacoes_extras:
+                for col in segmentacoes:
                     agrupado[col] = 'Unique'
-                agrupado['Indicador'] = indicador
+                agrupado['Indicador']   = indicador
                 agrupado['DATA_ACIONA'] = data
+                for col, val in cal.items():
+                    agrupado[col] = val
                 agrupados_data.append(agrupado)
 
             agrupado_concat = pd.concat(agrupados_data, ignore_index=True)
             ultimo_valor_por_mes[chave_mes] = agrupado_concat
             resultados.append(agrupado_concat)
 
-        else:
-            if chave_mes in ultimo_valor_por_mes:
-                agrupado_replicado = ultimo_valor_por_mes[chave_mes].copy()
-                agrupado_replicado['DATA_ACIONA'] = data
-                resultados.append(agrupado_replicado)
-            else:
-                agrupados_zero = []
-                for indicador, _ in indicadores:
-                    agrupado_zero = pd.DataFrame([{
-                        'FX_ATRASO': 'Unique',
-                        **{col: 'Unique' for col in segmentacoes_extras},
-                        'DATA_ACIONA': data,
-                        'Indicador': indicador,
-                        'qte': 0,
-                        'VALORPRIN_FIN': 0.0
-                    }])
-                    agrupados_zero.append(agrupado_zero)
-                agrupado_concat = pd.concat(agrupados_zero, ignore_index=True)
-                ultimo_valor_por_mes[chave_mes] = agrupado_concat
-                resultados.append(agrupado_concat)
+            if i < len(datas_calendario):
+                proxima = datas_calendario[i]
+                if proxima.month != data.month or proxima.year != data.year:
+                    ultimo_valor_por_mes.pop(chave_mes, None)
 
-        if i > 0 and inicio_mes.month != datas_calendario[i-1].month:
-            mes_anterior = (datas_calendario[i-1].year, datas_calendario[i-1].month)
-            if mes_anterior in ultimo_valor_por_mes:
-                del ultimo_valor_por_mes[mes_anterior]
+        df_final = pd.concat(resultados, ignore_index=True)
+        df_final = df_final.rename(columns={'mes_abreviado': 'MesAbreviado'})
 
-    df_final = pd.concat(resultados, ignore_index=True)
+        colunas_num = df_final.select_dtypes(include=['number']).columns
+        df_final[colunas_num] = df_final[colunas_num].fillna(0)
 
-    salvar_log(f"\n📅 Merge com dw_calendario...", arquivo_log=LOG_ACIONAMENTOS)
-    df_final = df_final.merge(
-        df_dw_calendario_temp[['dt_data', 'nr_dia_util', 'quartil', 'dt_mes', 'mes_abreviado']],
-        left_on='DATA_ACIONA', right_on='dt_data', how='inner'
-    ).drop(columns=['dt_data'])
+        colunas_grupo = (
+            ['DATA_ACIONA', 'Indicador'] + segmentacoes +
+            ['MesAbreviado', 'nr_dia_util', 'quartil', 'dt_mes']
+        )
+        df_final = df_final.groupby(colunas_grupo, as_index=False).agg(
+            qte=('qte', 'sum'),
+            VALORPRIN_FIN=('VALORPRIN_FIN', 'sum')
+        )
 
-    colunas_numericas = df_final.select_dtypes(include=['number']).columns
-    df_final[colunas_numericas] = df_final[colunas_numericas].fillna(0)
-    df_final = df_final.rename(columns={'mes_abreviado': 'MesAbreviado'})
+        colunas_ordenadas = (
+            ['DATA_ACIONA', 'Indicador', 'qte'] + segmentacoes +
+            ['MesAbreviado', 'nr_dia_util', 'quartil', 'dt_mes', 'VALORPRIN_FIN']
+        )
+        df_final = df_final[colunas_ordenadas]
 
-    colunas_grupo = ['DATA_ACIONA', 'Indicador', 'FX_ATRASO'] + segmentacoes_extras + ['MesAbreviado', 'nr_dia_util', 'quartil', 'dt_mes']
-    df_final = df_final.groupby(colunas_grupo, as_index=False).agg(
-        qte=('qte', 'sum'),
-        VALORPRIN_FIN=('VALORPRIN_FIN', 'sum')
-    )
+        salvar_log(f"   ✓ Registros finais: {len(df_final):,}", arquivo_log=arquivo_log)
+        salvar_log(f"   ✓ Total qte (última data): {df_final[df_final['DATA_ACIONA'] == df_final['DATA_ACIONA'].max()]['qte'].sum():,}", arquivo_log=arquivo_log)
+        salvar_log(f"   ✓ VALORPRIN_FIN total (última data): R$ {df_final[df_final['DATA_ACIONA'] == df_final['DATA_ACIONA'].max()]['VALORPRIN_FIN'].sum():,.2f}", arquivo_log=arquivo_log)
+        salvar_log("=" * 80, arquivo_log=arquivo_log)
 
-    colunas_ordenadas = (
-        ['DATA_ACIONA', 'Indicador', 'qte', 'FX_ATRASO'] + segmentacoes_extras +
-        ['MesAbreviado', 'nr_dia_util', 'quartil', 'dt_mes', 'VALORPRIN_FIN']
-    )
-    df_final = df_final[colunas_ordenadas]
+        return df_final
 
-    salvar_log(f"   ✓ Registros finais: {len(df_final):,}", arquivo_log=LOG_ACIONAMENTOS)
-    salvar_log("=" * 80, arquivo_log=LOG_ACIONAMENTOS)
+    return _executar()
 
-    return df_final
+def acionamentos_esforco_funil(df_acionamentos, segmentacoes, arquivo_log=None):
+    """
+    Contagem acumulada mensal de acionamentos sem deduplicação por CPF.
 
-@registrar_tempo("Funil de acionamentos esforço", arquivo_log=LOG_ACIONAMENTOS)
-def acionamentos_esforco_funil(df_acionamentos_enriquecido_limpo, df_dw_calendario, segmentacoes_extras=None):
-    import warnings
-    warnings.filterwarnings("ignore", category=FutureWarning)
+    - Todas as ocorrências do período são somadas, sem nenhum critério de unicidade.
+    - Todas as colunas de segmentacoes recebem label 'Esforço' no output.
+    - Apenas dias úteis (nr_dia_util > 0) geram registros no funil.
+      Dados de fins de semana são incorporados no próximo dia útil.
 
-    segmentacoes_extras = segmentacoes_extras or []
+    Args:
+        df_acionamentos (pd.DataFrame): DataFrame já com colunas de calendário.
+        segmentacoes (list): Colunas de segmentação. Ex: ['FX_ATRASO'] ou ['FX_ATRASO', 'FAIXA']
+        arquivo_log (str): Caminho do arquivo de log. Ex: LOG_ACIONAMENTOS
 
-    df = df_acionamentos_enriquecido_limpo.copy()
-    df['DATA_ACIONA'] = pd.to_datetime(df['DATA_ACIONA'])
+    Returns:
+        pd.DataFrame: segmentacoes = 'Esforço'.
+    """
+    @registrar_tempo("Funil Esforço - Acionamentos", arquivo_log=arquivo_log)
+    def _executar():
+        warnings.filterwarnings("ignore", category=FutureWarning)
 
-    df_dw_calendario_temp = df_dw_calendario.copy()
-    df_dw_calendario_temp['dt_data'] = pd.to_datetime(df_dw_calendario_temp['dt_data'])
+        colunas_calendario = ['nr_dia_util', 'quartil', 'dt_mes', 'mes_abreviado']
 
-    data_min = df['DATA_ACIONA'].min()
-    data_max = df['DATA_ACIONA'].max()
+        indicadores = [
+            ('Acionamentos', 'ACIONAMENTOS'),
+            ('CPC',          'CPC'),
+            ('CPCA',         'CPCA'),
+            ('Promessa',     'PROMESSA'),
+        ]
 
-    df_calendario_periodo = df_dw_calendario_temp[
-        (df_dw_calendario_temp['dt_data'] >= data_min) &
-        (df_dw_calendario_temp['dt_data'] <= data_max)
-    ].sort_values('dt_data').copy()
+        df = df_acionamentos.copy()
+        df['DATA_ACIONA'] = pd.to_datetime(df['DATA_ACIONA'])
 
-    datas_calendario = df_calendario_periodo['dt_data'].tolist()
-    resultados = []
-    ultimo_valor_por_mes = {}
+        # Apenas dias úteis definem os pontos de corte do funil
+        datas_calendario = sorted(
+            df.loc[df['nr_dia_util'] > 0, 'DATA_ACIONA'].unique()
+        )
+        resultados = []
+        ultimo_valor_por_mes = {}
 
-    indicadores = [
-        ('Acionamentos', 'ACIONAMENTOS'),
-        ('CPC', 'CPC'),
-        ('CPCA', 'CPCA'),
-        ('Promessa', 'PROMESSA'),
-    ]
+        for i, data in enumerate(datas_calendario, 1):
+            inicio_mes = pd.Timestamp(data.year, data.month, 1)
+            chave_mes  = (data.year, data.month)
 
-    salvar_log("=" * 80, arquivo_log=LOG_ACIONAMENTOS)
-    salvar_log(f"📊 Processando acumulado mensal ESFOR\u00c7O para {len(datas_calendario)} datas...", arquivo_log=LOG_ACIONAMENTOS)
+            # Acumula do início do mês até a data atual (inclui fins de semana nos dados)
+            df_intervalo = df[
+                (df['DATA_ACIONA'] >= inicio_mes) &
+                (df['DATA_ACIONA'] <= data)
+            ].copy()
 
-    for i, data in enumerate(datas_calendario, 1):
-        if i % 10 == 0 or i == len(datas_calendario):
-            salvar_log(f"   Processando {i}/{len(datas_calendario)} datas...", arquivo_log=LOG_ACIONAMENTOS)
-
-        inicio_mes = pd.Timestamp(data.year, data.month, 1)
-        chave_mes = (data.year, data.month)
-        tem_dados = (df['DATA_ACIONA'] == data).any()
-
-        if tem_dados:
-            df_intervalo = df[(df['DATA_ACIONA'] >= inicio_mes) & (df['DATA_ACIONA'] <= data)].copy()
+            cal = df.loc[df['DATA_ACIONA'] == data, colunas_calendario].iloc[0].to_dict()
 
             agrupados_data = []
             for indicador, col_flag in indicadores:
                 df_flag = df_intervalo[df_intervalo[col_flag] == 1]
 
-                agrupado = df_intervalo.groupby(['FX_ATRASO']).agg(
+                agrupado = df_intervalo.groupby(segmentacoes).agg(
                     qte=(col_flag, 'sum')
                 ).reset_index()
 
-                agrupado_valor = df_flag.groupby(['FX_ATRASO']).agg(
-                    VALORPRIN_FIN=('VALORPRIN_FIN', 'sum')
-                ).reset_index() if len(df_flag) > 0 else pd.DataFrame(columns=['FX_ATRASO', 'VALORPRIN_FIN'])
+                agrupado_valor = (
+                    df_flag.groupby(segmentacoes).agg(
+                        VALORPRIN_FIN=('VALORPRIN_FIN', 'sum')
+                    ).reset_index()
+                    if len(df_flag) > 0
+                    else pd.DataFrame(columns=segmentacoes + ['VALORPRIN_FIN'])
+                )
 
-                agrupado = agrupado.merge(agrupado_valor, on='FX_ATRASO', how='left')
+                agrupado = agrupado.merge(agrupado_valor, on=segmentacoes, how='left')
                 agrupado['VALORPRIN_FIN'] = agrupado['VALORPRIN_FIN'].fillna(0)
-                agrupado['FX_ATRASO'] = 'Esforço'
-                for col in segmentacoes_extras:
+                for col in segmentacoes:
                     agrupado[col] = 'Esforço'
-                agrupado['Indicador'] = indicador
+                agrupado['Indicador']   = indicador
                 agrupado['DATA_ACIONA'] = data
+                for col, val in cal.items():
+                    agrupado[col] = val
                 agrupados_data.append(agrupado)
 
             agrupado_concat = pd.concat(agrupados_data, ignore_index=True)
             ultimo_valor_por_mes[chave_mes] = agrupado_concat
             resultados.append(agrupado_concat)
 
-        else:
-            if chave_mes in ultimo_valor_por_mes:
-                agrupado_replicado = ultimo_valor_por_mes[chave_mes].copy()
-                agrupado_replicado['DATA_ACIONA'] = data
-                resultados.append(agrupado_replicado)
-            else:
-                agrupados_zero = []
-                for indicador, _ in indicadores:
-                    agrupado_zero = pd.DataFrame([{
-                        'FX_ATRASO': 'Esforço',
-                        **{col: 'Esforço' for col in segmentacoes_extras},
-                        'DATA_ACIONA': data,
-                        'Indicador': indicador,
-                        'qte': 0,
-                        'VALORPRIN_FIN': 0.0
-                    }])
-                    agrupados_zero.append(agrupado_zero)
-                agrupado_concat = pd.concat(agrupados_zero, ignore_index=True)
-                ultimo_valor_por_mes[chave_mes] = agrupado_concat
-                resultados.append(agrupado_concat)
+            if i < len(datas_calendario):
+                proxima = datas_calendario[i]
+                if proxima.month != data.month or proxima.year != data.year:
+                    ultimo_valor_por_mes.pop(chave_mes, None)
 
-        if i > 0 and inicio_mes.month != datas_calendario[i-1].month:
-            mes_anterior = (datas_calendario[i-1].year, datas_calendario[i-1].month)
-            if mes_anterior in ultimo_valor_por_mes:
-                del ultimo_valor_por_mes[mes_anterior]
+        df_final = pd.concat(resultados, ignore_index=True)
+        df_final = df_final.rename(columns={'mes_abreviado': 'MesAbreviado'})
 
-    df_final = pd.concat(resultados, ignore_index=True)
+        colunas_num = df_final.select_dtypes(include=['number']).columns
+        df_final[colunas_num] = df_final[colunas_num].fillna(0)
 
-    salvar_log(f"\n📅 Merge com dw_calendario...", arquivo_log=LOG_ACIONAMENTOS)
-    df_final = df_final.merge(
-        df_dw_calendario_temp[['dt_data', 'nr_dia_util', 'quartil', 'dt_mes', 'mes_abreviado']],
-        left_on='DATA_ACIONA', right_on='dt_data', how='inner'
-    ).drop(columns=['dt_data'])
-
-    colunas_numericas = df_final.select_dtypes(include=['number']).columns
-    df_final[colunas_numericas] = df_final[colunas_numericas].fillna(0)
-    df_final = df_final.rename(columns={'mes_abreviado': 'MesAbreviado'})
-
-    colunas_grupo = ['DATA_ACIONA', 'Indicador', 'FX_ATRASO'] + segmentacoes_extras + ['MesAbreviado', 'nr_dia_util', 'quartil', 'dt_mes']
-    df_final = df_final.groupby(colunas_grupo, as_index=False).agg(
-        qte=('qte', 'sum'),
-        VALORPRIN_FIN=('VALORPRIN_FIN', 'sum')
-    )
-
-    colunas_ordenadas = (
-        ['DATA_ACIONA', 'Indicador', 'qte', 'FX_ATRASO'] + segmentacoes_extras +
-        ['MesAbreviado', 'nr_dia_util', 'quartil', 'dt_mes', 'VALORPRIN_FIN']
-    )
-    df_final = df_final[colunas_ordenadas]
-
-    salvar_log(f"   ✓ Registros finais: {len(df_final):,}", arquivo_log=LOG_ACIONAMENTOS)
-    salvar_log("=" * 80, arquivo_log=LOG_ACIONAMENTOS)
-
-    return df_final
-
-@registrar_tempo("Daily fxAtraso - Acionamentos", arquivo_log=LOG_ACIONAMENTOS)
-def acionamentos_fxAtraso_daily(df_acionamentos_enriquecido_limpo, df_dw_calendario, segmentacoes_extras=None):
-    import warnings
-    warnings.filterwarnings("ignore", category=FutureWarning)
-
-    segmentacoes_extras = segmentacoes_extras or []
-    colunas_segmentacao = ['FX_ATRASO'] + segmentacoes_extras
-
-    df = df_acionamentos_enriquecido_limpo.copy()
-    df['DATA_ACIONA'] = pd.to_datetime(df['DATA_ACIONA'])
-
-    df['nr_dia_util'] = pd.to_numeric(df['nr_dia_util'], errors='coerce').fillna(0).astype(int)
-    df['quartil'] = df['quartil'].fillna('N/A').astype(str)
-    df['dt_mes'] = pd.to_numeric(df['dt_mes'], errors='coerce').fillna(0).astype(int)
-    df['mes_abreviado'] = df['mes_abreviado'].fillna('N/A').astype(str)
-
-    datas_unicas = sorted(df['DATA_ACIONA'].unique())
-    colunas_calendario = ['nr_dia_util', 'quartil', 'dt_mes', 'mes_abreviado']
-    resultados = []
-
-    salvar_log("=" * 80, arquivo_log=LOG_ACIONAMENTOS)
-    salvar_log(f"📊 Processando fxAtraso DAILY por {' + '.join(colunas_segmentacao)} para {len(datas_unicas)} datas...", arquivo_log=LOG_ACIONAMENTOS)
-
-    for i, data in enumerate(datas_unicas, 1):
-        if i % 10 == 0 or i == len(datas_unicas):
-            salvar_log(f"   Processando {i}/{len(datas_unicas)} datas...", arquivo_log=LOG_ACIONAMENTOS)
-
-        df_dia = df[df['DATA_ACIONA'] == data].copy()
-
-        df_dia['TABULACAO_SCORE'] = (
-            df_dia['PROMESSA'].astype(int) * 3 +
-            df_dia['CPCA'].astype(int) * 2 +
-            df_dia['CPC'].astype(int) * 1
+        colunas_grupo = (
+            ['DATA_ACIONA', 'Indicador'] + segmentacoes +
+            ['MesAbreviado', 'nr_dia_util', 'quartil', 'dt_mes']
+        )
+        df_final = df_final.groupby(colunas_grupo, as_index=False).agg(
+            qte=('qte', 'sum'),
+            VALORPRIN_FIN=('VALORPRIN_FIN', 'sum')
         )
 
-        df_dia = df_dia.sort_values(
-            ['CPF_DEV'] + colunas_segmentacao + ['TABULACAO_SCORE'],
-            ascending=[True] * (len(colunas_segmentacao) + 1) + [False]
+        colunas_ordenadas = (
+            ['DATA_ACIONA', 'Indicador', 'qte'] + segmentacoes +
+            ['MesAbreviado', 'nr_dia_util', 'quartil', 'dt_mes', 'VALORPRIN_FIN']
+        )
+        df_final = df_final[colunas_ordenadas]
+
+        salvar_log(f"   ✓ Registros finais: {len(df_final):,}", arquivo_log=arquivo_log)
+        salvar_log(f"   ✓ Total qte (última data): {df_final[df_final['DATA_ACIONA'] == df_final['DATA_ACIONA'].max()]['qte'].sum():,}", arquivo_log=arquivo_log)
+        salvar_log(f"   ✓ VALORPRIN_FIN total (última data): R$ {df_final[df_final['DATA_ACIONA'] == df_final['DATA_ACIONA'].max()]['VALORPRIN_FIN'].sum():,.2f}", arquivo_log=arquivo_log)
+        salvar_log("=" * 80, arquivo_log=arquivo_log)
+
+        return df_final
+
+    return _executar()
+
+def acionamentos_segmentacoes_daily(df_acionamentos, segmentacoes, arquivo_log=None):
+    """
+    Contagem diária de acionamentos por segmentacoes (sem acumulado).
+
+    Função dinâmica — não assume nenhuma segmentação padrão.
+    As segmentações são definidas pela carteira na chamada da função.
+
+    Exemplos:
+        Renner:  segmentacoes=['FX_ATRASO', 'FAIXA']
+        Ouze:    segmentacoes=['FX_ATRASO']
+
+    - Para cada CPF no dia, mantém o registro de maior TABULACAO_SCORE
+      por combinação de segmentacoes.
+    - Indicadores: Acionamentos, CPC, CPCA, Promessa.
+
+    Args:
+        df_acionamentos (pd.DataFrame): DataFrame já com colunas de calendário.
+            Colunas obrigatórias: CPF_DEV, DATA_ACIONA, VALORPRIN_FIN,
+                                  ACIONAMENTOS, CPC, CPCA, PROMESSA,
+                                  nr_dia_util, quartil, dt_mes, mes_abreviado
+        segmentacoes (list): Colunas de segmentação. Ex: ['FX_ATRASO'] ou ['FX_ATRASO', 'FAIXA']
+        arquivo_log (str): Caminho do arquivo de log. Ex: LOG_ACIONAMENTOS
+
+    Returns:
+        pd.DataFrame:
+            DATA_ACIONA | Indicador | qte | [segmentacoes] |
+            MesAbreviado | nr_dia_util | quartil | dt_mes | VALORPRIN_FIN
+    """
+    @registrar_tempo("Daily Segmentações - Acionamentos", arquivo_log=arquivo_log)
+    def _executar():
+        warnings.filterwarnings("ignore", category=FutureWarning)
+
+        colunas_calendario = ['nr_dia_util', 'quartil', 'dt_mes', 'mes_abreviado']
+
+        indicadores = [
+            ('Acionamentos', 'ACIONAMENTOS'),
+            ('CPC',          'CPC'),
+            ('CPCA',         'CPCA'),
+            ('Promessa',     'PROMESSA'),
+        ]
+
+        df = df_acionamentos.copy()
+        df['DATA_ACIONA'] = pd.to_datetime(df['DATA_ACIONA'])
+
+        for col in colunas_calendario:
+            if col not in df.columns:
+                df[col] = None
+        df['nr_dia_util']   = pd.to_numeric(df['nr_dia_util'], errors='coerce').fillna(0).astype(int)
+        df['quartil']       = df['quartil'].fillna('N/A').astype(str)
+        df['dt_mes']        = pd.to_numeric(df['dt_mes'], errors='coerce').fillna(0).astype(int)
+        df['mes_abreviado'] = df['mes_abreviado'].fillna('N/A').astype(str)
+
+        datas_unicas = sorted(df['DATA_ACIONA'].unique())
+        resultados = []
+
+        for data in datas_unicas:
+            df_dia = df[df['DATA_ACIONA'] == data].copy()
+
+            df_dia['TABULACAO_SCORE'] = (
+                df_dia['PROMESSA'].astype(int) * 3 +
+                df_dia['CPCA'].astype(int)     * 2 +
+                df_dia['CPC'].astype(int)      * 1
+            )
+
+            df_dia = df_dia.sort_values(
+                ['CPF_DEV'] + segmentacoes + ['TABULACAO_SCORE'],
+                ascending=[True] * (len(segmentacoes) + 1) + [False]
+            )
+
+            df_filtrado = df_dia.drop_duplicates(
+                subset=['CPF_DEV'] + segmentacoes, keep='first'
+            ).reset_index(drop=True)
+
+            for indicador, col_flag in indicadores:
+                df_flag = df_filtrado[df_filtrado[col_flag] == 1]
+
+                agrupado = df_filtrado.groupby(
+                    segmentacoes + colunas_calendario, dropna=False
+                ).agg(
+                    qte=(col_flag, 'sum')
+                ).reset_index()
+
+                agrupado_valor = (
+                    df_flag.groupby(segmentacoes + colunas_calendario, dropna=False).agg(
+                        VALORPRIN_FIN=('VALORPRIN_FIN', 'sum')
+                    ).reset_index()
+                    if len(df_flag) > 0
+                    else pd.DataFrame(columns=segmentacoes + colunas_calendario + ['VALORPRIN_FIN'])
+                )
+
+                agrupado = agrupado.merge(
+                    agrupado_valor, on=segmentacoes + colunas_calendario, how='left'
+                ).reset_index(drop=True)
+                agrupado['VALORPRIN_FIN'] = agrupado['VALORPRIN_FIN'].fillna(0)
+                agrupado['Indicador']     = indicador
+                agrupado['DATA_ACIONA']   = data
+                resultados.append(agrupado)
+
+        df_final = pd.concat(resultados, ignore_index=True)
+        df_final = df_final.rename(columns={'mes_abreviado': 'MesAbreviado'})
+
+        colunas_num = df_final.select_dtypes(include=['number']).columns
+        df_final[colunas_num] = df_final[colunas_num].fillna(0)
+
+        colunas_ordenadas = (
+            ['DATA_ACIONA', 'Indicador', 'qte'] + segmentacoes +
+            ['MesAbreviado', 'nr_dia_util', 'quartil', 'dt_mes', 'VALORPRIN_FIN']
+        )
+        df_final = df_final[colunas_ordenadas]
+
+        salvar_log(f"   ✓ Registros finais: {len(df_final):,}", arquivo_log=arquivo_log)
+        salvar_log("=" * 80, arquivo_log=arquivo_log)
+
+        return df_final
+
+    return _executar()
+
+def acionamentos_unique_daily(df_acionamentos, segmentacoes, arquivo_log=None):
+    """
+    Contagem diária de acionamentos por maior TABULACAO_SCORE por CPF (sem acumulado).
+
+    - Para cada CPF no dia, considera apenas um registro (maior TABULACAO_SCORE).
+    - Todas as colunas de segmentacoes recebem label 'Unique' no output.
+
+    Args:
+        df_acionamentos (pd.DataFrame): DataFrame já com colunas de calendário.
+        segmentacoes (list): Colunas de segmentação. Ex: ['FX_ATRASO'] ou ['FX_ATRASO', 'FAIXA']
+        arquivo_log (str): Caminho do arquivo de log. Ex: LOG_ACIONAMENTOS
+
+    Returns:
+        pd.DataFrame: segmentacoes = 'Unique'.
+    """
+    @registrar_tempo("Daily Unique - Acionamentos", arquivo_log=arquivo_log)
+    def _executar():
+        warnings.filterwarnings("ignore", category=FutureWarning)
+
+        colunas_calendario = ['nr_dia_util', 'quartil', 'dt_mes', 'mes_abreviado']
+
+        indicadores = [
+            ('Acionamentos', 'ACIONAMENTOS'),
+            ('CPC',          'CPC'),
+            ('CPCA',         'CPCA'),
+            ('Promessa',     'PROMESSA'),
+        ]
+
+        df = df_acionamentos.copy()
+        df['DATA_ACIONA'] = pd.to_datetime(df['DATA_ACIONA'])
+
+        for col in colunas_calendario:
+            if col not in df.columns:
+                df[col] = None
+        df['nr_dia_util']   = df['nr_dia_util'].fillna(0)
+        df['quartil']       = df['quartil'].fillna(0)
+        df['dt_mes']        = df['dt_mes'].fillna(pd.NaT)
+        df['mes_abreviado'] = df['mes_abreviado'].fillna('N/A')
+
+        datas_unicas = sorted(df['DATA_ACIONA'].unique())
+        resultados = []
+
+        for data in datas_unicas:
+            df_dia = df[df['DATA_ACIONA'] == data].copy()
+
+            df_dia['TABULACAO_SCORE'] = (
+                df_dia['PROMESSA'].astype(int) * 3 +
+                df_dia['CPCA'].astype(int)     * 2 +
+                df_dia['CPC'].astype(int)      * 1
+            )
+
+            df_dia    = df_dia.sort_values(['CPF_DEV', 'TABULACAO_SCORE'], ascending=[True, False])
+            df_unique = df_dia.drop_duplicates(subset=['CPF_DEV'], keep='first')
+
+            for indicador, col_flag in indicadores:
+                agrupado = df_unique.groupby(
+                    segmentacoes + colunas_calendario, dropna=False
+                ).apply(
+                    lambda g, f=col_flag: pd.Series({
+                        'qte':           g[f].sum(),
+                        'VALORPRIN_FIN': g.loc[g[f] == 1, 'VALORPRIN_FIN'].sum()
+                    }), include_groups=False
+                ).reset_index()
+
+                for col in segmentacoes:
+                    agrupado[col] = 'Unique'
+
+                agrupado['Indicador']   = indicador
+                agrupado['DATA_ACIONA'] = data
+                resultados.append(agrupado)
+
+        df_final = pd.concat(resultados, ignore_index=True)
+
+        colunas_num = df_final.select_dtypes(include=['number']).columns
+        df_final[colunas_num] = df_final[colunas_num].fillna(0)
+
+        df_final = df_final.rename(columns={'mes_abreviado': 'MesAbreviado'})
+
+        colunas_grupo = (
+            ['DATA_ACIONA', 'Indicador'] + segmentacoes +
+            ['MesAbreviado', 'nr_dia_util', 'quartil', 'dt_mes']
+        )
+        df_final = df_final.groupby(colunas_grupo, as_index=False, dropna=False).agg(
+            qte=('qte', 'sum'),
+            VALORPRIN_FIN=('VALORPRIN_FIN', 'sum')
         )
 
-        df_filtrado = df_dia.drop_duplicates(
-            subset=['CPF_DEV'] + colunas_segmentacao, keep='first'
-        ).reset_index(drop=True)
+        colunas_ordenadas = (
+            ['DATA_ACIONA', 'Indicador', 'qte'] + segmentacoes +
+            ['MesAbreviado', 'nr_dia_util', 'quartil', 'dt_mes', 'VALORPRIN_FIN']
+        )
+        df_final = df_final[colunas_ordenadas]
 
-        for indicador, col_flag in [
+        salvar_log(f"   ✓ Registros finais: {len(df_final):,}", arquivo_log=arquivo_log)
+        salvar_log("=" * 80, arquivo_log=arquivo_log)
+
+        return df_final
+
+    return _executar()
+
+def acionamentos_esforco_daily(df_acionamentos, segmentacoes, arquivo_log=None):
+    """
+    Contagem diária de acionamentos sem deduplicação por CPF (sem acumulado).
+
+    - Todas as ocorrências do dia são somadas, sem nenhum critério de unicidade.
+    - Todas as colunas de segmentacoes recebem label 'Esforço' no output.
+
+    Args:
+        df_acionamentos (pd.DataFrame): DataFrame já com colunas de calendário.
+        segmentacoes (list): Colunas de segmentação. Ex: ['FX_ATRASO'] ou ['FX_ATRASO', 'FAIXA']
+        arquivo_log (str): Caminho do arquivo de log. Ex: LOG_ACIONAMENTOS
+
+    Returns:
+        pd.DataFrame: segmentacoes = 'Esforço'.
+    """
+    @registrar_tempo("Daily Esforço - Acionamentos", arquivo_log=arquivo_log)
+    def _executar():
+        warnings.filterwarnings("ignore", category=FutureWarning)
+
+        colunas_calendario = ['nr_dia_util', 'quartil', 'dt_mes', 'mes_abreviado']
+
+        indicadores = [
             ('Acionamentos', 'ACIONAMENTOS'),
-            ('CPC', 'CPC'),
-            ('CPCA', 'CPCA'),
-            ('Promessa', 'PROMESSA'),
-        ]:
-            df_flag = df_filtrado[df_filtrado[col_flag] == 1]
+            ('CPC',          'CPC'),
+            ('CPCA',         'CPCA'),
+            ('Promessa',     'PROMESSA'),
+        ]
 
-            agrupado = df_filtrado.groupby(colunas_segmentacao + colunas_calendario, dropna=False).agg(
-                qte=(col_flag, 'sum')
-            ).reset_index()
+        df = df_acionamentos.copy()
+        df['DATA_ACIONA'] = pd.to_datetime(df['DATA_ACIONA'])
 
-            agrupado_valor = df_flag.groupby(colunas_segmentacao + colunas_calendario, dropna=False).agg(
-                VALORPRIN_FIN=('VALORPRIN_FIN', 'sum')
-            ).reset_index() if len(df_flag) > 0 else pd.DataFrame(columns=colunas_segmentacao + colunas_calendario + ['VALORPRIN_FIN'])
+        for col in colunas_calendario:
+            if col not in df.columns:
+                df[col] = None
+        df['nr_dia_util']   = df['nr_dia_util'].fillna(0)
+        df['quartil']       = df['quartil'].fillna(0)
+        df['dt_mes']        = df['dt_mes'].fillna(pd.NaT)
+        df['mes_abreviado'] = df['mes_abreviado'].fillna('N/A')
 
-            agrupado = agrupado.merge(agrupado_valor, on=colunas_segmentacao + colunas_calendario, how='left').reset_index(drop=True)
-            agrupado['VALORPRIN_FIN'] = agrupado['VALORPRIN_FIN'].fillna(0)
-            agrupado['Indicador'] = indicador
-            agrupado['DATA_ACIONA'] = data
-            resultados.append(agrupado)
+        datas_unicas = sorted(df['DATA_ACIONA'].unique())
+        resultados = []
 
-    df_final = pd.concat(resultados, ignore_index=True)
+        for data in datas_unicas:
+            df_dia = df[df['DATA_ACIONA'] == data].copy()
 
-    df_final = df_final.rename(columns={'mes_abreviado': 'MesAbreviado'})
+            for indicador, col_flag in indicadores:
+                agrupado = df_dia.groupby(
+                    segmentacoes + colunas_calendario, dropna=False
+                ).apply(
+                    lambda g, f=col_flag: pd.Series({
+                        'qte':           g[f].sum(),
+                        'VALORPRIN_FIN': g.loc[g[f] == 1, 'VALORPRIN_FIN'].sum()
+                    }), include_groups=False
+                ).reset_index()
 
-    colunas_grupo = ['DATA_ACIONA', 'Indicador', 'FX_ATRASO'] + segmentacoes_extras + ['MesAbreviado', 'nr_dia_util', 'quartil', 'dt_mes']
-    # df_final = df_final.groupby(colunas_grupo, as_index=False, dropna=False).agg(
-    #     qte=('qte', 'sum'),
-    #     VALORPRIN_FIN=('VALORPRIN_FIN', 'sum')
-    # )
+                for col in segmentacoes:
+                    agrupado[col] = 'Esforço'
 
-    colunas_ordenadas = (
-        ['DATA_ACIONA', 'Indicador', 'qte', 'FX_ATRASO'] + segmentacoes_extras +
-        ['MesAbreviado', 'nr_dia_util', 'quartil', 'dt_mes', 'VALORPRIN_FIN']
-    )
-    df_final = df_final[colunas_ordenadas]
+                agrupado['Indicador']   = indicador
+                agrupado['DATA_ACIONA'] = data
+                resultados.append(agrupado)
 
-    salvar_log(f"   ✓ Registros finais: {len(df_final):,}", arquivo_log=LOG_ACIONAMENTOS)
-    salvar_log("=" * 80, arquivo_log=LOG_ACIONAMENTOS)
+        df_final = pd.concat(resultados, ignore_index=True)
 
-    return df_final
+        colunas_num = df_final.select_dtypes(include=['number']).columns
+        df_final[colunas_num] = df_final[colunas_num].fillna(0)
 
-@registrar_tempo("Daily unique - Acionamentos", arquivo_log=LOG_ACIONAMENTOS)
-def acionamentos_unique_daily(df_acionamentos_enriquecido_limpo, df_dw_calendario, segmentacoes_extras=None):
-    import warnings
-    warnings.filterwarnings("ignore", category=FutureWarning)
+        df_final = df_final.rename(columns={'mes_abreviado': 'MesAbreviado'})
 
-    segmentacoes_extras = segmentacoes_extras or []
-
-    df = df_acionamentos_enriquecido_limpo.copy()
-    df['DATA_ACIONA'] = pd.to_datetime(df['DATA_ACIONA'])
-
-    df['nr_dia_util'] = df['nr_dia_util'].fillna(0)
-    df['quartil'] = df['quartil'].fillna(0)
-    df['dt_mes'] = df['dt_mes'].fillna(pd.NaT)
-    df['mes_abreviado'] = df['mes_abreviado'].fillna('N/A')
-
-    datas_unicas = sorted(df['DATA_ACIONA'].unique())
-    colunas_calendario = ['nr_dia_util', 'quartil', 'dt_mes', 'mes_abreviado']
-    resultados = []
-
-    salvar_log("=" * 80, arquivo_log=LOG_ACIONAMENTOS)
-    salvar_log(f"📊 Processando UNIQUE DAILY para {len(datas_unicas)} datas...", arquivo_log=LOG_ACIONAMENTOS)
-
-    for i, data in enumerate(datas_unicas, 1):
-        if i % 10 == 0 or i == len(datas_unicas):
-            salvar_log(f"   Processando {i}/{len(datas_unicas)} datas...", arquivo_log=LOG_ACIONAMENTOS)
-
-        df_dia = df[df['DATA_ACIONA'] == data].copy()
-
-        df_dia['TABULACAO_SCORE'] = (
-            df_dia['PROMESSA'].astype(int) * 3 +
-            df_dia['CPCA'].astype(int) * 2 +
-            df_dia['CPC'].astype(int) * 1
+        colunas_grupo = (
+            ['DATA_ACIONA', 'Indicador'] + segmentacoes +
+            ['MesAbreviado', 'nr_dia_util', 'quartil', 'dt_mes']
+        )
+        df_final = df_final.groupby(colunas_grupo, as_index=False, dropna=False).agg(
+            qte=('qte', 'sum'),
+            VALORPRIN_FIN=('VALORPRIN_FIN', 'sum')
         )
 
-        df_dia = df_dia.sort_values(['CPF_DEV', 'TABULACAO_SCORE'], ascending=[True, False])
-        df_unique = df_dia.drop_duplicates(subset=['CPF_DEV'], keep='first')
+        colunas_ordenadas = (
+            ['DATA_ACIONA', 'Indicador', 'qte'] + segmentacoes +
+            ['MesAbreviado', 'nr_dia_util', 'quartil', 'dt_mes', 'VALORPRIN_FIN']
+        )
+        df_final = df_final[colunas_ordenadas]
 
-        for indicador, col_flag in [
-            ('Acionamentos', 'ACIONAMENTOS'),
-            ('CPC', 'CPC'),
-            ('CPCA', 'CPCA'),
-            ('Promessa', 'PROMESSA'),
-        ]:
-            agrupado = df_unique.groupby(['FX_ATRASO'] + colunas_calendario, dropna=False).apply(
-                lambda g, f=col_flag: pd.Series({
-                    'qte': g[f].sum(),
-                    'VALORPRIN_FIN': g.loc[g[f] == 1, 'VALORPRIN_FIN'].sum()
-                }), include_groups=False
-            ).reset_index()
+        salvar_log(f"   ✓ Registros finais: {len(df_final):,}", arquivo_log=arquivo_log)
+        salvar_log("=" * 80, arquivo_log=arquivo_log)
 
-            agrupado['FX_ATRASO'] = 'Unique'
-            for col in segmentacoes_extras:
-                agrupado[col] = 'Unique'
+        return df_final
 
-            agrupado['Indicador'] = indicador
-            agrupado['DATA_ACIONA'] = data
-            resultados.append(agrupado)
+    return _executar()
 
-    df_final = pd.concat(resultados, ignore_index=True)
-
-    colunas_numericas = df_final.select_dtypes(include=['number']).columns
-    df_final[colunas_numericas] = df_final[colunas_numericas].fillna(0)
-
-    df_final = df_final.rename(columns={'mes_abreviado': 'MesAbreviado'})
-
-    colunas_grupo = ['DATA_ACIONA', 'Indicador', 'FX_ATRASO'] + segmentacoes_extras + ['MesAbreviado', 'nr_dia_util', 'quartil', 'dt_mes']
-    df_final = df_final.groupby(colunas_grupo, as_index=False, dropna=False).agg(
-        qte=('qte', 'sum'),
-        VALORPRIN_FIN=('VALORPRIN_FIN', 'sum')
-    )
-
-    colunas_ordenadas = (
-        ['DATA_ACIONA', 'Indicador', 'qte', 'FX_ATRASO'] + segmentacoes_extras +
-        ['MesAbreviado', 'nr_dia_util', 'quartil', 'dt_mes', 'VALORPRIN_FIN']
-    )
-    df_final = df_final[colunas_ordenadas]
-
-    salvar_log(f"   ✓ Registros finais: {len(df_final):,}", arquivo_log=LOG_ACIONAMENTOS)
-    salvar_log("=" * 80, arquivo_log=LOG_ACIONAMENTOS)
-
-    return df_final
-
-@registrar_tempo("Daily esforço - Acionamentos", arquivo_log=LOG_ACIONAMENTOS)
-def acionamentos_esforco_daily(df_acionamentos_enriquecido_limpo, df_dw_calendario, segmentacoes_extras=None):
-    import warnings
-    warnings.filterwarnings("ignore", category=FutureWarning)
-
-    segmentacoes_extras = segmentacoes_extras or []
-
-    df = df_acionamentos_enriquecido_limpo.copy()
-    df['DATA_ACIONA'] = pd.to_datetime(df['DATA_ACIONA'])
-
-    df['nr_dia_util'] = df['nr_dia_util'].fillna(0)
-    df['quartil'] = df['quartil'].fillna(0)
-    df['dt_mes'] = df['dt_mes'].fillna(pd.NaT)
-    df['mes_abreviado'] = df['mes_abreviado'].fillna('N/A')
-
-    datas_unicas = sorted(df['DATA_ACIONA'].unique())
-    colunas_calendario = ['nr_dia_util', 'quartil', 'dt_mes', 'mes_abreviado']
-    resultados = []
-
-    salvar_log("=" * 80, arquivo_log=LOG_ACIONAMENTOS)
-    salvar_log(f"📊 Processando ESFORÇO DAILY para {len(datas_unicas)} datas...", arquivo_log=LOG_ACIONAMENTOS)
-
-    for i, data in enumerate(datas_unicas, 1):
-        if i % 10 == 0 or i == len(datas_unicas):
-            salvar_log(f"   Processando {i}/{len(datas_unicas)} datas...", arquivo_log=LOG_ACIONAMENTOS)
-
-        df_dia = df[df['DATA_ACIONA'] == data].copy()
-
-        for indicador, col_flag in [
-            ('Acionamentos', 'ACIONAMENTOS'),
-            ('CPC', 'CPC'),
-            ('CPCA', 'CPCA'),
-            ('Promessa', 'PROMESSA'),
-        ]:
-            agrupado = df_dia.groupby(['FX_ATRASO'] + colunas_calendario, dropna=False).apply(
-                lambda g, f=col_flag: pd.Series({
-                    'qte': g[f].sum(),
-                    'VALORPRIN_FIN': g.loc[g[f] == 1, 'VALORPRIN_FIN'].sum()
-                }), include_groups=False
-            ).reset_index()
-
-            agrupado['FX_ATRASO'] = 'Esforço'
-            for col in segmentacoes_extras:
-                agrupado[col] = 'Esforço'
-
-            agrupado['Indicador'] = indicador
-            agrupado['DATA_ACIONA'] = data
-            resultados.append(agrupado)
-
-    df_final = pd.concat(resultados, ignore_index=True)
-
-    colunas_numericas = df_final.select_dtypes(include=['number']).columns
-    df_final[colunas_numericas] = df_final[colunas_numericas].fillna(0)
-
-    df_final = df_final.rename(columns={'mes_abreviado': 'MesAbreviado'})
-
-    colunas_grupo = ['DATA_ACIONA', 'Indicador', 'FX_ATRASO'] + segmentacoes_extras + ['MesAbreviado', 'nr_dia_util', 'quartil', 'dt_mes']
-    df_final = df_final.groupby(colunas_grupo, as_index=False, dropna=False).agg(
-        qte=('qte', 'sum'),
-        VALORPRIN_FIN=('VALORPRIN_FIN', 'sum')
-    )
-
-    colunas_ordenadas = (
-        ['DATA_ACIONA', 'Indicador', 'qte', 'FX_ATRASO'] + segmentacoes_extras +
-        ['MesAbreviado', 'nr_dia_util', 'quartil', 'dt_mes', 'VALORPRIN_FIN']
-    )
-    df_final = df_final[colunas_ordenadas]
-
-    salvar_log(f"   ✓ Registros finais: {len(df_final):,}", arquivo_log=LOG_ACIONAMENTOS)
-    salvar_log("=" * 80, arquivo_log=LOG_ACIONAMENTOS)
-
-    return df_final
-
-@registrar_tempo("Pipeline acumulados acionamentos", arquivo_log=LOG_ACIONAMENTOS)
 def processar_acumulados_acionamentos(
-    df_acionamentos_limpo,
-    df_dw_calendario,
-    segmentacoes_extras=None,
+    df_acionamentos,
+    segmentacoes,
     calcular_funil=True,
     calcular_daily=True,
-    retorno='separado'
+    retorno=None,
+    arquivo_log=None
 ):
     """
     Orquestra a geração, transformação e união de métricas acumuladas de acionamentos.
 
     Args:
-        df_acionamentos_limpo (pd.DataFrame): DataFrame de acionamentos enriquecido e limpo
-        df_dw_calendario (pd.DataFrame): DataFrame com dados de calendário
-        segmentacoes_extras (list, optional): Colunas adicionais para segmentação.
+        df_acionamentos (pd.DataFrame): DataFrame de acionamentos já com colunas de calendário.
+        segmentacoes (list): Colunas de segmentação. Ex: ['FX_ATRASO'] ou ['FX_ATRASO', 'FAIXA']
         calcular_funil (bool): Se True, calcula os acumulados de funil. Default: True
         calcular_daily (bool): Se True, calcula os acumulados diários. Default: True
         retorno (str): 'separado' → retorna (df_funil, df_daily)
                        'consolidado' → retorna um único df com coluna 'TIPO' identificando funil/daily
+        arquivo_log (str): Caminho do arquivo de log. Ex: LOG_ACIONAMENTOS
 
     Returns:
         Se retorno='separado':
@@ -695,76 +724,58 @@ def processar_acumulados_acionamentos(
         Se retorno='consolidado':
             pd.DataFrame: DataFrame único com coluna TIPO = 'Funil' ou 'Daily'
     """
-    if not calcular_funil and not calcular_daily:
-        raise ValueError("Ao menos um dos parâmetros calcular_funil ou calcular_daily deve ser True")
+    @registrar_tempo("Pipeline acumulados acionamentos", arquivo_log=arquivo_log)
+    def _executar():
+        if not calcular_funil and not calcular_daily:
+            raise ValueError("Ao menos um dos parâmetros calcular_funil ou calcular_daily deve ser True")
 
-    # ============================================
-    # ETAPA 1: FUNIL
-    # ============================================
-    df_funil = None
-    if calcular_funil:
-        df_funil = unir_dataframes(
-            normalizar_tipos_df(acionamentos_fxAtraso_funil(
-                df_acionamentos_enriquecido_limpo=df_acionamentos_limpo,
-                df_dw_calendario=df_dw_calendario,
-                segmentacoes_extras=segmentacoes_extras
-            )),
-            normalizar_tipos_df(acionamentos_unique_funil(
-                df_acionamentos_enriquecido_limpo=df_acionamentos_limpo,
-                df_dw_calendario=df_dw_calendario,
-                segmentacoes_extras=segmentacoes_extras
-            )),
-            normalizar_tipos_df(acionamentos_esforco_funil(
-                df_acionamentos_enriquecido_limpo=df_acionamentos_limpo,
-                df_dw_calendario=df_dw_calendario,
-                segmentacoes_extras=segmentacoes_extras
-            ))
-        )
+        # ============================================
+        # ETAPA 1: FUNIL
+        # ============================================
+        df_funil = None
+        if calcular_funil:
+            df_funil = unir_dataframes(
+                normalizar_tipos_df(acionamentos_segmentacoes_funil(df_acionamentos, segmentacoes, arquivo_log=arquivo_log)),
+                normalizar_tipos_df(acionamentos_unique_funil(df_acionamentos, segmentacoes, arquivo_log=arquivo_log)),
+                normalizar_tipos_df(acionamentos_esforco_funil(df_acionamentos, segmentacoes, arquivo_log=arquivo_log))
+            )
 
-    # ============================================
-    # ETAPA 2: DAILY
-    # ============================================
-    df_daily = None
-    if calcular_daily:
-        df_daily = unir_dataframes(
-            normalizar_tipos_df(acionamentos_fxAtraso_daily(
-                df_acionamentos_enriquecido_limpo=df_acionamentos_limpo,
-                df_dw_calendario=df_dw_calendario,
-                segmentacoes_extras=segmentacoes_extras
-            )),
-            normalizar_tipos_df(acionamentos_unique_daily(
-                df_acionamentos_enriquecido_limpo=df_acionamentos_limpo,
-                df_dw_calendario=df_dw_calendario,
-                segmentacoes_extras=segmentacoes_extras
-            )),
-            normalizar_tipos_df(acionamentos_esforco_daily(
-                df_acionamentos_enriquecido_limpo=df_acionamentos_limpo,
-                df_dw_calendario=df_dw_calendario,
-                segmentacoes_extras=segmentacoes_extras
-            ))
-        )
+        # ============================================
+        # ETAPA 2: DAILY
+        # ============================================
+        df_daily = None
+        if calcular_daily:
+            df_daily = unir_dataframes(
+                normalizar_tipos_df(acionamentos_segmentacoes_daily(df_acionamentos, segmentacoes, arquivo_log=arquivo_log)),
+                normalizar_tipos_df(acionamentos_unique_daily(df_acionamentos, segmentacoes, arquivo_log=arquivo_log)),
+                normalizar_tipos_df(acionamentos_esforco_daily(df_acionamentos, segmentacoes, arquivo_log=arquivo_log))
+            )
 
-    # ============================================
-    # ETAPA 3: RETORNO
-    # ============================================
-    if retorno == 'consolidado':
-        dfs = []
-        if df_funil is not None:
-            df_funil['TIPO'] = 'Funil'
-            dfs.append(normalizar_tipos_df(df_funil))
-        if df_daily is not None:
-            df_daily['TIPO'] = 'Daily'
-            dfs.append(normalizar_tipos_df(df_daily))
-        return unir_dataframes(*dfs)
+        # ============================================
+        # ETAPA 3: RETORNO
+        # ============================================
+        if retorno == 'consolidado':
+            dfs = []
+            if df_funil is not None:
+                df_funil['TIPO'] = 'Funil'
+                dfs.append(normalizar_tipos_df(df_funil))
+            if df_daily is not None:
+                df_daily['TIPO'] = 'Daily'
+                dfs.append(normalizar_tipos_df(df_daily))
+            return unir_dataframes(*dfs)
 
-    return df_funil, df_daily
+        return df_funil, df_daily
+
+    return _executar()
 
 __all__ = [
-    'acionamentos_fxAtraso_funil',
+    'acionamentos_segmentacoes_funil',
     'acionamentos_unique_funil',
     'acionamentos_esforco_funil',
-    'acionamentos_fxAtraso_daily',
+
+    'acionamentos_segmentacoes_daily',
     'acionamentos_unique_daily',
     'acionamentos_esforco_daily',
+
     'processar_acumulados_acionamentos'
 ]

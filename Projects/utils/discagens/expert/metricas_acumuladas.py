@@ -10,8 +10,6 @@ Responsável por calcular:
 from typing import List, Optional
 import pandas as pd
 from utils.utils import salvar_log, registrar_tempo, unir_dataframes
-from ...config import LOG_DISCAGENS
-
 import warnings
 warnings.filterwarnings("ignore", category=FutureWarning)
 

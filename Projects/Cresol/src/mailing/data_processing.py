@@ -1,6 +1,5 @@
 import pandas as pd
 
-
 def add_pf_pj(df: pd.DataFrame, coluna_cpf: str = 'CPF') -> pd.DataFrame:
     """
     Adiciona coluna PF_PJ ao DataFrame com base no CPF.
@@ -24,7 +23,6 @@ def add_pf_pj(df: pd.DataFrame, coluna_cpf: str = 'CPF') -> pd.DataFrame:
         lambda x: 'PJ' if x == '000' else 'PF'
     )
     return df
-
 
 def add_pa(df: pd.DataFrame, coluna_cod_cli: str = 'COD_CLI') -> pd.DataFrame:
     """

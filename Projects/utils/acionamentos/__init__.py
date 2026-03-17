@@ -12,18 +12,18 @@ from .data_processing import (
     tratar_acionamentos_tabulacao,
     confere_tabulacao_acionamentos,
     enriquecer_acionamentos,
-    separar_inconsistencias,
-    acionamentos_duplicados,
+    separar_inconsistencias
 )
 
 from .metricas_acumuladas import (
-    acionamentos_fxAtraso_funil,
-    acionamentos_unique_funil,
-    acionamentos_esforco_funil,
-    acionamentos_fxAtraso_daily,
-    acionamentos_unique_daily,
-    acionamentos_esforco_daily,
-    processar_acumulados_acionamentos
+    acionamentos_segmentacoes_funil
+    ,acionamentos_unique_funil
+    ,acionamentos_esforco_funil
+
+    ,acionamentos_segmentacoes_daily
+    ,acionamentos_unique_daily
+    ,acionamentos_esforco_daily
+    ,processar_acumulados_acionamentos
 )
 
 from .metricas_diarias import (
@@ -40,21 +40,17 @@ __all__ = [
     'confere_tabulacao_acionamentos',
     'enriquecer_acionamentos',
     'separar_inconsistencias',
-    'acionamentos_duplicados',
     
     # Métricas acumuladas
-    'acionamentos_fxAtraso_funil',
+    'acionamentos_segmentacoes_funil',
     'acionamentos_unique_funil',
     'acionamentos_esforco_funil',
-    'acionamentos_fxAtraso_daily',
+
+    'acionamentos_segmentacoes_daily',
     'acionamentos_unique_daily',
     'acionamentos_esforco_daily',
-    'processar_acumulados_acionamentos',
-    
-    # Métricas diárias
-    'acionamentos_unique_origem_fxAtraso',
-    'acionamentos_unique_fxAtraso',
-    'acionamentos_esforco_origem_fxAtraso',
+
+    'processar_acumulados_acionamentos'
     
     # Pipeline
     'acionamentos_humano'

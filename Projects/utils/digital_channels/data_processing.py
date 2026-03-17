@@ -1,7 +1,144 @@
 import pandas as pd
 from utils.utils import salvar_log, salvar_dataframes_digital
 from ..config import LOG_CHANNELS
+from typing import List, Optional, Tuple
 
+def preparar_massivos(
+    df_sms,
+    df_rcs,
+    df_email,
+    df_whats,
+    arquivo_log: Optional[str] = None,
+) -> pd.DataFrame:
+    """
+    Une os DataFrames de canais massivos, mantendo apenas CPF e DATA únicos.
+    Para CPFs iguais na mesma data, mantém apenas uma ocorrência.
+    A coluna CANAL identifica a origem do registro (SMS, RCS, EMAIL, WHATS).
+
+    Args:
+        df_sms, df_rcs, df_email, df_whats (pd.DataFrame): DataFrames dos canais massivos.
+            Observação: df_email usa 'DATA' como coluna de data,
+                        os demais usam 'DATA_DISPARO'
+        arquivo_log (str): Caminho do arquivo de log. Ex: LOG_CHANNELS
+
+    Returns:
+        pd.DataFrame: DataFrame com colunas CPF, DATA e CANAL
+    """
+    dfs = []
+    for df, col_data, canal in [
+        (df_sms,   'DATA_DISPARO', 'SMS'),
+        (df_rcs,   'DATA_DISPARO', 'RCS'),
+        (df_email, 'DATA',         'EMAIL'),
+        (df_whats, 'DATA_DISPARO', 'WHATS'),
+    ]:
+        if df is not None and len(df) > 0:
+            df_temp = df[['CPF', col_data]].copy()
+            df_temp = df_temp.rename(columns={col_data: 'DATA'})
+            df_temp['CANAL'] = canal
+            dfs.append(df_temp)
+
+    df_massivos = pd.concat(dfs, ignore_index=True)
+    df_massivos['DATA'] = pd.to_datetime(df_massivos['DATA']).dt.date
+    df_massivos['CPF']  = df_massivos['CPF'].astype(str).str.strip()
+
+    salvar_log(f"📊 Massivos unificados: {len(df_massivos):,} combinações CPF+DATA", arquivo_log=arquivo_log)
+    return df_massivos
+
+def processar_massivos(
+    df_sms,
+    df_rcs,
+    df_email,
+    df_whats,
+    df_mailing_hist: pd.DataFrame,
+    df_dw_calendario: pd.DataFrame,
+    segmentacoes_extras: Optional[List[str]] = None,
+    arquivo_log: Optional[str] = None,
+) -> Tuple[pd.DataFrame, pd.DataFrame]:
+    """
+    Pipeline completo de processamento dos canais massivos.
+
+    A separação entre registros com e sem relacionamento com mailing
+    é feita dinamicamente: usa a primeira coluna de segmentacoes_extras
+    se fornecida, caso contrário usa 'VALOR' (sempre presente no mailing).
+
+    Etapas:
+        1. Unir massivos (SMS, RCS, EMAIL, WHATS)
+        2. Pré-deduplicar mailing (um contrato por CPF+DATA, maior ATRASO)
+        3. Enriquecer com mailing (remove colunas duplicadas dos massivos antes)
+        4. Enriquecer com calendário
+        5. Separar com e sem relacionamento
+
+    Args:
+        df_sms, df_rcs, df_email, df_whats: DataFrames dos canais massivos
+        df_mailing_hist (pd.DataFrame): DataFrame de mailing_hist
+        df_dw_calendario (pd.DataFrame): DataFrame de calendário
+        segmentacoes_extras (list, optional): Colunas de segmentação vindas do mailing.
+                                              Ex: ['PF_PJ', 'PA'] ou ['FX_ATRASO']
+        arquivo_log (str): Caminho do arquivo de log. Ex: LOG_CHANNELS
+
+    Returns:
+        tuple: (df_com_relacionamento, df_sem_relacionamento)
+    """
+    coluna_referencia = segmentacoes_extras[0] if segmentacoes_extras else 'VALOR'
+
+    # ============================================
+    # ETAPA 1: UNIR MASSIVOS
+    # ============================================
+    df_massivos = preparar_massivos(df_sms, df_rcs, df_email, df_whats, arquivo_log=arquivo_log)
+    salvar_log(f"📊 Massivos unificados: {len(df_massivos):,} registros", arquivo_log=arquivo_log)
+
+    # ============================================
+    # ETAPA 2: PRÉ-DEDUPLICAR MAILING
+    # um contrato por CPF+DATA — maior ATRASO
+    # ============================================
+    df_mailing_temp = df_mailing_hist.copy()
+    df_mailing_temp['DATA'] = pd.to_datetime(df_mailing_temp['DATA']).dt.date
+    df_mailing_temp['CPF']  = df_mailing_temp['CPF'].astype(str).str.strip()
+    df_mailing_temp = (
+        df_mailing_temp
+        .sort_values('ATRASO', ascending=False)
+        .drop_duplicates(subset=['CPF', 'DATA'], keep='first')
+        .reset_index(drop=True)
+    )
+    salvar_log(f"📊 Mailing pré-deduplicado: {len(df_mailing_temp):,} registros", arquivo_log=arquivo_log)
+
+    # ============================================
+    # ETAPA 3: ENRIQUECER COM MAILING
+    # Remove colunas de segmentação dos massivos antes do merge
+    # para evitar conflitos _x/_y — elas virão do mailing
+    # ============================================
+    if segmentacoes_extras:
+        colunas_para_dropar = [col for col in segmentacoes_extras if col in df_massivos.columns]
+        if colunas_para_dropar:
+            df_massivos = df_massivos.drop(columns=colunas_para_dropar)
+            salvar_log(f"   🔧 Colunas removidas dos massivos antes do merge: {colunas_para_dropar}", arquivo_log=arquivo_log)
+
+    df_resultado = df_massivos.merge(
+        df_mailing_temp,
+        on=['CPF', 'DATA'],
+        how='left'
+    )
+
+    # ============================================
+    # ETAPA 4: ENRIQUECER COM CALENDÁRIO
+    # ============================================
+    df_dw_calendario_temp = df_dw_calendario.copy()
+    df_dw_calendario_temp['dt_data'] = pd.to_datetime(df_dw_calendario_temp['dt_data']).dt.date
+
+    df_resultado = df_resultado.merge(
+        df_dw_calendario_temp[['dt_data', 'nr_dia_util', 'quartil', 'dt_mes', 'mes_abreviado']],
+        left_on='DATA', right_on='dt_data', how='left'
+    ).drop(columns=['dt_data'])
+
+    # ============================================
+    # ETAPA 5: SEPARAR COM E SEM RELACIONAMENTO
+    # ============================================
+    df_com_relacionamento = df_resultado[df_resultado[coluna_referencia].notna()].reset_index(drop=True)
+    df_sem_relacionamento = df_resultado[df_resultado[coluna_referencia].isna()].reset_index(drop=True)
+
+    salvar_log(f"📦 COM relacionamento: {len(df_com_relacionamento):,} | SEM relacionamento: {len(df_sem_relacionamento):,}", arquivo_log=arquivo_log)
+
+    return df_com_relacionamento, df_sem_relacionamento
 
 def data_channels(
     df_mailing_hist: pd.DataFrame,
@@ -243,7 +380,6 @@ def data_channels(
     salvar_log(f"{'#'*60}\n", arquivo_log=log_file)
     
     return resultados
-
 
 # Função auxiliar para desempacotar resultados
 def unpack_results(resultados: dict):

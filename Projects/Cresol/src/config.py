@@ -7,7 +7,7 @@ import os
 # =============================================================================
 # LOGS — caminhos para os arquivos de log da carteira Cresol
 # =============================================================================
-LOGS_DIR = os.path.join(os.path.dirname(__file__), 'logs')
+LOGS_DIR = os.path.join(os.path.dirname(__file__), '.logs')
 os.makedirs(LOGS_DIR, exist_ok=True)
  
 LOG_ACIONAMENTOS = os.path.join(LOGS_DIR, 'acionamentos.txt')
@@ -144,7 +144,8 @@ COLUMNS = {
         a.GrupoPrincipal AS CAMPANHA,
         a.UltCodSigRecPublica AS COD_SIP,
         a.ResultadoClassificacao AS CLASS_RETORNO,
-        a.MotivoEncerramentoBilhete AS DESC_MOTIVO_ENCERR
+        a.MotivoEncerramentoBilhete AS DESC_MOTIVO_ENCERR,
+        a.CodMotivoEncerramentoBilhete AS COD_MOTIVO_ENCERR
     """,
     "mailing_hist": """
         DATA,
@@ -192,35 +193,19 @@ COLUMNS = {
     """,
     'sms': """
         CAST(DATA AS DATE) AS DATA_DISPARO,
-        CPF,
-        CASE 
-            WHEN LEFT(RIGHT(LTRIM(RTRIM(CPF)),6),3) = '000' THEN 'PJ' 
-            ELSE 'PF'
-        END PF_PJ
+        CPF
     """,
     'rcs': """
         CAST(DATA AS DATE) AS DATA_DISPARO,
-        CPF,
-        CASE 
-            WHEN LEFT(RIGHT(LTRIM(RTRIM(CPF)),6),3) = '000' THEN 'PJ' 
-            ELSE 'PF'
-        END PF_PJ
+        CPF
     """,
     'whats': """
         CAST(DATA AS DATE) AS DATA_DISPARO,
-        CPF,
-        CASE 
-            WHEN LEFT(RIGHT(LTRIM(RTRIM(CPF)),6),3) = '000' THEN 'PJ' 
-            ELSE 'PF'
-        END PF_PJ
+        CPF
     """,
     'email': """
         DATA,
-        CPF,
-        CASE 
-            WHEN LEFT(RIGHT(LTRIM(RTRIM(CPF)),6),3) = '000' THEN 'PJ' 
-            ELSE 'PF'
-        END PF_PJ
+        CPF
     """
 }
 

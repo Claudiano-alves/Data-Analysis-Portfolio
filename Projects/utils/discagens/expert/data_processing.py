@@ -149,37 +149,6 @@ def enriquecer_com_mailing_calendario(
 
     return _executar()
 
-@registrar_tempo("Segmentação de discagens expert", arquivo_log=LOG_DISCAGENS)
-def segmentar_discagens_expert(df):
-    """
-    Separa o DataFrame em 3 grupos:
-    1. ORIGEM = 'Humano' E ACIONAMENTOS = 1
-    2. OPERACAO = 'Outros'
-    3. Restante
-    
-    Args:
-        df (pd.DataFrame): DataFrame com discagens enriquecidas
-    
-    Returns:
-        tuple: (df_restante, df_humano_primeiro, df_operacao_outros)
-    """
-    df_trabalho = df.copy()
-    
-    condicao_humano = (df_trabalho['ORIGEM'] == 'Humano') & (df_trabalho['ACIONAMENTOS'] == 1)
-    df_humano_primeiro = df_trabalho[condicao_humano].copy()
-    df_trabalho = df_trabalho[~condicao_humano].copy()
-    
-    condicao_outros = df_trabalho['OPERACAO'] == 'Outros'
-    df_operacao_outros = df_trabalho[condicao_outros].copy()
-    df_restante = df_trabalho[~condicao_outros].copy()
-    
-    salvar_log(f"📊 Segmentação de discagens expert:", arquivo_log=LOG_DISCAGENS)
-    salvar_log(f"   • Humano + Primeiro Acionamento: {len(df_humano_primeiro):,} ({len(df_humano_primeiro)/len(df)*100:.1f}%)", arquivo_log=LOG_DISCAGENS)
-    salvar_log(f"   • Operação 'Outros': {len(df_operacao_outros):,} ({len(df_operacao_outros)/len(df)*100:.1f}%)", arquivo_log=LOG_DISCAGENS)
-    salvar_log(f"   • Restante: {len(df_restante):,} ({len(df_restante)/len(df)*100:.1f}%)", arquivo_log=LOG_DISCAGENS)
-
-    return df_restante, df_humano_primeiro, df_operacao_outros
-
 def aplicar_transformacoes_discagens(
     df: pd.DataFrame,
     config: Dict[str, Any],
@@ -241,6 +210,5 @@ __all__ = [
     'adicionar_operacao',
     'adicionar_estado_por_ddd',
     'enriquecer_com_mailing_calendario',
-    'segmentar_discagens_expert',
     'aplicar_transformacoes_discagens'
 ]
