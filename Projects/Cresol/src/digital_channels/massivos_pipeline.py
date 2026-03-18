@@ -4,7 +4,10 @@ from Cresol.src.config import LOG_CHANNELS, segmentacoes_extras
 
 def executar(df_sms, df_rcs, df_email, df_whats, df_mailing_analitico, df_dw_calendario):
     """
-    Retorna (df_massivos_analitico, df_massivos_acumulado, df_sem_relacionamento)
+    Retorna dict com:
+        - analitico          : DataFrame analítico de massivos
+        - acumulado          : DataFrame acumulado de massivos
+        - sem_relacionamento : DataFrame de massivos sem relacionamento com mailing
     """
     df_analitico, df_sem_relacionamento = processar_massivos(
         df_sms=df_sms,
@@ -23,4 +26,8 @@ def executar(df_sms, df_rcs, df_email, df_whats, df_mailing_analitico, df_dw_cal
         arquivo_log=LOG_CHANNELS,
     )
 
-    return df_analitico, df_acumulado, df_sem_relacionamento
+    return {
+        'analitico':          df_analitico,
+        'acumulado':          df_acumulado,
+        'sem_relacionamento': df_sem_relacionamento,
+    }

@@ -28,17 +28,238 @@ LOGS = {
     'pipeline':     LOG_PIPELINE,   # ← e adiciona aqui
 }
  
-COLUNAS_SINTETICO = [
-    'data', 'Indicador', 'qte', 'PF_PJ', 'PA',
-    'MesAbreviado', 'diaUtil', 'quartil', 'dt_mes', 'valor', 'tipo'
-]
+COLUNAS_SINTETICO = {
+    'DATA':         'DATA',
+    'Indicador':    'Indicador',
+    'qte':          'qte',
+    'PF_PJ':        'PF_PJ',
+    'PA':           'PA',
+    'MesAbreviado': 'mes_abreviado',  # mapeamento
+    'nr_dia_util':  'nr_dia_util',
+    'quartil':      'quartil',
+    'dt_mes':       'dt_mes',
+    'VALOR':        'valor',
+    'TIPO':         'tipo',
+}
 
 TIPOS_SINTETICO = {
-    'qte':     'Int64',
-    'diaUtil': 'Int8',
-    'dt_mes':  'Int8',
-    'valor':   'float32',
+    'qte':          'Int64',
+    'nr_dia_util':  'Int64',   # nome real no df
+    'dt_mes':       'Int64',
+    'VALOR':        'float64', # nome real no df
 }
+
+# Cresol/src/database.py
+
+COLUNAS_DISCAGENS = {
+    'DATA':                 'data',
+    'ID_DISCAGEM':          'id_discagem',
+    'CONTRATO':             'contrato',
+    'AGENTE':               'agente',
+    'DDD':                  'ddd',
+    'TELEFONE':             'telefone',
+    'DATA_ENCERRAMENTO':    'data_encerramento',
+    'CAMPANHA':             'campanha',
+    'COD_SIP':              'cod_sip',
+    'CLASS_RETORNO':        'class_retorno',
+    'DESC_MOTIVO_ENCERR':   'desc_motivo_encerr',
+    'COD_MOTIVO_ENCERR':    'cod_motivo_encerr',
+    'OPERACAO':             'operacao',
+    'ESTADO':               'estado',
+    'ID_CAR':               'id_car',
+    'ATRASO':               'atraso',
+    'COD_CLI':              'cod_cli',
+    'VALOR':                'valor',
+    'PF_PJ':                'pf_pj',
+    'PA':                   'pa',
+    'CPF':                  'cpf',
+    'nr_dia_util':          'nr_dia_util',
+    'quartil':              'quartil',
+    'dt_mes':               'dt_mes',
+    'mes_abreviado':        'mes_abreviado',
+}
+
+COLUNAS_MAILING = {
+    'DATA':      'data',
+    'CONTRATO':  'contrato',
+    'CPF':       'cpf',
+    'ID_CAR':    'id_car',
+    'ATRASO':    'atraso',
+    'COD_CLI':   'cod_cli',
+    'VALOR':     'valor',
+    'PF_PJ':     'pf_pj',
+    'PA':        'pa',
+}
+
+COLUNAS_ACIONAMENTOS = {
+    'DATA_ACIONA':                  'data_aciona',
+    'HORA':                         'hora',
+    'CONTRATO_FIN':                 'contrato_fin',
+    'CPF_DEV':                      'cpf_dev',
+    'COD_ACIONA':                   'cod_aciona',
+    'DESC_ACIONAMENTO':             'desc_acionamento',
+    'COD_RECUP':                    'cod_recup',
+    'NOME_RECUP':                   'nome_recup',
+    'LOGIN_RECUP':                  'login_recup',
+    'ULTGRUPO_RECUP':               'ultgrupo_recup',
+    'VALORPRIN_FIN':                'valorprin_fin',
+    'STATCONT_FIN':                 'statcont_fin',
+    'DTDEVOL_FIN':                  'dtdevol_fin',
+    'DTENTRADA_FIN':                'dtentrada_fin',
+    'CLASSIFICACAO_ACIONAMENTO':    'classificacao_acionamento',
+    'ACIONAMENTOS':                 'acionamentos',
+    'CPC':                          'cpc',
+    'CPCA':                         'cpca',
+    'PROMESSA':                     'promessa',
+    'DESCR':                        'descr',
+    'CPF':                          'cpf',
+    'ID_CAR':                       'id_car',
+    'ATRASO':                       'atraso',
+    'VALOR':                        'valor',
+    'PF_PJ':                        'pf_pj',
+    'PA':                           'pa',
+    'COD_CLI':                      'cod_cli',
+    'nr_dia_util':                  'nr_dia_util',
+    'quartil':                      'quartil',
+    'dt_mes':                       'dt_mes',
+    'mes_abreviado':                'mes_abreviado',
+}
+
+# Cresol/src/config.py
+
+TABELAS = {
+    'sintetico_cresol': {
+        'tabela':   'sintetico_cresol',
+        'col_data': 'data',
+        'tipos':    {'qte': 'Int64', 'nr_dia_util': 'Int64', 'dt_mes': 'Int64', 'VALOR': 'float64'},
+        'colunas':  {
+            'DATA':         'data',
+            'Indicador':    'indicador',
+            'qte':          'qte',
+            'PF_PJ':        'pf_pj',
+            'PA':           'pa',
+            'MesAbreviado': 'mes_abreviado',
+            'nr_dia_util':  'nr_dia_util',
+            'quartil':      'quartil',
+            'dt_mes':       'dt_mes',
+            'VALOR':        'valor',
+            'TIPO':         'tipo',
+        },
+    },
+    'analytical_discagens_expert_cresol': {
+        'tabela':   'analitico_discagens_cresol',
+        'col_data': 'data',
+        'tipos':    {'atraso': 'Int64', 'nr_dia_util': 'Int64', 'dt_mes': 'Int64', 'valor': 'float64'},
+        'colunas':  {
+            'DATA':               'data',
+            'ID_DISCAGEM':        'id_discagem',
+            'CONTRATO':           'contrato',
+            'AGENTE':             'agente',
+            'DDD':                'ddd',
+            'TELEFONE':           'telefone',
+            'DATA_ENCERRAMENTO':  'data_encerramento',
+            'CAMPANHA':           'campanha',
+            'COD_SIP':            'cod_sip',
+            'CLASS_RETORNO':      'class_retorno',
+            'DESC_MOTIVO_ENCERR': 'desc_motivo_encerr',
+            'COD_MOTIVO_ENCERR':  'cod_motivo_encerr',
+            'OPERACAO':           'operacao',
+            'ESTADO':             'estado',
+            'ID_CAR':             'id_car',
+            'ATRASO':             'atraso',
+            'COD_CLI':            'cod_cli',
+            'VALOR':              'valor',
+            'PF_PJ':              'pf_pj',
+            'PA':                 'pa',
+            'CPF':                'cpf',
+            'nr_dia_util':        'nr_dia_util',
+            'quartil':            'quartil',
+            'dt_mes':             'dt_mes',
+            'mes_abreviado':      'mes_abreviado',
+        },
+    },
+    'analytical_mailing_cresol': {
+        'tabela':   'analitico_mailing_cresol',
+        'col_data': 'data',
+        'tipos':    {'atraso': 'Int64', 'valor': 'float64'},
+        'colunas':  {
+            'DATA':     'data',
+            'CONTRATO': 'contrato',
+            'CPF':      'cpf',
+            'ID_CAR':   'id_car',
+            'ATRASO':   'atraso',
+            'COD_CLI':  'cod_cli',
+            'VALOR':    'valor',
+            'PF_PJ':    'pf_pj',
+            'PA':       'pa',
+        },
+    },
+    'analytical_acionamentos_cresol': {
+        'tabela':   'analitico_acionamentos_cresol',
+        'col_data': 'data_aciona',
+        'tipos':    {'atraso': 'Int64', 'nr_dia_util': 'Int64', 'dt_mes': 'Int64', 'valorprin_fin': 'float64', 'valor': 'float64'},
+        'colunas':  {
+            'DATA_ACIONA':               'data_aciona',
+            'HORA':                      'hora',
+            'CONTRATO_FIN':              'contrato_fin',
+            'CPF_DEV':                   'cpf_dev',
+            'COD_ACIONA':                'cod_aciona',
+            'DESC_ACIONAMENTO':          'desc_acionamento',
+            'COD_RECUP':                 'cod_recup',
+            'NOME_RECUP':                'nome_recup',
+            'LOGIN_RECUP':               'login_recup',
+            'ULTGRUPO_RECUP':            'ultgrupo_recup',
+            'VALORPRIN_FIN':             'valorprin_fin',
+            'STATCONT_FIN':              'statcont_fin',
+            'DTDEVOL_FIN':               'dtdevol_fin',
+            'DTENTRADA_FIN':             'dtentrada_fin',
+            'CLASSIFICACAO_ACIONAMENTO': 'classificacao_acionamento',
+            'ACIONAMENTOS':              'acionamentos',
+            'CPC':                       'cpc',
+            'CPCA':                      'cpca',
+            'PROMESSA':                  'promessa',
+            'DESCR':                     'descr',
+            'CPF':                       'cpf',
+            'ID_CAR':                    'id_car',
+            'ATRASO':                    'atraso',
+            'VALOR':                     'valor',
+            'PF_PJ':                     'pf_pj',
+            'PA':                        'pa',
+            'COD_CLI':                   'cod_cli',
+            'nr_dia_util':               'nr_dia_util',
+            'quartil':                   'quartil',
+            'dt_mes':                    'dt_mes',
+            'mes_abreviado':             'mes_abreviado',
+        },
+    },
+    'analytical_massivos_cresol': {
+        'tabela':   'analitico_massivos_cresol',
+        'col_data': 'data',
+        'tipos': {
+            'atraso':       'Int64',
+            'nr_dia_util':  'Int64',
+            'dt_mes':       'Int64',
+            'VALOR':        'float64',
+        },
+        'colunas': {
+            'CPF':          'cpf',
+            'DATA':         'data',
+            'CANAL':        'canal',
+            'CONTRATO':     'contrato',
+            'ID_CAR':       'id_car',
+            'ATRASO':       'atraso',
+            'COD_CLI':      'cod_cli',
+            'VALOR':        'valor',
+            'PF_PJ':        'pf_pj',
+            'PA':           'pa',
+            'nr_dia_util':  'nr_dia_util',
+            'quartil':      'quartil',
+            'dt_mes':       'dt_mes',
+            'mes_abreviado': 'mes_abreviado',
+        },
+    },
+}
+
 
 TABELA_SINTETICO = "sintetico_cresol"
 
@@ -92,6 +313,18 @@ DATASETS_TO_LOAD = {
     'rcs':              {'active': True,  'query': None},
     'email':            {'active': True,  'query': None},
     'whats':            {'active': True,  'query': None},
+}
+
+# Cresol/src/config.py
+
+# Mapeia cada indicador para os datasets que precisa carregar
+DATASETS_POR_INDICADOR = {
+    'MAILING':      ['mailing_hist', 'dw_calendario'],
+    'DISCAGENS':    ['discagens_expert', 'mailing_hist', 'dw_calendario'],
+    'ACIONAMENTOS': ['tab_acionamentos', 'tabulacao_aciona', 'mailing_hist', 'dw_calendario'],
+    'MASSIVOS':     ['sms', 'rcs', 'email', 'whats', 'mailing_hist', 'dw_calendario'],
+    #'PAGAMENTOS':   ['pagamentos', 'mailing_hist', 'dw_calendario'],
+    #'ACORDOS':      ['acordos', 'mailing_hist', 'dw_calendario'],
 }
 
 # ============================================

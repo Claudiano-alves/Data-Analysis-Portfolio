@@ -4,92 +4,58 @@ import pandas as pd
 from datetime import date
 from utils.utils import salvar_log
 
+# utils/database/insert.py  — adiciona essa função
 
-def inserir_dataframe(
+def inserir_dataframe_incremental(
     df: pd.DataFrame,
     tabela: str,
+    col_data: str,
     conn,
     chunk_size: int = 10_000,
     arquivo_log: str = None,
-    colunas: list = None,
     tipos: dict = None,
 ):
     """
-    Insere um DataFrame em uma tabela do banco em chunks com rollback automático.
+    Verifica datas faltantes na tabela e insere apenas os registros necessários.
 
     Parameters:
     -----------
-    df          : DataFrame a ser inserido
+    df          : DataFrame completo com todos os dados
     tabela      : Nome da tabela destino
-    conn        : Conexão com o banco (pyodbc connection)
+    col_data    : Nome da coluna de data no df (após renomeação)
+    conn        : Conexão com o banco
     chunk_size  : Tamanho de cada lote (default 10.000)
     arquivo_log : Caminho do arquivo de log (opcional)
-    colunas     : Lista de colunas a inserir. Se None, usa todas as colunas do df
-    tipos       : Dict de conversão de tipos {coluna: dtype} aplicado antes do insert
+    tipos       : Dict de conversão de tipos {coluna: dtype}
     """
+    from utils._database.check import verificar_datas_faltantes
 
     def log(msg):
         print(msg)
         if arquivo_log:
             salvar_log(msg, arquivo_log)
 
-    # ── 1. Preparo do DataFrame ───────────────────────────────────────────────
-    df_insert = df.copy()
+    datas_faltantes = verificar_datas_faltantes(tabela, col_data, conn)
 
-    if tipos:
-        for col, dtype in tipos.items():
-            if col in df_insert.columns:
-                df_insert[col] = df_insert[col].astype(dtype)
-
-    if colunas:
-        ausentes = [c for c in colunas if c not in df_insert.columns]
-        for col in ausentes:
-            log(f"⚠️  Coluna ausente no df (será NULL): {col}")
-            df_insert[col] = None
-        df_insert = df_insert[colunas]
-
-    # Converte category para str (incompatível com pyodbc)
-    cols_category = df_insert.select_dtypes(include='category').columns.tolist()
-    if cols_category:
-        df_insert[cols_category] = df_insert[cols_category].astype(str)
-
-    total = len(df_insert)
-    chunks = [df_insert.iloc[i:i + chunk_size] for i in range(0, total, chunk_size)]
-    colunas_insert = list(df_insert.columns)
-    placeholders = ', '.join(['?' for _ in colunas_insert])
-    cols_sql = ', '.join(colunas_insert)
-    sql = f"INSERT INTO {tabela} ({cols_sql}) VALUES ({placeholders})"
-
-    log(f"{'─' * 55}")
-    log(f"[{tabela}] Iniciando insert — {total:,} registros em {len(chunks)} lote(s)")
-
-    # ── 2. Insert com rollback ────────────────────────────────────────────────
-    dt_carga = date.today().isoformat()
-    cursor = conn.cursor()
-
-    try:
-        for i, chunk in enumerate(chunks, start=1):
-            registros = [tuple(row) for row in chunk.itertuples(index=False, name=None)]
-            cursor.executemany(sql, registros)
-            log(f"[{tabela}] Lote {i}/{len(chunks)} inserido — {len(chunk):,} registros")
-
-        conn.commit()
-        log(f"[{tabela}] ✅ Commit realizado — {total:,} registros inseridos com sucesso")
+    if not datas_faltantes:
+        log(f"[{tabela}] ✅ Tabela atualizada — nenhum registro a inserir")
         return True
 
-    except Exception as e:
-        conn.rollback()
-        log(f"[{tabela}] ❌ Erro no lote {i}: {e}")
-        log(f"[{tabela}] Rollback realizado — excluindo registros do dia {dt_carga}...")
+    log(f"[{tabela}] 📅 Datas faltantes: {datas_faltantes[0]} até {datas_faltantes[-1]} ({len(datas_faltantes)} dia(s))")
 
-        try:
-            cursor.execute(
-                f"DELETE FROM {tabela} WHERE CAST(dt_carga AS DATE) = ?",
-                dt_carga
-            )
-            conn.commit()
-            log(f"[{tabela}] 🗑️  Registros do dia {dt_carga} excluídos com sucesso")
-        except Exception as e_del:
-            log(f"[{tabela}] ❌ Erro ao excluir registros do dia: {e_del}")
+    df_filtrado = df[pd.to_datetime(df[col_data]).dt.date.isin(datas_faltantes)].copy()
 
+    if df_filtrado.empty:
+        log(f"[{tabela}] ⚠️  Nenhum registro no df para as datas faltantes")
         return False
+
+    log(f"[{tabela}] 📋 {len(df_filtrado):,} registros a inserir")
+
+    return inserir_dataframe(
+        df=df_filtrado,
+        tabela=tabela,
+        conn=conn,
+        chunk_size=chunk_size,
+        arquivo_log=arquivo_log,
+        tipos=tipos,
+    )
