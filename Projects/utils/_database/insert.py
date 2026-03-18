@@ -1,0 +1,95 @@
+# utils/database/insert.py
+
+import pandas as pd
+from datetime import date
+from utils.utils import salvar_log
+
+
+def inserir_dataframe(
+    df: pd.DataFrame,
+    tabela: str,
+    conn,
+    chunk_size: int = 10_000,
+    arquivo_log: str = None,
+    colunas: list = None,
+    tipos: dict = None,
+):
+    """
+    Insere um DataFrame em uma tabela do banco em chunks com rollback automático.
+
+    Parameters:
+    -----------
+    df          : DataFrame a ser inserido
+    tabela      : Nome da tabela destino
+    conn        : Conexão com o banco (pyodbc connection)
+    chunk_size  : Tamanho de cada lote (default 10.000)
+    arquivo_log : Caminho do arquivo de log (opcional)
+    colunas     : Lista de colunas a inserir. Se None, usa todas as colunas do df
+    tipos       : Dict de conversão de tipos {coluna: dtype} aplicado antes do insert
+    """
+
+    def log(msg):
+        print(msg)
+        if arquivo_log:
+            salvar_log(msg, arquivo_log)
+
+    # ── 1. Preparo do DataFrame ───────────────────────────────────────────────
+    df_insert = df.copy()
+
+    if tipos:
+        for col, dtype in tipos.items():
+            if col in df_insert.columns:
+                df_insert[col] = df_insert[col].astype(dtype)
+
+    if colunas:
+        ausentes = [c for c in colunas if c not in df_insert.columns]
+        for col in ausentes:
+            log(f"⚠️  Coluna ausente no df (será NULL): {col}")
+            df_insert[col] = None
+        df_insert = df_insert[colunas]
+
+    # Converte category para str (incompatível com pyodbc)
+    cols_category = df_insert.select_dtypes(include='category').columns.tolist()
+    if cols_category:
+        df_insert[cols_category] = df_insert[cols_category].astype(str)
+
+    total = len(df_insert)
+    chunks = [df_insert.iloc[i:i + chunk_size] for i in range(0, total, chunk_size)]
+    colunas_insert = list(df_insert.columns)
+    placeholders = ', '.join(['?' for _ in colunas_insert])
+    cols_sql = ', '.join(colunas_insert)
+    sql = f"INSERT INTO {tabela} ({cols_sql}) VALUES ({placeholders})"
+
+    log(f"{'─' * 55}")
+    log(f"[{tabela}] Iniciando insert — {total:,} registros em {len(chunks)} lote(s)")
+
+    # ── 2. Insert com rollback ────────────────────────────────────────────────
+    dt_carga = date.today().isoformat()
+    cursor = conn.cursor()
+
+    try:
+        for i, chunk in enumerate(chunks, start=1):
+            registros = [tuple(row) for row in chunk.itertuples(index=False, name=None)]
+            cursor.executemany(sql, registros)
+            log(f"[{tabela}] Lote {i}/{len(chunks)} inserido — {len(chunk):,} registros")
+
+        conn.commit()
+        log(f"[{tabela}] ✅ Commit realizado — {total:,} registros inseridos com sucesso")
+        return True
+
+    except Exception as e:
+        conn.rollback()
+        log(f"[{tabela}] ❌ Erro no lote {i}: {e}")
+        log(f"[{tabela}] Rollback realizado — excluindo registros do dia {dt_carga}...")
+
+        try:
+            cursor.execute(
+                f"DELETE FROM {tabela} WHERE CAST(dt_carga AS DATE) = ?",
+                dt_carga
+            )
+            conn.commit()
+            log(f"[{tabela}] 🗑️  Registros do dia {dt_carga} excluídos com sucesso")
+        except Exception as e_del:
+            log(f"[{tabela}] ❌ Erro ao excluir registros do dia: {e_del}")
+
+        return False

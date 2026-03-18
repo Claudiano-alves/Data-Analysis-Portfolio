@@ -4,10 +4,7 @@ Orquestra as funções de tratamento e geração de métricas de mailing.
 """
 
 from utils.utils import unir_dataframes
-from .metricas_acumuladas import (
-    gerar_acumulado_mailing_hist_segmentacoes,
-    gerar_acumulado_mailing_hist_unique
-)
+from .metricas_acumuladas import processar_acumulados_mailing
 
 def processar_mailing_completo(
     df_mailing_hist,
@@ -59,32 +56,11 @@ def processar_mailing_completo(
     # ============================================
     # ETAPA 2: MÉTRICAS ACUMULADAS
     # ============================================
-    df_mailing_segmentacoes = gerar_acumulado_mailing_hist_segmentacoes(
-        df_mailing_tratado,
-        df_dw_calendario,
-        segmentacoes=segmentacoes,
-        arquivo_log=arquivo_log,
-    )
-    df_mailing_unique = gerar_acumulado_mailing_hist_unique(
+    df_acumulado_mailing = processar_acumulados_mailing(
         df_mailing_tratado,
         df_dw_calendario,
         segmentacoes=segmentacoes,
         arquivo_log=arquivo_log,
     )
  
-    # ============================================
-    # ETAPA 3: ACUMULADOS EXTRAS (por carteira)
-    # ============================================
-    dfs_acumulados = [df_mailing_segmentacoes, df_mailing_unique]
- 
-    if acumulados_extras:
-        for gerar_acumulado in acumulados_extras:
-            df_extra = gerar_acumulado(df_mailing_tratado, df_dw_calendario)
-            dfs_acumulados.append(df_extra)
- 
-    # ============================================
-    # ETAPA 4: CONSOLIDAÇÃO
-    # ============================================
-    df_mailing_final = unir_dataframes(*dfs_acumulados)
- 
-    return df_mailing_tratado, df_mailing_final
+    return df_mailing_tratado, df_acumulado_mailing

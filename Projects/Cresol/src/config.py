@@ -7,7 +7,7 @@ import os
 # =============================================================================
 # LOGS — caminhos para os arquivos de log da carteira Cresol
 # =============================================================================
-LOGS_DIR = os.path.join(os.path.dirname(__file__), '.logs')
+LOGS_DIR = os.path.join(os.path.dirname(__file__), '_logs')
 os.makedirs(LOGS_DIR, exist_ok=True)
  
 LOG_ACIONAMENTOS = os.path.join(LOGS_DIR, 'acionamentos.txt')
@@ -16,7 +16,8 @@ LOG_MAILING      = os.path.join(LOGS_DIR, 'mailing.txt')
 LOG_PAGAMENTOS   = os.path.join(LOGS_DIR, 'pagamentos.txt')
 LOG_LOADING      = os.path.join(LOGS_DIR, 'loading.txt')
 LOG_CHANNELS     = os.path.join(LOGS_DIR, 'channels.txt')
- 
+LOG_PIPELINE = os.path.join(LOGS_DIR, 'pipeline.txt')  # ← adiciona essa linha
+
 LOGS = {
     'acionamentos': LOG_ACIONAMENTOS,
     'discagens':    LOG_DISCAGENS,
@@ -24,8 +25,22 @@ LOGS = {
     'pagamentos':   LOG_PAGAMENTOS,
     'loading':      LOG_LOADING,
     'channels':     LOG_CHANNELS,
+    'pipeline':     LOG_PIPELINE,   # ← e adiciona aqui
 }
  
+COLUNAS_SINTETICO = [
+    'data', 'Indicador', 'qte', 'PF_PJ', 'PA',
+    'MesAbreviado', 'diaUtil', 'quartil', 'dt_mes', 'valor', 'tipo'
+]
+
+TIPOS_SINTETICO = {
+    'qte':     'Int64',
+    'diaUtil': 'Int8',
+    'dt_mes':  'Int8',
+    'valor':   'float32',
+}
+
+TABELA_SINTETICO = "sintetico_cresol"
 
 segmentacoes_extras = ['PF_PJ', 'PA']
 

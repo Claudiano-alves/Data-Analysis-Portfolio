@@ -13,8 +13,11 @@ from .data_processing import (
 )
 
 from .metricas_acumuladas import (
-    gerar_acumulado_mailing_hist_segmentacoes,
-    gerar_acumulado_mailing_hist_unique
+    gerar_acumulado_funil_mailing_hist_segmentacoes,
+    gerar_acumulado_funil_mailing_hist_unique,
+    gerar_acumulado_daily_mailing_hist_segmentacoes,
+    gerar_acumulado_daily_mailing_hist_unique,
+    processar_acumulados_mailing
 )
 
 from .pipelines import (
@@ -27,8 +30,11 @@ __all__ = [
     'adicionar_valor_principal',
     
     # Métricas acumuladas
-    'gerar_acumulado_mailing_hist_segmentacoes',
-    'gerar_acumulado_mailing_hist_unique',
+    'gerar_acumulado_funil_mailing_hist_segmentacoes',
+    'gerar_acumulado_funil_mailing_hist_unique',
+    'gerar_acumulado_daily_mailing_hist_segmentacoes',
+    'gerar_acumulado_daily_mailing_hist_unique',
+    'processar_acumulados_mailing',
     
     # Pipeline
     'processar_mailing_completo'

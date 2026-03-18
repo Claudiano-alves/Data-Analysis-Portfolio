@@ -2,7 +2,6 @@ from utils.digital_channels.data_processing import processar_massivos
 from utils.digital_channels.metricas_acumuladas import processar_acumulados_massivos
 from Cresol.src.config import LOG_CHANNELS, segmentacoes_extras
 
-
 def executar(df_sms, df_rcs, df_email, df_whats, df_mailing_analitico, df_dw_calendario):
     """
     Retorna (df_massivos_analitico, df_massivos_acumulado, df_sem_relacionamento)

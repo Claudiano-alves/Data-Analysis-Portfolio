@@ -2,65 +2,45 @@
 Ponto de entrada da pipeline Cresol.
 Execute: python -m Cresol.src.pipeline
 """
-import logging
 import traceback
-from datetime import datetime
+import pandas as pd
 
-from Projects.Cresol.src.mailing import mailing_pipeline
+from Cresol.src.mailing import mailing_pipeline
 from Cresol.src.discagens import discagens_pipeline
 from Cresol.src.acionamentos import acionamentos_pipeline
 from Cresol.src.digital_channels import massivos_pipeline
 from Cresol.src.data_loader import load_data_cresol
-from Cresol.src.config import LOGS, LOGS_DIR
-
-import os
-import pandas as pd
-
-log = logging.getLogger(__name__)
+from Cresol.src.config import LOGS, LOG_PIPELINE
+from utils.utils import salvar_log, registrar_tempo, unir_dataframes
+from Cresol.src.database import inserir_acumulado
+from utils.db_connection import get_db_connections
 
 # ── Helpers de log ────────────────────────────────────────────────────────────
-
-def _configurar_logging():
-    """Configura logging no terminal e em arquivo resumido."""
-    log_pipeline = os.path.join(LOGS_DIR, 'pipeline.txt')
-    logging.basicConfig(
-        level=logging.INFO,
-        format='%(asctime)s | %(levelname)-8s | %(message)s',
-        datefmt='%Y-%m-%d %H:%M:%S',
-        handlers=[
-            logging.StreamHandler(),                          # terminal
-            logging.FileHandler(log_pipeline, encoding='utf-8'),  # arquivo
-        ]
-    )
 
 def _executar_etapa(nome: str, fn, *args, **kwargs):
     """
     Executa uma etapa da pipeline com log padronizado.
     Lança a exceção original em caso de falha para interromper o fluxo.
     """
-    log.info(f"{'─' * 50}")
-    log.info(f"INÍCIO » {nome}")
-    inicio = datetime.now()
+    salvar_log(f"{'─' * 50}", LOG_PIPELINE)
+    salvar_log(f"INÍCIO » {nome}", LOG_PIPELINE)
     try:
         resultado = fn(*args, **kwargs)
-        duracao = (datetime.now() - inicio).seconds
-        log.info(f"OK    » {nome} — concluído em {duracao}s")
+        salvar_log(f"OK    » {nome}", LOG_PIPELINE)
         return resultado
-    except Exception:
-        duracao = (datetime.now() - inicio).seconds
-        log.error(f"FALHA » {nome} — erro após {duracao}s")
-        log.error(traceback.format_exc())
-        raise  # interrompe a pipeline e preserva o traceback original
+    except Exception as e:
+        salvar_log(f"FALHA » {nome}: {str(e)}", LOG_PIPELINE)
+        salvar_log(traceback.format_exc(), LOG_PIPELINE)
+        raise
 
 
 # ── Pipeline ──────────────────────────────────────────────────────────────────
 
+@registrar_tempo("Pipeline Cresol", arquivo_log=LOG_PIPELINE)
 def executar_pipeline():
-    _configurar_logging()
-    log.info("=" * 50)
-    log.info("PIPELINE CRESOL — INICIANDO")
-    log.info("=" * 50)
-    inicio_total = datetime.now()
+    salvar_log("=" * 50, LOG_PIPELINE)
+    salvar_log("PIPELINE CRESOL — INICIANDO", LOG_PIPELINE)
+    salvar_log("=" * 50, LOG_PIPELINE)
 
     # ── 1. Carga ──────────────────────────────────────────────────────────────
     (
@@ -116,7 +96,7 @@ def executar_pipeline():
     # ── 6. Consolidação dos acumulados ────────────────────────────────────────
     df_acumulados_consolidado = _executar_etapa(
         "Consolidação dos acumulados",
-        _consolidar_acumulados,
+        unir_dataframes,
         df_mailing_acumulado,
         df_discagens_acumulado,
         df_ringing_acumulados,
@@ -124,10 +104,18 @@ def executar_pipeline():
         df_massivos_acumulado,
     )
 
-    duracao_total = (datetime.now() - inicio_total).seconds
-    log.info("=" * 50)
-    log.info(f"PIPELINE CRESOL — CONCLUÍDA em {duracao_total}s")
-    log.info("=" * 50)
+    salvar_log("=" * 50, LOG_PIPELINE)
+    salvar_log("PIPELINE CRESOL — CONCLUÍDA", LOG_PIPELINE)
+    salvar_log("=" * 50, LOG_PIPELINE)
+
+    # após a consolidação
+    with get_db_connections() as (_, conn_bd2, __):
+        _executar_etapa(
+            "Insert banco de dados",
+            inserir_acumulado,
+            df_acumulados_consolidado,
+            conn_bd2,
+        )
 
     return {
         "mailing":      (df_mailing_analitico, df_mailing_acumulado),
@@ -136,15 +124,6 @@ def executar_pipeline():
         "massivos":     (df_massivos_analitico, df_massivos_acumulado),
         "acumulados":   df_acumulados_consolidado,
     }
-
-
-def _consolidar_acumulados(*dfs: pd.DataFrame) -> pd.DataFrame:
-    """
-    Concatena todos os DataFrames acumulados em um único consolidado.
-    Assume que todos compartilham as mesmas colunas — ajuste o parâmetro
-    join='inner' ou 'outer' conforme a necessidade do seu caso.
-    """
-    return pd.concat(dfs, ignore_index=True)
 
 
 if __name__ == "__main__":

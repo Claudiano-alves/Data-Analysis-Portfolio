@@ -1,8 +1,8 @@
-from .pipelines import (
-    mailing_pipeline
+from .mailing_pipeline import (
+    executar
 )
 
 __all__ = [
     # pipelines
-    'mailing_pipeline'
+    'executar'
 ]

@@ -535,7 +535,9 @@ def unir_dataframes(*dfs, validar_colunas=True, colunas_esperadas=None, mapeamen
         Lista de colunas esperadas para validação adicional
     mapeamento_colunas : dict, optional
         Dicionário para renomear colunas {nome_antigo: nome_novo}
-        Se None, usa mapeamento padrão DATA_ACIONA -> DATA
+        Se None, usa mapeamento padrão:
+            DATA_ACIONA  -> DATA
+            VALORPRIN_FIN -> VALOR
     
     Returns:
     --------
@@ -543,29 +545,24 @@ def unir_dataframes(*dfs, validar_colunas=True, colunas_esperadas=None, mapeamen
         DataFrame único com todos os dados concatenados
     """
     
-    # Validação básica
     if len(dfs) == 0:
         raise ValueError("Nenhum DataFrame foi fornecido")
     
-    # Mapeamento padrão para padronização
     if mapeamento_colunas is None:
         mapeamento_colunas = {
-            'DATA_ACIONA': 'DATA'
+            'DATA_ACIONA': 'DATA',
+            'VALORPRIN_FIN': 'VALOR'
         }
     
-    # Lista para armazenar DataFrames processados
     dfs_processados = []
     
     for i, df in enumerate(dfs, start=1):
-        # Pula DataFrames None ou vazios
         if df is None or df.empty:
             print(f"⚠ DataFrame {i} está vazio ou é None - ignorado")
             continue
         
-        # Cria uma cópia para não modificar o original
         df_copy = df.copy()
         
-        # Aplica o mapeamento de colunas
         colunas_renomeadas = []
         for col_antiga, col_nova in mapeamento_colunas.items():
             if col_antiga in df_copy.columns:
@@ -580,7 +577,6 @@ def unir_dataframes(*dfs, validar_colunas=True, colunas_esperadas=None, mapeamen
     if len(dfs_processados) == 0:
         raise ValueError("Todos os DataFrames fornecidos estão vazios ou são None")
     
-    # Validação de colunas
     if validar_colunas:
         colunas_base = set(dfs_processados[0].columns)
         
@@ -597,7 +593,6 @@ def unir_dataframes(*dfs, validar_colunas=True, colunas_esperadas=None, mapeamen
                     msg += f"\n  Colunas extras: {list(colunas_extras)}"
                 raise ValueError(msg)
     
-    # Validação contra colunas esperadas (opcional)
     if colunas_esperadas is not None:
         colunas_esperadas_set = set(colunas_esperadas)
         colunas_reais = set(dfs_processados[0].columns)
@@ -613,7 +608,6 @@ def unir_dataframes(*dfs, validar_colunas=True, colunas_esperadas=None, mapeamen
                 msg += f"\n  Colunas extras encontradas: {list(colunas_extras)}"
             raise ValueError(msg)
     
-    # Concatenação
     df_unido = pd.concat(dfs_processados, ignore_index=True)
     
     print(f"\n{'='*60}")

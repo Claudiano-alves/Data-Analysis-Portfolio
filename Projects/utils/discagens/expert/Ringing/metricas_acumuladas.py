@@ -1,7 +1,7 @@
 import pandas as pd
 from typing import List, Optional
 
-from utils.utils import salvar_log, registrar_tempo
+from utils.utils import salvar_log, registrar_tempo, unir_dataframes
 from utils.discagens.expert.metricas_acumuladas import (
     discagens_segmentacoes_funil,
     discagens_unique_funil,
@@ -75,6 +75,15 @@ def processar_acumulados_ringing(
 
     salvar_log("📊 Calculando métricas Ringing...", arquivo_log=arquivo_log)
 
+    _tipo_map = {
+        'funil_seg':     'Funil',
+        'funil_unique':  'Funil',
+        'funil_esforco': 'Funil',
+        'daily_seg':     'Daily',
+        'daily_unique':  'Daily',
+        'daily_esforco': 'Daily',
+    }
+
     resultados = {
         'funil_seg':     _renomear_indicador(discagens_segmentacoes_funil(df_filtrado, segmentacoes=segmentacoes, arquivo_log=arquivo_log), 'Ringing'),
         'funil_unique':  _renomear_indicador(discagens_unique_funil(df_filtrado,       segmentacoes=segmentacoes, arquivo_log=arquivo_log), 'Ringing'),
@@ -84,6 +93,12 @@ def processar_acumulados_ringing(
         'daily_esforco': _renomear_indicador(discagens_esforco_daily(df_filtrado,      segmentacoes=segmentacoes, arquivo_log=arquivo_log), 'Ringing'),
     }
 
+    for chave, df in resultados.items():
+        df['TIPO'] = _tipo_map[chave]
+
     if consolidado:
-        return pd.concat(list(resultados.values()), ignore_index=True)
+        return unir_dataframes(*resultados.values())
     return resultados
+    # if consolidado:
+    #     return pd.concat(list(resultados.values()), ignore_index=True)
+    # return resultados
