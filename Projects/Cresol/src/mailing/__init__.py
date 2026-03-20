@@ -1,8 +1,10 @@
 from .mailing_pipeline import (
-    executar
+    executar_analitico,
+    executar_acumulado
 )
 
 __all__ = [
     # pipelines
-    'executar'
+    'executar_analitico',
+    'executar_acumulado'
 ]

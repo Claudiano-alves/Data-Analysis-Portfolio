@@ -44,7 +44,7 @@ def _renomear_indicador(df: pd.DataFrame, indicador: str) -> pd.DataFrame:
     df['Indicador'] = indicador
     return df
 
-def calcular_metricas_atendidas(
+def processar_acumulados_atendidas(
     df_discagens: pd.DataFrame,
     segmentacoes: List[str],
     consolidado: bool = True,

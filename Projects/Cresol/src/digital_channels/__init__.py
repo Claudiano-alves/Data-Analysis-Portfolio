@@ -1,8 +1,10 @@
-from .pipelines import (
-    executar
+from .massivos_pipeline import (
+    executar_analitico,
+    executar_acumulado
 )
 
 __all__ = [
     # pipelines
-    'executar'
+    'executar_analitico',
+    'executar_acumulado'
 ]

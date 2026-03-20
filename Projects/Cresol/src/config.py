@@ -3,7 +3,10 @@ Configuração do Projeto - Novo_Projeto
 Define faixas de atraso, parâmetros de filtro e mapeamentos para o projeto.
 """
 import os
- 
+from datetime import date
+
+DATA_INICIO_CRESOL = date(2026, 1, 1)  # data de start para primeiro processamento
+
 # =============================================================================
 # LOGS — caminhos para os arquivos de log da carteira Cresol
 # =============================================================================
@@ -128,7 +131,7 @@ COLUNAS_ACIONAMENTOS = {
 # Cresol/src/config.py
 
 TABELAS = {
-    'sintetico_cresol': {
+    'sintetico': {                          # era 'sintetico_cresol'
         'tabela':   'sintetico_cresol',
         'col_data': 'data',
         'tipos':    {'qte': 'Int64', 'nr_dia_util': 'Int64', 'dt_mes': 'Int64', 'VALOR': 'float64'},
@@ -146,8 +149,8 @@ TABELAS = {
             'TIPO':         'tipo',
         },
     },
-    'analytical_discagens_expert_cresol': {
-        'tabela':   'analitico_discagens_cresol',
+    'discagens': {                          # era 'analytical_discagens_expert_cresol'
+        'tabela':   'analytical_discagens_expert_cresol',
         'col_data': 'data',
         'tipos':    {'atraso': 'Int64', 'nr_dia_util': 'Int64', 'dt_mes': 'Int64', 'valor': 'float64'},
         'colunas':  {
@@ -178,8 +181,8 @@ TABELAS = {
             'mes_abreviado':      'mes_abreviado',
         },
     },
-    'analytical_mailing_cresol': {
-        'tabela':   'analitico_mailing_cresol',
+    'mailing': {                            # era 'analytical_mailing_cresol'
+        'tabela':   'analytical_mailing_cresol',
         'col_data': 'data',
         'tipos':    {'atraso': 'Int64', 'valor': 'float64'},
         'colunas':  {
@@ -194,8 +197,8 @@ TABELAS = {
             'PA':       'pa',
         },
     },
-    'analytical_acionamentos_cresol': {
-        'tabela':   'analitico_acionamentos_cresol',
+    'acionamentos': {                       # era 'analytical_acionamentos_cresol'
+        'tabela':   'analytical_acionamentos_cresol',
         'col_data': 'data_aciona',
         'tipos':    {'atraso': 'Int64', 'nr_dia_util': 'Int64', 'dt_mes': 'Int64', 'valorprin_fin': 'float64', 'valor': 'float64'},
         'colunas':  {
@@ -232,29 +235,29 @@ TABELAS = {
             'mes_abreviado':             'mes_abreviado',
         },
     },
-    'analytical_massivos_cresol': {
-        'tabela':   'analitico_massivos_cresol',
+    'massivos': {                           # era 'analytical_massivos_cresol'
+        'tabela':   'analytical_massivos_cresol',
         'col_data': 'data',
         'tipos': {
-            'atraso':       'Int64',
-            'nr_dia_util':  'Int64',
-            'dt_mes':       'Int64',
-            'VALOR':        'float64',
+            'atraso':      'Int64',
+            'nr_dia_util': 'Int64',
+            'dt_mes':      'Int64',
+            'VALOR':       'float64',
         },
         'colunas': {
-            'CPF':          'cpf',
-            'DATA':         'data',
-            'CANAL':        'canal',
-            'CONTRATO':     'contrato',
-            'ID_CAR':       'id_car',
-            'ATRASO':       'atraso',
-            'COD_CLI':      'cod_cli',
-            'VALOR':        'valor',
-            'PF_PJ':        'pf_pj',
-            'PA':           'pa',
-            'nr_dia_util':  'nr_dia_util',
-            'quartil':      'quartil',
-            'dt_mes':       'dt_mes',
+            'CPF':           'cpf',
+            'DATA':          'data',
+            'CANAL':         'canal',
+            'CONTRATO':      'contrato',
+            'ID_CAR':        'id_car',
+            'ATRASO':        'atraso',
+            'COD_CLI':       'cod_cli',
+            'VALOR':         'valor',
+            'PF_PJ':         'pf_pj',
+            'PA':            'pa',
+            'nr_dia_util':   'nr_dia_util',
+            'quartil':       'quartil',
+            'dt_mes':        'dt_mes',
             'mes_abreviado': 'mes_abreviado',
         },
     },

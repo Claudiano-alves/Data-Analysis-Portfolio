@@ -14,15 +14,12 @@ from utils.utils import unir_dataframes, salvar_log, registrar_tempo
 from ...config import LOG_DISCAGENS
 from .data_processing import (
     aplicar_transformacoes_discagens,
-    enriquecer_com_mailing_calendario,
-    segmentar_discagens_expert
+    enriquecer_com_mailing_calendario
 )
 from .metricas_acumuladas import (
     discagens_esforco_funil,
-    discagens_fxAtraso_funil,
     discagens_unique_funil,
     processar_acumulados_discagens,
-    discagens_fxAtraso_daily,
     discagens_unique_daily,
     discagens_esforco_daily
 )

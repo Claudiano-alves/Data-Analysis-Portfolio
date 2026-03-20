@@ -5,7 +5,7 @@ warnings.filterwarnings("ignore", category=FutureWarning)
 from datetime import datetime
 
 
-def get_query_discagens(dt_ini, dt_fim, where_clause="", columns=None):
+def get_query_discagens_(dt_ini, dt_fim, where_clause="", columns=None):
     """
     Retorna a query SQL para buscar discagens com período parametrizado e filtros customizados.
 
@@ -25,6 +25,52 @@ def get_query_discagens(dt_ini, dt_fim, where_clause="", columns=None):
     tabela = f"totalinfo_{ano}_{mes}"
 
     where_sql = f"WHERE {where_clause}" if where_clause else ""
+
+    return f"""
+    SELECT * FROM OPENQUERY (EXPERT,'
+    SELECT
+        {columns or '*'}
+    FROM {tabela} A
+    {where_sql}
+    ')
+    """
+
+def get_query_discagens(dt_ini, dt_fim, where_clause="", columns=None):
+    """
+    Retorna a query SQL para buscar discagens.
+
+    Lógica de filtro por período:
+        - range <= 15 dias → tabela dinâmica + filtro de instante
+        - range > 15 dias  → tabela dinâmica apenas (mês inteiro)
+
+    Args:
+        dt_ini (str)       : Data inicial no formato 'YYYY-MM-DD'
+        dt_fim (str)       : Data final no formato 'YYYY-MM-DD'
+        where_clause (str) : Cláusula WHERE customizada (opcional)
+        columns (str)      : Colunas do SELECT (opcional). Se None, usa SELECT *
+    """
+    data_ini = datetime.strptime(dt_ini, '%Y-%m-%d')
+    data_fim_obj = datetime.strptime(dt_fim, '%Y-%m-%d')
+    range_dias = (data_fim_obj - data_ini).days + 1
+
+    ano = data_ini.year
+    mes = data_ini.strftime('%m')
+    tabela = f"totalinfo_{ano}_{mes}"
+
+    # monta cláusula WHERE
+    partes_where = []
+
+    if where_clause:
+        partes_where.append(where_clause)
+
+    if range_dias <= 15:
+        dt_ini_fmt = f"{dt_ini} 00:00:00"
+        dt_fim_fmt = f"{dt_fim} 23:59:59"
+        partes_where.append(
+            f"A.instante BETWEEN ''{dt_ini_fmt}'' AND ''{dt_fim_fmt}''"
+        )
+
+    where_sql = f"WHERE {' AND '.join(partes_where)}" if partes_where else ""
 
     return f"""
     SELECT * FROM OPENQUERY (EXPERT,'

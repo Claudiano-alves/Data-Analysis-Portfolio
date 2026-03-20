@@ -647,3 +647,15 @@ def processar_acumulados_massivos(
         return unir_dataframes(*dfs)
 
     return df_funil, df_daily
+
+__all__ = [
+    'processar_acumulados_massivos',
+
+    # Metricas
+    'massivos_unique_funil',
+    'massivos_fxAtraso_funil',
+    'massivos_unique_funil',
+    'massivos_fxAtraso_daily',
+    'massivos_unique_daily',
+    'massivos_esforco_daily'
+]
