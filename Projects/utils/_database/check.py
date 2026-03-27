@@ -1,6 +1,7 @@
-# utils/database/check.py
+# utils/_database/check.py
 
 from datetime import date, timedelta
+
 
 def verificar_ultima_data(
     tabela: str,
@@ -37,23 +38,50 @@ def verificar_ultima_data(
     return row[0] if isinstance(row[0], date) else row[0].date()
 
 
-def esta_atualizado(ultima_data: date | None) -> bool:
-    """Verifica se a última data é D-1 ou mais recente."""
+def esta_atualizado(ultima_data: date | None, data_fim: date = None) -> bool:
+    """
+    Verifica se a última data é >= data_fim (ou D-1 se data_fim não informada).
+    """
     if ultima_data is None:
         return False
-    return ultima_data >= date.today() - timedelta(days=1)
+    referencia = data_fim or (date.today() - timedelta(days=1))
+    return ultima_data >= referencia
 
 
-def datas_faltantes(ultima_data: date | None) -> list:
-    """Retorna lista de datas faltantes entre última data e D-1."""
+def datas_faltantes(
+    tabela: str,
+    col_data: str,
+    conn,
+    data_fim: date = None,
+) -> list | None:
+    """
+    Retorna lista de datas faltantes para inserir.
+
+    Retorno:
+    - None       : tabela vazia — inserir tudo
+    - []         : tabela já atualizada até data_fim — não inserir
+    - [date, ...]: datas faltantes entre ultima_data+1 e data_fim
+    
+    Parameters:
+    -----------
+    tabela   : Nome da tabela
+    col_data : Coluna de data a verificar
+    conn     : Conexão com o banco
+    data_fim : Data limite do ciclo. Se None, usa D-1
+    """
+    ultima_data = verificar_ultima_data(tabela, conn, col_data)
+    data_fim = data_fim or (date.today() - timedelta(days=1))
+
     if ultima_data is None:
-        return []
-    ontem = date.today() - timedelta(days=1)
-    if ultima_data >= ontem:
-        return []
+        return None  # tabela vazia, inserir tudo
+
+    if ultima_data >= data_fim:
+        return []  # já atualizado até data_fim
+
     datas = []
     atual = ultima_data + timedelta(days=1)
-    while atual <= ontem:
+    while atual <= data_fim:
         datas.append(atual)
         atual += timedelta(days=1)
+
     return datas

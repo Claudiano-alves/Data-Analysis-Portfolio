@@ -1,7 +1,9 @@
-# utils/database/operations.py
+# utils/_database/operations.py
 
+from datetime import date
 from utils._database.insert import inserir_dataframe_incremental
 from utils.utils import salvar_log
+
 
 def inserir_analitico(
     df,
@@ -11,6 +13,7 @@ def inserir_analitico(
     col_data: str,
     tipos: dict = None,
     arquivo_log: str = None,
+    data_fim: date = None,
 ):
     """
     Insere dados analíticos no banco de forma incremental.
@@ -25,6 +28,7 @@ def inserir_analitico(
     col_data    : Nome da coluna de data no df (após renomeação)
     tipos       : Dict de conversão de tipos {coluna: dtype} (opcional)
     arquivo_log : Caminho do arquivo de log (opcional)
+    data_fim    : Data limite do ciclo. Se None, usa D-1
     """
     df_preparado = df[list(colunas.keys())].rename(columns=colunas)
 
@@ -33,6 +37,7 @@ def inserir_analitico(
         tabela=tabela,
         col_data=col_data,
         conn=conn,
+        data_fim=data_fim,
         tipos=tipos,
         arquivo_log=arquivo_log,
     )

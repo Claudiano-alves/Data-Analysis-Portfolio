@@ -1,4 +1,4 @@
-# utils/database/insert.py
+# utils/_database/insert.py
 
 import pandas as pd
 from datetime import date
@@ -67,6 +67,14 @@ def inserir_dataframe(
         if df_insert[col].dtype.kind in ('i', 'f', 'u', 'M'):
             df_insert[col] = df_insert[col].apply(_converter_valor)
 
+    # Substitui NaN e inf remanescentes por None em colunas float
+    import numpy as np
+    float_cols = df_insert.select_dtypes(include=['float']).columns
+    for col in float_cols:
+        df_insert[col] = df_insert[col].apply(
+            lambda v: None if (v is None or (isinstance(v, float) and (np.isnan(v) or np.isinf(v)))) else v
+        )
+
     total = len(df_insert)
     chunks = [df_insert.iloc[i:i + chunk_size] for i in range(0, total, chunk_size)]
     colunas_insert = list(df_insert.columns)
@@ -114,6 +122,7 @@ def inserir_dataframe_incremental(
     tabela: str,
     col_data: str,
     conn,
+    data_fim: date = None,
     chunk_size: int = 10_000,
     arquivo_log: str = None,
     tipos: dict = None,
@@ -127,26 +136,32 @@ def inserir_dataframe_incremental(
     tabela      : Nome da tabela destino
     col_data    : Nome da coluna de data no df (após renomeação)
     conn        : Conexão com o banco
+    data_fim    : Data limite do ciclo. Se None, usa D-1
     chunk_size  : Tamanho de cada lote (default 10.000)
     arquivo_log : Caminho do arquivo de log (opcional)
     tipos       : Dict de conversão de tipos {coluna: dtype}
     """
-    from utils._database.check import verificar_datas_faltantes
+    from utils._database.check import datas_faltantes
 
     def log(msg):
         print(msg)
         if arquivo_log:
             salvar_log(msg, arquivo_log)
 
-    datas_faltantes = verificar_datas_faltantes(tabela, col_data, conn)
+    datas_pendentes = datas_faltantes(tabela, col_data, conn, data_fim=data_fim)
 
-    if not datas_faltantes:
+    if datas_pendentes is None:
+        # tabela vazia — insere tudo que está no df
+        log(f"[{tabela}] 📋 Tabela vazia — inserindo todos os {len(df):,} registros")
+        df_filtrado = df.copy()
+
+    elif not datas_pendentes:
         log(f"[{tabela}] ✅ Tabela atualizada — nenhum registro a inserir")
         return True
 
-    log(f"[{tabela}] 📅 Datas faltantes: {datas_faltantes[0]} até {datas_faltantes[-1]} ({len(datas_faltantes)} dia(s))")
-
-    df_filtrado = df[pd.to_datetime(df[col_data]).dt.date.isin(datas_faltantes)].copy()
+    else:
+        log(f"[{tabela}] 📅 Datas faltantes: {datas_pendentes[0]} até {datas_pendentes[-1]} ({len(datas_pendentes)} dia(s))")
+        df_filtrado = df[pd.to_datetime(df[col_data]).dt.date.isin(datas_pendentes)].copy()
 
     if df_filtrado.empty:
         log(f"[{tabela}] ⚠️  Nenhum registro no df para as datas faltantes")

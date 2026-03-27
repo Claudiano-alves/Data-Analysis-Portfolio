@@ -4,7 +4,6 @@ warnings.filterwarnings("ignore", category=FutureWarning)
 
 from datetime import datetime
 
-
 def get_query_discagens_(dt_ini, dt_fim, where_clause="", columns=None):
     """
     Retorna a query SQL para buscar discagens com período parametrizado e filtros customizados.

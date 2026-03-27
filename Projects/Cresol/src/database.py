@@ -1,5 +1,6 @@
 # Cresol/src/database.py
 
+from datetime import date
 from utils._database.operations import inserir_analitico
 from utils._database.query import consultar_dataframe
 from utils._database.check import verificar_ultima_data, esta_atualizado, datas_faltantes
@@ -7,8 +8,18 @@ from utils.utils import salvar_log
 from Cresol.src.config import LOG_PIPELINE, TABELAS
 
 
-def inserir(nome: str, df, conn, arquivo_log=LOG_PIPELINE):
-    """Insert genérico — usa configuração de TABELAS do config."""
+def inserir(nome: str, df, conn, data_fim: date = None, arquivo_log=LOG_PIPELINE):
+    """
+    Insert genérico — usa configuração de TABELAS do config.
+    
+    Parameters:
+    -----------
+    nome      : Chave em TABELAS (ex: 'discagens')
+    df        : DataFrame com os dados
+    conn      : Conexão com o banco
+    data_fim  : Data limite do ciclo. Se None, usa D-1
+    arquivo_log: Caminho do arquivo de log
+    """
     config = TABELAS[nome]
     return inserir_analitico(
         df=df,
@@ -18,13 +29,16 @@ def inserir(nome: str, df, conn, arquivo_log=LOG_PIPELINE):
         col_data=config['col_data'],
         tipos=config.get('tipos'),
         arquivo_log=arquivo_log,
+        data_fim=data_fim,
     )
+
 
 def processar_indicador(
     nome_indicador: str,
     conn,
     fn_acumulado,
     df_analitico=None,
+    data_fim: date = None,
     arquivo_log=LOG_PIPELINE,
 ):
     """
@@ -40,6 +54,7 @@ def processar_indicador(
     conn           : Conexão com o banco
     fn_acumulado   : Função que calcula o acumulado — recebe df_analitico
     df_analitico   : DataFrame em memória (opcional — se None, busca do banco)
+    data_fim       : Data limite do ciclo. Se None, usa D-1
     arquivo_log    : Caminho do arquivo de log
     """
     def log(msg):
@@ -60,7 +75,7 @@ def processar_indicador(
         filtros={'Indicador': nome_indicador},
     )
 
-    if esta_atualizado(ultima_data_sintetico):
+    if esta_atualizado(ultima_data_sintetico, data_fim=data_fim):
         log(f"SKIP  » {nome_indicador} — acumulado já atualizado até {ultima_data_sintetico}")
         return True
 
@@ -73,12 +88,12 @@ def processar_indicador(
         col_data=config_analitico['col_data'],
     )
 
-    analitico_atualizado = esta_atualizado(ultima_data_analitico)
+    analitico_atualizado = esta_atualizado(ultima_data_analitico, data_fim=data_fim)
 
     if not analitico_atualizado:
         if df_analitico is not None:
             log(f"INFO  » {nome_indicador} — analítico desatualizado, usando df em memória")
-            inserir(nome_indicador, df_analitico, conn, arquivo_log)
+            inserir(nome_indicador, df_analitico, conn, data_fim=data_fim, arquivo_log=arquivo_log)
         else:
             log(f"FALHA » {nome_indicador} — analítico desatualizado e sem df em memória")
             return False
@@ -108,4 +123,4 @@ def processar_indicador(
         return False
 
     # ── 5. Insere acumulado ───────────────────────────────────────────────────
-    return inserir('sintetico', df_acumulado, conn, arquivo_log)
+    return inserir('sintetico', df_acumulado, conn, data_fim=data_fim, arquivo_log=arquivo_log)

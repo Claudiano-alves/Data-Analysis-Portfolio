@@ -19,7 +19,6 @@ from utils._database.query import consultar_dataframe
 from utils.utils import salvar_log, registrar_tempo
 from utils.db_connection import get_db_connections
 
-
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
 def _executar_etapa(nome, fn, *args, **kwargs):
@@ -34,11 +33,12 @@ def _executar_etapa(nome, fn, *args, **kwargs):
         salvar_log(traceback.format_exc(), LOG_PIPELINE)
         raise
 
-def _inserir_isolado(nome, df, conn):
+
+def _inserir_isolado(nome, df, conn, data_fim: date = None):
     salvar_log(f"{'─' * 50}", LOG_PIPELINE)
     salvar_log(f"INSERT » {nome}", LOG_PIPELINE)
     try:
-        sucesso = inserir(nome, df, conn=conn)
+        sucesso = inserir(nome, df, conn=conn, data_fim=data_fim)
         if sucesso:
             salvar_log(f"OK    » {nome}", LOG_PIPELINE)
         else:
@@ -46,6 +46,9 @@ def _inserir_isolado(nome, df, conn):
     except Exception as e:
         salvar_log(f"FALHA » {nome}: {str(e)}", LOG_PIPELINE)
         salvar_log(traceback.format_exc(), LOG_PIPELINE)
+        print(f"❌ INSERT FALHOU [{nome}]: {e}")
+        raise
+
 
 def _menor_data_pendente(conn) -> date:
     """
@@ -74,6 +77,7 @@ def _menor_data_pendente(conn) -> date:
 
     return menor_data
 
+
 def _ciclos_pendentes(menor_data: date) -> list:
     """Gera ciclos mensais entre menor_data e D-1."""
     ontem = date.today() - timedelta(days=1)
@@ -97,6 +101,7 @@ def _ciclos_pendentes(menor_data: date) -> list:
 
     return ciclos
 
+
 def _obter_mailing(ciclo, conn_trc, conn_bd2, conn_src) -> pd.DataFrame | None:
     config = TABELAS['mailing']
     ultima = verificar_ultima_data(
@@ -105,7 +110,8 @@ def _obter_mailing(ciclo, conn_trc, conn_bd2, conn_src) -> pd.DataFrame | None:
         col_data=config['col_data'],
     )
 
-    if esta_atualizado(ultima):
+    # ← passa data_fim do ciclo para comparar corretamente
+    if esta_atualizado(ultima, data_fim=ciclo['data_fim']):
         salvar_log(f"INFO  » mailing atualizado — consultando banco a partir de {ciclo['data_inicio']}", LOG_PIPELINE)
         return consultar_dataframe(
             tabela=config['tabela'],
@@ -120,7 +126,7 @@ def _obter_mailing(ciclo, conn_trc, conn_bd2, conn_src) -> pd.DataFrame | None:
         data_inicio=str(ciclo['data_inicio']),
         data_fim=str(ciclo['data_fim']),
         datasets_to_load=['mailing_hist', 'dw_calendario'],
-        conn_trc=conn_trc, conn_bd2=conn_bd2, conn_src=conn_src,  # ← passa conexões
+        conn_trc=conn_trc, conn_bd2=conn_bd2, conn_src=conn_src,
     )
 
     resultado = _executar_etapa(
@@ -130,7 +136,8 @@ def _obter_mailing(ciclo, conn_trc, conn_bd2, conn_src) -> pd.DataFrame | None:
         dados.get('dw_calendario', pd.DataFrame()),
     )
 
-    _inserir_isolado('mailing', resultado['analitico'], conn_bd2)
+    # ← passa data_fim do ciclo
+    _inserir_isolado('mailing', resultado['analitico'], conn_bd2, data_fim=ciclo['data_fim'])
     return resultado['analitico']
 
 
@@ -217,7 +224,8 @@ def executar_analiticos():
                     conn=conn_bd2,
                     col_data=config_tabela['col_data'],
                 )
-                if esta_atualizado(ultima):
+                # ← passa data_fim do ciclo para não pular indevidamente
+                if esta_atualizado(ultima, data_fim=ciclo['data_fim']):
                     salvar_log(f"SKIP » {nome} — analítico já atualizado até {ultima}", LOG_PIPELINE)
                     continue
 
@@ -229,7 +237,7 @@ def executar_analiticos():
                         data_fim=str(ciclo['data_fim']),
                         datasets_to_load=cfg['datasets'],
                         conn_trc=conn_trc, conn_bd2=conn_bd2, conn_src=conn_src,
-)
+                    )
 
                     resultado = _executar_etapa(
                         f"{nome} — {ciclo['mes']}",
@@ -237,7 +245,8 @@ def executar_analiticos():
                         **cfg['kwargs'](dados),
                     )
 
-                    _inserir_isolado(nome, resultado['analitico'], conn_bd2)
+                    # ← passa data_fim do ciclo
+                    _inserir_isolado(nome, resultado['analitico'], conn_bd2, data_fim=ciclo['data_fim'])
 
                 except Exception as e:
                     salvar_log(f"FALHA » {nome}: {str(e)}", LOG_PIPELINE)

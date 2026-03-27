@@ -652,10 +652,10 @@ __all__ = [
     'processar_acumulados_massivos',
 
     # Metricas
+    'massivos_segmentacoes_funil',
     'massivos_unique_funil',
-    'massivos_fxAtraso_funil',
-    'massivos_unique_funil',
-    'massivos_fxAtraso_daily',
+    'massivos_esforco_funil',
+    'massivos_segmentacoes_daily',
     'massivos_unique_daily',
     'massivos_esforco_daily'
 ]
