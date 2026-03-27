@@ -1,0 +1,12 @@
+{
+  "users": [
+    {
+      "id": 1,
+      "user": "adm",
+      "nome": "Administrador",
+      "role": "admin",
+      "senha": "1234"
+    }
+  ],
+  "reports": []
+}
