@@ -1,3 +1,28 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+html,
+body,
+#root {
+  height: 100%;
+  overflow: hidden;
+}
+
+@layer utilities {
+  .home-frame-scroll {
+    scrollbar-width: thin;
+    scrollbar-color: #910a21 #fce8eb;
+  }
+  .home-frame-scroll::-webkit-scrollbar {
+    width: 8px;
+  }
+  .home-frame-scroll::-webkit-scrollbar-track {
+    border-radius: 4px;
+    background: #fce8eb;
+  }
+  .home-frame-scroll::-webkit-scrollbar-thumb {
+    border-radius: 4px;
+    background: #910a21;
+  }
+}

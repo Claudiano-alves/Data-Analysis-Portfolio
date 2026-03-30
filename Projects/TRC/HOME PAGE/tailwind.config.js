@@ -23,6 +23,8 @@ export default {
       fontFamily: {
         arima: ['Arima', 'cursive'],
         arimo: ['Arimo', 'sans-serif'],
+        /** Equivalente à família "Amiri Quran" (Google Fonts; variante "Colored" não listada separadamente). */
+        'amiri-quran': ['"Amiri Quran"', 'serif'],
       },
       /**
        * Fundos: usar URLs servidas pelo Vite — ver `architecture.md`.

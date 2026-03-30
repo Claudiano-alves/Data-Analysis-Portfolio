@@ -1,0 +1,71 @@
+{
+  "users": [
+    {
+      "id": 1,
+      "user": "adm",
+      "nome": "Administrador",
+      "role": "user",
+      "senha": "1234"
+    },
+    {
+      "id": 2,
+      "user": "usuario",
+      "nome": "Utilizador",
+      "role": "user",
+      "senha": "1234"
+    },
+    {
+      "id": 1774879017639,
+      "user": "andré.duarte",
+      "nome": "André Duarte",
+      "senha": "1234",
+      "role": "admin"
+    },
+    {
+      "id": 1774879226116,
+      "user": "claudiano.alves",
+      "nome": "Claudiano Alves",
+      "senha": "1234",
+      "role": "admin"
+    },
+    {
+      "id": 1774880332391,
+      "user": "diomar",
+      "nome": "diomar.rodrigues",
+      "senha": "1234",
+      "role": "user"
+    }
+  ],
+  "reports": [
+    {
+      "id": 1774876146777,
+      "nome": "nubank",
+      "link": "https://app.powerbi.com/view?r=eyJrIjoiNTFjY2RjZTctMWEyOS00ZWYzLTk0MzItOGRjNDQyNjM1ZTdmIiwidCI6ImNhNjRhMDU3LTEyYjctNDRkOS1iYTU4LTNiNjNhOTVlNzNhYiJ9",
+      "imagePath": "/img/nubank-1774876146777.png"
+    },
+    {
+      "id": 1774876251711,
+      "nome": "willbank",
+      "link": "https://app.powerbi.com/view?r=eyJrIjoiMDBkMjA4NDItYTIxZi00ZTU3LThhOGYtODA1OTEwNGIwOWQwIiwidCI6ImNhNjRhMDU3LTEyYjctNDRkOS1iYTU4LTNiNjNhOTVlNzNhYiJ9",
+      "imagePath": "/img/willbank-1774876251711.png"
+    },
+    {
+      "id": 1774876383664,
+      "nome": "getnet",
+      "link": "https://app.powerbi.com/view?r=eyJrIjoiZGY2ZmQ0NjYtZDRjZi00MGNhLTllMWUtODJmMWExMjE3YzJlIiwidCI6ImNhNjRhMDU3LTEyYjctNDRkOS1iYTU4LTNiNjNhOTVlNzNhYiJ9",
+      "imagePath": "/img/getnet-1774876383664.png"
+    },
+    {
+      "id": 1774876449650,
+      "nome": "aspect",
+      "link": "https://app.powerbi.com/view?r=eyJrIjoiNGNkMGQ3YTYtYzAxZS00NDFiLTk3YjAtNmJmYWYyODI1MzJjIiwidCI6ImNhNjRhMDU3LTEyYjctNDRkOS1iYTU4LTNiNjNhOTVlNzNhYiJ9",
+      "imagePath": "/img/aspect-1774876449650.png"
+    },
+    {
+      "id": 1774876517540,
+      "nome": "vero",
+      "link": "https://app.powerbi.com/view?r=eyJrIjoiMTNmYzA3Y2MtZmRlMC00ZDBkLWE0MTctODM4MTgxYTc1NTE2IiwidCI6ImNhNjRhMDU3LTEyYjctNDRkOS1iYTU4LTNiNjNhOTVlNzNhYiJ9",
+      "imagePath": "/img/vero-1774876517540.png"
+    }
+  ]
+}
